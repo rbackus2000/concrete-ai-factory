@@ -34,6 +34,9 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
     message: string;
   } | null>(null);
 
+  const autoSlug = (value: string) =>
+    value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
   const form = useForm<SlatWallProjectEditorValues>({
     resolver: zodResolver(slatWallProjectEditorSchema),
     defaultValues: {
@@ -49,8 +52,10 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
       description: "",
       positionAName: "Image A",
       positionBName: "Image B",
-      positionADescription: "",
-      positionBDescription: "",
+      positionADescription:
+        "A unified full-wall composite image spanning the entire rotating vertical slat installation, rendered as a premium large-scale architectural artwork. The image should read clearly and continuously across the full width and height of the wall when all slats align in this viewing position. The subject of the image is: [INSERT SIDE A IMAGE SUBJECT HERE]. The composition should feel bold, clean, cohesive, and visually strong at architectural scale, with tonal continuity across all slats and no disconnected panel artwork.",
+      positionBDescription:
+        "A unified full-wall composite image spanning the entire rotating vertical slat installation, rendered as a premium large-scale architectural artwork. The image should read clearly and continuously across the full width and height of the wall when all slats align in this viewing position. The subject of the image is: [INSERT SIDE B IMAGE SUBJECT HERE]. The composition should feel bold, clean, cohesive, and visually strong at architectural scale, with tonal continuity across all slats and no disconnected panel artwork.",
       totalSlatCount: 32,
       slatWidth: 7,
       slatThickness: 0.45,
@@ -100,12 +105,22 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
             </div>
             <div className="space-y-2">
               <Label htmlFor="code">Project Code</Label>
-              <Input id="code" placeholder="SW-001" {...form.register("code")} />
+              <Input
+                id="code"
+                placeholder="SW-001"
+                {...form.register("code", {
+                  onChange: (e) => {
+                    if (mode === "create") {
+                      form.setValue("slug", autoSlug(e.target.value), { shouldValidate: true });
+                    }
+                  },
+                })}
+              />
               <FieldError message={form.formState.errors.code?.message} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="slug">Slug</Label>
-              <Input id="slug" {...form.register("slug")} />
+              <Input id="slug" placeholder="auto-generated from code" {...form.register("slug")} />
               <FieldError message={form.formState.errors.slug?.message} />
             </div>
           </div>

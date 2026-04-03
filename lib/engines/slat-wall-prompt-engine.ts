@@ -1,3 +1,8 @@
+export type SlatWallDrawingPrompt = {
+  drawingType: string;
+  promptText: string;
+};
+
 export type SlatWallProjectData = {
   code: string;
   name: string;
@@ -82,42 +87,41 @@ export function buildSlatWallPrompt(
 
   switch (outputType) {
     case "IMAGE_RENDER_A":
-      return `Generate a ultra-realistic architectural render of a kinetic rotating slat wall in Position A, showing the complete "${project.positionAName}" composite image.
+    case "IMAGE_RENDER_B": {
+      const isA = outputType === "IMAGE_RENDER_A";
+      const posName = isA ? project.positionAName : project.positionBName;
+      const posDesc = isA
+        ? (project.positionADescription || project.positionAName)
+        : (project.positionBDescription || project.positionBName);
+      const posAngle = isA ? c.rotationAngleA : c.rotationAngleB;
+      const posLabel = isA ? "A" : "B";
+      const faceLabel = isA ? "Face A" : "Face B";
+
+      return `Generate an ultra-realistic architectural render of a kinetic rotating slat wall in Position ${posLabel}, showing the complete "${posName}" composite image.
 
 ${base}
 
-The image shows all ${c.totalSlatCount} slats rotated to Position A (${fmt(c.rotationAngleA)}°), with each slat displaying its Face A artwork slice. The complete wall reads as one unified large-format image: ${project.positionADescription || project.positionAName}.
+The image shows all ${c.totalSlatCount} slats rotated to Position ${posLabel} (${fmt(posAngle)}°), with each slat displaying its ${faceLabel} artwork slice. The complete wall reads as one unified large-format image: ${posDesc}.
 
 The wall is ${wallWidthFeet(project)} feet wide by ${heightFeet(project)} feet tall. Each slat is ${fmt(c.slatWidth)}" wide thin GFRC concrete with UV-printed artwork over sealed matte concrete surface. Show the subtle vertical gaps (${fmt(c.slatSpacing)}") between slats — the image reads continuously despite the physical slat divisions.
 
-Environment: Premium architectural interior — museum, hotel lobby, or high-end residential. Soft architectural lighting that reveals the artwork and the materiality of the concrete slats. The support frame (top and bottom aluminum track) should be visible but minimal.
+CRITICAL — use these EXACT camera and environment settings for consistency between Position A and Position B renders:
+- Camera: Centered on the wall, straight-on frontal view with very slight left perspective (approximately 5° off-axis). Camera positioned at 5 feet height, 20 feet from wall.
+- Room: Large minimalist gallery space with polished concrete floor, smooth white/light gray walls, and a high ceiling (approximately 20 feet). The room is rectangular with the slat wall as the focal feature on the far wall.
+- Lighting: Soft diffused overhead lighting from recessed ceiling panels. No harsh directional light. Even illumination across the full wall surface. Subtle floor reflection.
+- Frame: Full wall visible with approximately 3 feet of floor visible below and 2 feet of ceiling above. Wall edges visible on both sides with 2 feet of room wall on each side.
+- Support frame: Thin brushed aluminum top and bottom track visible, minimal profile.
+- Wall proportions: The slat wall should fill approximately 70% of the image width, maintaining the exact ${wallWidthFeet(project)} ft x ${heightFeet(project)} ft proportions.
+- The only difference between Position A and Position B renders is the artwork displayed on the slat faces.
 
 Style: Premium, museum-quality, architecturally refined. Not a billboard — this is a kinetic art installation.
 
 ${creativeDirection}
 
-Negative constraints: No billboard aesthetics. No chunky slats. No disconnected image slices. No generic signage. No fantasy mechanics.
+Negative constraints: No billboard aesthetics. No chunky slats. No disconnected image slices. No generic signage. No fantasy mechanics. No dramatic camera angles. No colored lighting.
 
 Footer: RB Studio | ${project.code}`;
-
-    case "IMAGE_RENDER_B":
-      return `Generate a ultra-realistic architectural render of a kinetic rotating slat wall in Position B, showing the complete "${project.positionBName}" composite image.
-
-${base}
-
-The image shows all ${c.totalSlatCount} slats rotated to Position B (${fmt(c.rotationAngleB)}°), with each slat displaying its Face B artwork slice. The complete wall reads as one unified large-format image: ${project.positionBDescription || project.positionBName}.
-
-The wall is ${wallWidthFeet(project)} feet wide by ${heightFeet(project)} feet tall. Each slat is ${fmt(c.slatWidth)}" wide thin GFRC concrete with UV-printed artwork over sealed matte concrete surface. Show the subtle vertical gaps (${fmt(c.slatSpacing)}") between slats.
-
-Environment: Same architectural setting as Position A but the wall now displays a completely different image. Emphasize the transformative effect — same physical wall, different artwork.
-
-Style: Premium, museum-quality, architecturally refined.
-
-${creativeDirection}
-
-Negative constraints: No billboard aesthetics. No chunky slats. No disconnected image slices. No generic signage. No fantasy mechanics.
-
-Footer: RB Studio | ${project.code}`;
+    }
 
     case "IMAGE_RENDER_WALL":
       return `Generate a ultra-realistic architectural render showing the kinetic rotating slat wall installation in a mid-rotation transitional state — slats partially between Position A and Position B.
@@ -190,6 +194,45 @@ ${creativeDirection}`;
   }
 }
 
+export function buildSlatWallDrawingPrompt(project: SlatWallProjectData): SlatWallDrawingPrompt {
+  const c = project.config;
+  const ww = wallWidthInches(project);
+
+  return {
+    drawingType: "system_architecture",
+    promptText: `Create a clean architectural technical board for a rotating vertical slat wall system using thin GFRC finish faces over a structural steel spine.
+
+Project: ${project.code} — ${project.name}
+Slat Count: ${c.totalSlatCount}
+Slat Dimensions: ${fmt(c.slatWidth)}" W x ${fmt(c.slatHeight)}" H x ${fmt(c.slatThickness)}" T
+Wall Width: ${fmt(ww)}" (${(ww / 12).toFixed(1)} ft)
+Position A: "${project.positionAName}" | Position B: "${project.positionBName}"
+
+Board layout must include:
+1. Front elevation with slat numbering S-01 to S-${String(c.totalSlatCount).padStart(2, "0")}, showing wall width ${(ww / 12).toFixed(1)} ft x height ${heightFeet(project)} ft
+2. Position A image logic diagram labeled "Face A — ${project.positionAName}" showing all slats at ${fmt(c.rotationAngleA)}°
+3. Position B image logic diagram labeled "Face B — ${project.positionBName}" showing all slats at ${fmt(c.rotationAngleB)}°
+4. Single slat exploded section showing:
+   - thin GFRC finish face (${fmt(c.slatThickness)}" thick)
+   - sealed concrete print surface
+   - UV-printed artwork layer
+   - matte protective topcoat
+   - central structural steel spine
+5. Top pivot detail showing concealed pivot pin in ${c.supportFrameType || "aluminum top track"}
+6. Bottom pivot detail showing lower bearing support
+7. Frame and motor enclosure concept showing concealed top frame housing motors, transmission, and controls
+8. Simple dimensional callouts: ${fmt(c.slatWidth)}" width, ${fmt(c.slatHeight)}" (${heightFeet(project)} ft) height, ${fmt(c.slatThickness)}" thickness, ${fmt(c.slatSpacing)}" spacing
+
+Style:
+- white or light neutral background
+- premium, minimal, highly legible
+- real architectural graphic design
+- no gibberish text — use only clean professional labels
+- less cinematic rendering, more system clarity
+- include title block: "RB Studio | ${project.code} | SYSTEM ARCHITECTURE"`,
+  };
+}
+
 function buildSlatWallBuildPacketText(
   project: SlatWallProjectData,
   creativeDirection: string,
@@ -197,13 +240,18 @@ function buildSlatWallBuildPacketText(
   const c = project.config;
   const ww = wallWidthInches(project);
 
+  const estWeight = (c.slatWidth * c.slatHeight * c.slatThickness * 0.08).toFixed(1);
+  const lastSlat = `S-${String(c.totalSlatCount).padStart(2, "0")}`;
+
   const sections = [
     `1. PROJECT OVERVIEW
 Project: ${project.code} — ${project.name}
 Client: ${project.clientName || "RB Studio"}
 Location: ${project.location || "TBD"}
 Designer: ${project.designer || "RB Studio"}
+Revision: ${project.config.rotationAngleA}
 Design Intent: Premium kinetic rotating vertical slat wall installation. ${c.totalSlatCount} thin GFRC concrete slats with UV-printed artwork revealing two complete composite images.
+Production Assumption: GFRC slat substrate + sealed print face + UV print artwork + matte/satin protective clear coat
 Position A ("${project.positionAName}"): ${project.positionADescription || "Full-wall composite image"}
 Position B ("${project.positionBName}"): ${project.positionBDescription || "Full-wall composite image"}`,
 
@@ -211,90 +259,293 @@ Position B ("${project.positionBName}"): ${project.positionBDescription || "Full
 Slat Count: ${c.totalSlatCount}
 Wall Dimensions: ${fmt(ww)}" W x ${fmt(c.slatHeight)}" H (${(ww / 12).toFixed(1)} ft x ${heightFeet(project)} ft)
 Individual Slat: ${fmt(c.slatWidth)}" W x ${fmt(c.slatHeight)}" H x ${fmt(c.slatThickness)}" T
+Estimated Weight Per Slat: ${estWeight} lbs
 Slat Material: Thin GFRC (Glass Fiber Reinforced Concrete)
-Finish System: Sealed concrete + UV print + protective clear coat
+Finish System: Sealed concrete substrate → UV print → protective clear coat
 Support Frame: ${c.supportFrameType || "Engineered aluminum top/bottom track"}
 Pivot System: ${c.pivotType || "Concealed vertical pin pivot"}
 Rotation: Position A = ${fmt(c.rotationAngleA)}°, Position B = ${fmt(c.rotationAngleB)}°
 Slat Spacing: ${fmt(c.slatSpacing)}"`,
 
-    `3. SLAT CONSTRUCTION
-Build-up (inside out):
-- GFRC substrate: ${fmt(c.slatThickness)}" thick, fiber-reinforced single-layer casting
-- Surface prep: sand printable face, clean, flatten to print tolerance
-- Sealer: compatible UV-print-base penetrating sealer
-- Artwork: UV direct print over sealed concrete face
-- Top coat: matte or satin clear protective coating
-- Edge finish: eased edges, sealed, no exposed aggregate
+    `3. SUBSTRATE SPEC — GFRC SLAT CONSTRUCTION
+Material: Glass Fiber Reinforced Concrete (GFRC)
+Thickness: ${fmt(c.slatThickness)}" nominal
+Reinforcement: AR (alkali-resistant) glass fiber at 2.5-3% by weight
+Mix Type: SCC (self-consolidating concrete) for thin-section casting
+Casting: Single-layer pour into precision mold
+Dimensions: ${fmt(c.slatWidth)}" W x ${fmt(c.slatHeight)}" H (${heightFeet(project)} ft)
+Weight: approximately ${estWeight} lbs per slat
+Edge Condition: Eased edges, all corners minimum 1/16" radius
+Flatness Tolerance: Within 1/16" over full ${fmt(c.slatHeight)}" height
+Thickness Tolerance: +/- 1/32"
+Cure: Minimum 7-day wet cure before surface prep
+Each slat has TWO printable faces — Face A and Face B`,
 
-Weight per slat: approximately ${(c.slatWidth * c.slatHeight * c.slatThickness * 0.08).toFixed(1)} lbs (estimated)
-Reinforcement: AR glass fiber at 2-3% by weight
-Each slat has TWO printable faces (Face A and Face B)`,
+    `4. SURFACE PREP SPEC
+Purpose: Prepare cured GFRC faces for sealer and UV print adhesion
+Process:
+  1. Dry slat fully after cure (minimum 48 hours air dry after wet cure)
+  2. Sand both printable faces with 120-grit to remove form release residue
+  3. Follow with 220-grit to create uniform micro-texture for sealer adhesion
+  4. Vacuum all dust from faces and edges — zero residue
+  5. Wipe with lint-free cloth dampened with denatured alcohol
+  6. Inspect under raking light — reject any face with voids >1mm, cracks, or exposed fiber
+  7. Mark rejected faces for patching before proceeding
+Tolerance: Surface flatness within 1/32" across print zone
+Critical: Both Face A and Face B must be prepped to identical standard`,
 
-    `4. SUPPORT FRAME / PIVOT SYSTEM
-Top Frame: ${c.supportFrameType || "Engineered aluminum channel"} — continuous track spanning ${fmt(ww)}" (${(ww / 12).toFixed(1)} ft)
-Bottom Frame: Matching bottom track with floor anchoring
-Pivot Locations: Top center and bottom center of each slat
-Rotation Stops: Fixed positions at ${fmt(c.rotationAngleA)}° (Position A) and ${fmt(c.rotationAngleB)}° (Position B)
-Alignment Control: Precision pivot pins with stop mechanisms
-Tolerance: Pivot alignment +/- 1/32" per slat
-Installation Anchoring: Structural connection to ceiling/floor structure required`,
+    `5. SEALER SPEC
+Purpose: Create a compatible, consistent print-base surface for UV ink adhesion
+Product: Penetrating concrete sealer compatible with UV direct print
+  - Must not create a glossy film — matte penetrating absorption preferred
+  - Must seal porosity without blocking ink adhesion
+  - Must not yellow or discolor under UV exposure
+Application:
+  1. Apply sealer to Face A — single even coat with foam roller or HVLP spray
+  2. Allow 4-hour dry time at 70°F minimum
+  3. Light scuff with 320-grit if any raised grain or dust nibs
+  4. Apply sealer to Face B — same process
+  5. Final inspection: sealed surface should feel smooth, non-porous, uniformly matte
+Coverage: Approximately 200 sq ft per gallon
+Rejection Criteria: Uneven sealer absorption, glossy spots, visible roller marks, dust contamination`,
 
-    `5. ARTWORK APPLICATION METHOD
-Substrate: Cured and finished GFRC slat
-Face Prep: Surface flattening, cleaning, print-ready preparation
-Sealer: Compatible UV-print-base penetrating sealer
-Artwork: UV direct print over sealed concrete
-Resolution: Minimum 150 DPI at final print size
-Color Management: ICC profile matched to concrete substrate
-Top Protection: Matte or satin clear protective coating
-Edge Masking: Print boundaries masked ${fmt(c.slatSpacing / 2)}" from each edge
-Cure/Protection: 24-hour cure before handling, edge protection during transit`,
+    `6. PRINT SPEC — UV DIRECT PRINT OVER SEALED CONCRETE
+Method: UV flatbed direct print on sealed GFRC substrate
+Equipment: Industrial UV flatbed printer capable of ${fmt(c.slatWidth)}" x ${fmt(c.slatHeight)}" print area
+Resolution: Minimum 150 DPI at final print size (300 DPI preferred)
+Color Management: ICC profile calibrated to sealed GFRC substrate
+  - Profile must account for concrete surface absorption
+  - Test strip printed on sample slat before production run
+  - Match between adjacent slats is critical — use same profile and batch
+Ink: UV-curable inks rated for architectural interior durability
+Print Origin: Bottom-left corner of each face, consistent across all slats
+Registration: Print origin aligned to physical slat edge — maximum 1/32" drift
+Bleed: ${fmt(c.slatSpacing / 2)}" bleed beyond visible face area on left and right edges
+Safe Zone: Keep critical image content 1/4" from all edges
+Edge Masking: Mask ${fmt(c.slatSpacing / 2)}" from each vertical edge before printing if required
+Print Both Faces: Each slat receives two print passes — Face A then Face B
+Handling: Edge guards during print positioning — fresh GFRC chips easily`,
 
-    `6. POSITION LOGIC
-Position A: All slats rotated to ${fmt(c.rotationAngleA)}° — Face A visible — displays "${project.positionAName}"
-Position B: All slats rotated to ${fmt(c.rotationAngleB)}° — Face B visible — displays "${project.positionBName}"
-Rotation Direction: All slats rotate same direction (clockwise from top view)
-Leading Edge: Right edge when viewed from front
-Orientation Arrow: Marked on top edge of each slat pointing toward Face A
-Installation Alignment: Slat S-01 at left end of wall, S-${String(c.totalSlatCount).padStart(2, "0")} at right end`,
+    `7. PRINT FILE NAMING AND DELIVERY
+Naming Convention:
+  Face A files: ${project.code}_A-01.tiff through ${project.code}_A-${String(c.totalSlatCount).padStart(2, "0")}.tiff
+  Face B files: ${project.code}_B-01.tiff through ${project.code}_B-${String(c.totalSlatCount).padStart(2, "0")}.tiff
 
-    `7. SLAT SCHEDULE
+File Format: TIFF, 300 DPI, CMYK, no compression
+  - Alternate: PDF/X-4 with embedded ICC profile
+Dimensions Per File: ${fmt(c.slatWidth)}" W x ${fmt(c.slatHeight)}" H plus ${fmt(c.slatSpacing / 2)}" bleed on left/right
+Total Files: ${c.totalSlatCount * 2} (${c.totalSlatCount} Face A + ${c.totalSlatCount} Face B)
+Color Space: CMYK with ICC profile matched to sealed concrete substrate
+Delivery: All files in a single project folder named "${project.code}_PRINT_FILES"
+Verification: Print proof strip on sample sealed GFRC before full production run`,
+
+    `8. TOPCOAT SPEC — PROTECTIVE CLEAR COAT
+Purpose: Protect UV-printed artwork from abrasion, UV fade, and moisture
+Product: Water-based polyurethane clear coat, matte or satin sheen
+  - Must be compatible with UV-cured ink layer
+  - Must not yellow, crack, or peel
+  - Must not alter color fidelity of underlying print
+Application:
+  1. Allow UV ink to fully cure — minimum 24 hours after printing
+  2. Apply first coat to Face A with HVLP spray — thin, even, no runs
+  3. Dry 4 hours minimum
+  4. Light scuff with 400-grit if needed for adhesion between coats
+  5. Apply second coat to Face A
+  6. Repeat for Face B (two coats)
+  7. Final dry 24 hours before handling
+Total Coats: 2 per face (4 total per slat)
+Sheen: Matte (recommended) or Satin — must be consistent across all slats
+Rejection Criteria: Runs, drips, dust contamination, uneven sheen, visible brush marks, color shift from underlying print`,
+
+    `9. SLAT MAPPING AND ARTWORK ASSIGNMENT
+Image A ("${project.positionAName}") → sliced into ${c.totalSlatCount} vertical strips → assigned to Face A of each slat
+Image B ("${project.positionBName}") → sliced into ${c.totalSlatCount} vertical strips → assigned to Face B of each slat
+
+Mapping Rule: Slat at wall position N receives:
+  - Face A: image slice A-N (from Image A)
+  - Face B: image slice B-N (from Image B)
+
+Slat Schedule:
+Slat ID | Wall Pos | Face A Slice | Face B Slice | Width | Height | Thickness | Orientation
 ${Array.from({ length: Math.min(c.totalSlatCount, 36) }, (_, i) => {
   const n = i + 1;
   const id = `S-${String(n).padStart(2, "0")}`;
   const fA = `A-${String(n).padStart(2, "0")}`;
   const fB = `B-${String(n).padStart(2, "0")}`;
-  return `${id} | Pos ${n} | ${fA} | ${fB} | ${fmt(c.slatWidth)}" x ${fmt(c.slatHeight)}" x ${fmt(c.slatThickness)}" | Standard`;
-}).join("\n")}`,
+  const note = n === 1 ? "Left start" : n === c.totalSlatCount ? "Right end" : "";
+  return `${id}      | ${String(n).padStart(3)}      | ${fA}          | ${fB}          | ${fmt(c.slatWidth)}"    | ${fmt(c.slatHeight)}"   | ${fmt(c.slatThickness)}"      | Standard${note ? ` | ${note}` : ""}`;
+}).join("\n")}
 
-    `8. QC REQUIREMENTS
-Dimensional: Width +/- 1/32", Height +/- 1/16", Thickness +/- 1/32", Flatness within 1/16" over full height
-Finish: Sealer consistency, print adhesion, clear coat uniformity, no color shift
-Image: Correct slice on correct slat, Face A/B not swapped, no reversed orientation, no image drift, tonal continuity across adjacent slats
-Assembly: Pivot fit, frame fit, stop angle accuracy, slat spacing consistency
-Installed: Position A full-image read test, Position B full-image read test`,
+Face A is visible only in Position A. Face B is visible only in Position B.
+Image continuity depends on correct slat ordering — left to right, S-01 through ${lastSlat}.`,
 
-    `9. FAILURE POINTS (READ THIS)
-- Incorrect slat order — destroys image continuity
+    `10. POSITION LOGIC
+Position A: All slats rotated to ${fmt(c.rotationAngleA)}° — Face A visible — displays "${project.positionAName}"
+Position B: All slats rotated to ${fmt(c.rotationAngleB)}° — Face B visible — displays "${project.positionBName}"
+Rotation Direction: All slats rotate same direction (clockwise from top view)
+Leading Edge: Right edge when viewed from front
+Orientation Arrow: Marked on top edge of each slat pointing toward Face A
+Stop Mechanism: Precision rotation stops at ${fmt(c.rotationAngleA)}° and ${fmt(c.rotationAngleB)}°
+Installation Alignment: S-01 at left end of wall, ${lastSlat} at right end`,
+
+    `11. ELECTRICAL + CONTROLS SYSTEM
+CONTROL INTENT:
+The Rotating Slat Image Wall System shall operate as a synchronized, programmable kinetic architectural installation that rotates between two fixed display states:
+- Position A (${fmt(c.rotationAngleA)}°) = Face A visible = "${project.positionAName}"
+- Position B (${fmt(c.rotationAngleB)}°) = Face B visible = "${project.positionBName}"
+The system shall automatically rotate on a configurable time delay, hold each position for a programmable dwell period, and confirm final alignment before the next motion cycle begins.
+
+SYSTEM ARCHITECTURE:
+- Synchronized zoned drive strategy — grouped slats per zone, not independent motors per slat
+- Master PLC/controller coordinates dwell timing, move commands, position confirmation, fault handling
+- Estimated ${Math.ceil(c.totalSlatCount / 7)} zones of approximately ${Math.min(7, c.totalSlatCount)} slats each
+
+POWER ARCHITECTURE:
+- System voltage: 24V DC for motion and controls
+- Facility provides dedicated building power feed to controls enclosure
+- Building power converted locally to regulated 24V DC
+- Internal distribution: 24V DC motor power, 24V DC control power, sensor power, Ethernet/network
+- Optional PoE for HMI terminals, network gateways, diagnostics only (not primary motor power)
+
+MOTOR AND DRIVE STRATEGY:
+- Low-voltage geared motor system or 24V DC servo/BLDC gearmotor per synchronized zone
+- Zone transmission: timing belt, chain drive, gear track, or mechanically linked shafting
+- Motion goals: smooth controlled rotation, synchronized arrival, repeatable alignment, low vibration
+- Controlled acceleration/deceleration profiles
+
+AUTOMATIC DWELL CYCLE:
+1. System startup → verify healthy power, no active fault
+2. Confirm home/reference position
+3. Move to Position A → hold for configurable dwell time
+4. Rotate to Position B → confirm alignment → hold for configurable dwell time
+5. Rotate back to Position A → repeat cycle
+Field-programmable: dwell times, transition speed, acceleration/deceleration profiles, scheduled hours, maintenance disable
+
+POSITION SENSING AND CONFIRMATION:
+- Primary feedback: motor/drive/controller position data
+- Secondary confirmation: external physical position sensing (magnetic proximity, hall-effect, optical, or encoder-based)
+- Required states: Position A reached, Position B reached, synchronization maintained, no jam/stall
+- Fault threshold: if position differs beyond tolerance → stop motion, log fault, require authorized reset
+
+SAFETY AND FAULT HANDLING:
+- Emergency stop at controls enclosure + optional remote E-stop
+- Fault conditions monitored: motion failure, zone sync error, over-current/torque, sensor failure, obstruction, power interruption
+- Fault response: stop all motion, hold safe state, log fault, require reset
+- Maintenance mode: automatic-cycle disable, reduced-speed manual jog for service
+
+CONTROLLER REQUIREMENTS:
+- Compact industrial PLC or automation controller
+- HMI with: Auto Mode, Manual Mode, Dwell Settings, Position Status, Fault/Alarm Status, Service Mode
+- Optional: Ethernet, remote diagnostics, PoE-powered HMI, building management integration
+
+TOP FRAME MOTOR ENCLOSURE:
+- Concealed housing for: motors, transmission, control nodes, power distribution, sensors, wiring
+- Removable access panels for motor replacement, transmission service, sensor replacement, wiring service
+
+BOTTOM FRAME SUPPORT:
+- Lower bearing support, alignment support, guided rotation support
+- Minimal service access for inspection and adjustment
+
+CABLING:
+- Low-voltage motor power, control wiring, sensor wiring, Ethernet/network
+- Concealed raceways, motion-rated flexible paths, organized service loops
+- Separation between motor power, control/sensor, and data wiring
+- All wiring, zones, sensors, and service points permanently labeled
+
+COMMISSIONING:
+- Verify: rotation direction, zone synchronization, Position A/B alignment, dwell timing, fault handling, sensor operation, manual jog
+- Service access to: motor enclosure, controller, sensors, transmission, lower bearings
+
+BASIS-OF-DESIGN SUMMARY:
+- Motion/Control Power: 24V DC
+- Communications: Ethernet / optional PoE for interface only
+- Motion Strategy: zoned synchronized drive (${Math.ceil(c.totalSlatCount / 7)} zones, ~${Math.min(7, c.totalSlatCount)} slats/zone)
+- Controller: PLC or compact industrial automation controller
+- Feedback: drive/controller feedback + physical position sensing
+- Operation: automatic timed dwell-cycle rotation
+- Safety: E-stop, fault stop, maintenance lockout, manual jog
+- Enclosure: concealed top frame with removable service access
+
+ENGINEERING NOTE:
+This is a production-aware basis of design. Final motor sizing, current draw, power-supply sizing, controller selection, sensor selection, safety compliance, and enclosure design shall be verified during prototype development and final engineering.`,
+
+    `12. INSTALL SEQUENCE
+1. Install top frame track — verify level, plumb, and structural anchor
+2. Install bottom frame track — verify alignment to top track
+3. Install pivot hardware at each of ${c.totalSlatCount} positions — verify spacing at ${fmt(c.slatWidth + c.slatSpacing)}" on center
+4. Verify slat numbering matches wall position (S-01 = leftmost)
+5. Hang slats left to right in sequence: S-01 → ${lastSlat}
+6. Per slat:
+   a. Verify orientation arrow points toward Face A
+   b. Engage top pivot
+   c. Engage bottom pivot
+   d. Confirm free rotation between Position A and Position B
+   e. Confirm stop positions lock at ${fmt(c.rotationAngleA)}° and ${fmt(c.rotationAngleB)}°
+7. Set all slats to Position A — verify full image reads correctly across entire wall
+8. Rotate all slats to Position B — verify second image reads correctly
+9. Check slat spacing consistency — adjust any drifted pivots
+10. Final QC signoff on both positions`,
+
+    `13. QC CHECKLIST
+SUBSTRATE QC:
+  - [ ] Slat width: ${fmt(c.slatWidth)}" +/- 1/32"
+  - [ ] Slat height: ${fmt(c.slatHeight)}" +/- 1/16"
+  - [ ] Slat thickness: ${fmt(c.slatThickness)}" +/- 1/32"
+  - [ ] Flatness: within 1/16" over full height
+  - [ ] Edge condition: eased, no chips, no exposed fiber
+  - [ ] Both faces free of voids, cracks, and surface defects
+
+SURFACE PREP QC:
+  - [ ] Both faces sanded to uniform micro-texture
+  - [ ] No dust residue, release agent, or contamination
+  - [ ] Inspected under raking light — no defects
+
+SEALER QC:
+  - [ ] Even absorption — no glossy spots or dry patches
+  - [ ] No roller marks, drips, or dust contamination
+  - [ ] Matte uniform finish on both faces
+
+PRINT QC:
+  - [ ] Correct slice on correct slat (A-N on Face A, B-N on Face B)
+  - [ ] No Face A / Face B swap
+  - [ ] No reversed orientation
+  - [ ] Print registration within 1/32" of slat edge
+  - [ ] No image drift, banding, or streaking
+  - [ ] Tonal continuity verified against adjacent slats
+  - [ ] Color matches proof strip
+
+TOPCOAT QC:
+  - [ ] Two coats applied per face
+  - [ ] No runs, drips, or dust contamination
+  - [ ] Sheen consistent across all slats (matte or satin)
+  - [ ] No color shift from underlying print
+  - [ ] 24-hour cure complete before handling
+
+ASSEMBLY QC:
+  - [ ] Pivot engagement — smooth rotation, no binding
+  - [ ] Stop angle accuracy — locks at ${fmt(c.rotationAngleA)}° and ${fmt(c.rotationAngleB)}°
+  - [ ] Slat spacing: ${fmt(c.slatSpacing)}" +/- 1/32" between all adjacent slats
+  - [ ] Frame level and plumb
+
+INSTALLED READ TEST:
+  - [ ] Position A: "${project.positionAName}" reads as one continuous image across full wall
+  - [ ] Position B: "${project.positionBName}" reads as one continuous image across full wall
+  - [ ] No visible misalignment between adjacent slat images
+  - [ ] Transition state reads as elegant abstract fragmentation`,
+
+    `14. FAILURE POINTS (READ THIS)
+Most common production failures:
+- Incorrect slat order — destroys image continuity (MOST CRITICAL)
 - Slat installed backward (Face A/B swap) — wrong image on wrong position
 - Poor print registration — visible misalignment between adjacent slats
-- Low contrast between image slices — image reads as fragmented
-- Edge drift from print boundaries — visible banding
-- Warped slat — won't align with neighbors
-- Pivot misalignment — uneven rotation, visible gap inconsistency
-- Stop-angle inaccuracy — image doesn't align at designed position`,
-
-    `10. INSTALL SEQUENCE
-1. Install top and bottom frame tracks — verify level and plumb
-2. Install pivot hardware at each slat position
-3. Verify slat numbering matches wall position (S-01 = leftmost)
-4. Hang slats left to right in sequence
-5. Per slat: verify orientation arrow, Face A direction, pivot engagement
-6. Set all slats to Position A — verify full image reads correctly
-7. Rotate all slats to Position B — verify second image reads correctly
-8. Adjust any misaligned stops
-9. Final QC signoff on both positions`,
+- Inconsistent sealer application — uneven ink absorption = color banding
+- Topcoat applied too thick — runs and drips on vertical face
+- Low contrast between image slices — image reads as fragmented not unified
+- Edge drift from print boundaries — visible banding at slat gaps
+- Warped slat — won't align flush with neighbors
+- Pivot misalignment — uneven rotation, gap inconsistency
+- Stop-angle inaccuracy — image doesn't align at designed position
+- Print file naming error — wrong artwork on wrong slat`,
   ];
 
   return sections.join("\n\n") + (creativeDirection ? `\n\n${creativeDirection}` : "");

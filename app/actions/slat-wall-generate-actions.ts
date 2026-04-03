@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import {
+  buildSlatWallDrawingPrompt,
   buildSlatWallPrompt,
   type SlatWallOutputType,
   type SlatWallProjectData,
@@ -127,6 +128,40 @@ export async function generateSlatWallOutputAction(input: {
       });
     } catch (error) {
       console.error("[slat-wall-gen] Image generation failed:", error instanceof Error ? error.message : error);
+    }
+  }
+
+  // Generate system architecture drawing for BUILD_PACKET
+  if (input.outputType === "BUILD_PACKET") {
+    try {
+      const drawing = buildSlatWallDrawingPrompt(projectData);
+      const result = await generateImageWithGemini({
+        generatedOutputId: output.id,
+        promptText: drawing.promptText,
+        suffix: "system-drawing",
+        imageSize: "2K",
+      });
+
+      await prisma.generatedImageAsset.create({
+        data: {
+          generatedOutputId: output.id,
+          promptTextUsed: drawing.promptText,
+          modelName: result.modelName,
+          imageUrl: result.imageUrl,
+          filePath: result.filePath,
+          status: "GENERATED",
+          width: result.width,
+          height: result.height,
+          metadataJson: {
+            drawingType: drawing.drawingType,
+            sectionKey: "system-architecture",
+          } satisfies Prisma.InputJsonValue,
+        },
+      });
+
+      imageUrl = result.imageUrl;
+    } catch (error) {
+      console.error("[slat-wall-gen] Drawing generation failed:", error instanceof Error ? error.message : error);
     }
   }
 
