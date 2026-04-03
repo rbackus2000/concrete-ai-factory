@@ -16,6 +16,8 @@ export async function createSlatWallProject(values: SlatWallProjectEditorValues)
       description: values.description || null,
       positionAName: values.positionAName || null,
       positionBName: values.positionBName || null,
+      positionADescription: values.positionADescription || null,
+      positionBDescription: values.positionBDescription || null,
       config: {
         create: {
           totalSlatCount: values.totalSlatCount,
@@ -80,6 +82,8 @@ export async function updateSlatWallProject(
       description: values.description || null,
       positionAName: values.positionAName || null,
       positionBName: values.positionBName || null,
+      positionADescription: values.positionADescription || null,
+      positionBDescription: values.positionBDescription || null,
       config: {
         upsert: {
           create: {

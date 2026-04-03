@@ -19,6 +19,8 @@ export const slatWallProjectEditorSchema = z.object({
   description: z.string().optional(),
   positionAName: z.string().min(1, "Position A name is required."),
   positionBName: z.string().min(1, "Position B name is required."),
+  positionADescription: z.string().optional(),
+  positionBDescription: z.string().optional(),
   // Config fields (inline with project for simple forms)
   totalSlatCount: z.coerce.number().int().min(2, "Minimum 2 slats.").max(100, "Maximum 100 slats."),
   slatWidth: z.coerce.number().min(1, "Minimum 1 inch.").max(24, "Maximum 24 inches."),

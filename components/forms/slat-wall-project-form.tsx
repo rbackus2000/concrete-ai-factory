@@ -49,6 +49,8 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
       description: "",
       positionAName: "Image A",
       positionBName: "Image B",
+      positionADescription: "",
+      positionBDescription: "",
       totalSlatCount: 32,
       slatWidth: 7,
       slatThickness: 0.45,
@@ -140,7 +142,7 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
         <CardHeader>
           <CardTitle>Position Images</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="positionAName">Position A Name</Label>
@@ -151,6 +153,26 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
               <Label htmlFor="positionBName">Position B Name</Label>
               <Input id="positionBName" placeholder="e.g. Forest" {...form.register("positionBName")} />
               <FieldError message={form.formState.errors.positionBName?.message} />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="positionADescription">Position A Image Description</Label>
+              <Textarea
+                id="positionADescription"
+                rows={4}
+                placeholder="Describe the full-wall composite image for Position A. This feeds directly into the AI image generation prompt."
+                {...form.register("positionADescription")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="positionBDescription">Position B Image Description</Label>
+              <Textarea
+                id="positionBDescription"
+                rows={4}
+                placeholder="Describe the full-wall composite image for Position B. This feeds directly into the AI image generation prompt."
+                {...form.register("positionBDescription")}
+              />
             </div>
           </div>
         </CardContent>

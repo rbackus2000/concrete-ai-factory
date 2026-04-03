@@ -392,6 +392,8 @@ model SlatWallProject {
   description     String?                @db.Text
   positionAName   String?
   positionBName   String?
+  positionADescription String?    @db.Text
+  positionBDescription String?    @db.Text
   config          SlatWallConfig?
   artworks        SlatWallArtwork[]
   slats           SlatRecord[]

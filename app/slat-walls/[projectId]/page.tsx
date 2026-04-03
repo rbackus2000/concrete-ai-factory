@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/app-shell/page-header";
+import { SlatWallGeneratorForm } from "@/components/forms/slat-wall-generator-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,6 +118,8 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
           </CardContent>
         </Card>
       ) : null}
+
+      <SlatWallGeneratorForm projectId={projectId} projectCode={project.code} />
 
       {artworks.length > 0 ? (
         <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">

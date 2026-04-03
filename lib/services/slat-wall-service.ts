@@ -16,6 +16,8 @@ function mapProject(p: NonNullable<Awaited<ReturnType<typeof prisma.slatWallProj
     description: p.description ?? "",
     positionAName: p.positionAName ?? "",
     positionBName: p.positionBName ?? "",
+    positionADescription: p.positionADescription ?? "",
+    positionBDescription: p.positionBDescription ?? "",
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   };

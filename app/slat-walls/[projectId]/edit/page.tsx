@@ -43,6 +43,8 @@ export default async function EditSlatWallPage({ params }: EditSlatWallPageProps
           description: project.description,
           positionAName: project.positionAName,
           positionBName: project.positionBName,
+          positionADescription: project.positionADescription,
+          positionBDescription: project.positionBDescription,
           totalSlatCount: config?.totalSlatCount ?? 32,
           slatWidth: config?.slatWidth ?? 7,
           slatThickness: config?.slatThickness ?? 0.45,
