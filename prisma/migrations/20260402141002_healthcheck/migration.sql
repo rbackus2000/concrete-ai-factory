@@ -1,0 +1,5 @@
+-- RenameForeignKey
+ALTER TABLE "generated_output_build_packet_sections" RENAME CONSTRAINT "generated_output_build_packet_sections_buildPacketTemplateId_fk" TO "generated_output_build_packet_sections_buildPacketTemplate_fkey";
+
+-- RenameIndex
+ALTER INDEX "generated_output_build_packet_sections_generatedOutputId_sectio" RENAME TO "generated_output_build_packet_sections_generatedOutputId_se_idx";

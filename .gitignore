@@ -1,0 +1,21 @@
+node_modules
+.next
+.turbo
+dist
+coverage
+.env
+.env.local
+.env.*.local
+*.log
+*.tsbuildinfo
+.DS_Store
+public/generated-images
+public/slat-images
+tmp/
+output/
+
+# Reference files (not source code)
+*.xlsx
+*.textClipping
+Gemini_Generated_Image_*
+S1-EROSION*

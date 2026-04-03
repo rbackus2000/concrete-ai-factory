@@ -1,0 +1,479 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SkuCategory {
+  VESSEL_SINK
+  COUNTERTOP
+  FURNITURE
+  PANEL
+}
+
+enum CategoryScope {
+  GLOBAL
+  SKU_CATEGORY
+  SKU_OVERRIDE
+}
+
+enum RecordStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum OutputStatus {
+  QUEUED
+  GENERATED
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  ARCHIVE
+  EXPORT_MARKDOWN
+  EXPORT_PDF
+  VIEW_PRINT
+}
+
+enum AuditEntityType {
+  SKU
+  PROMPT_TEMPLATE
+  RULES_MASTER
+  BUILD_PACKET_TEMPLATE
+  QC_TEMPLATE
+  MATERIALS_MASTER
+  GENERATED_OUTPUT
+  SLAT_WALL_PROJECT
+}
+
+enum SlatWallProjectStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum SlatPosition {
+  A
+  B
+}
+
+enum SlatRecordStatus {
+  PENDING
+  PRINTED
+  QC_PASSED
+  INSTALLED
+}
+
+enum PromptTemplateCategory {
+  IMAGE_PROMPT
+  BLUEPRINT_PROMPT
+  ALIGNMENT_PROMPT
+  MOLD_BREAKDOWN_PROMPT
+  DETAIL_SHEET_PROMPT
+  BUILD_PACKET_SECTION
+}
+
+enum OutputType {
+  IMAGE_PROMPT
+  IMAGE_RENDER
+  BLUEPRINT_PROMPT
+  ALIGNMENT_PROMPT
+  MOLD_BREAKDOWN_PROMPT
+  DETAIL_SHEET_PROMPT
+  BUILD_PACKET
+  CALCULATION
+}
+
+enum MaterialCategory {
+  GFRC
+  FACE_COAT
+  BACKING_MIX
+  PIGMENT
+  REINFORCEMENT
+  INSERT
+  SEALER
+  PACKAGING
+}
+
+enum RuleCategory {
+  DIMENSIONAL
+  ALIGNMENT
+  MOLD_SYSTEM
+  PROCESS
+  QC
+}
+
+enum QcCategory {
+  SETUP
+  PRE_DEMOLD
+  POST_DEMOLD
+  ALIGNMENT
+}
+
+model Sku {
+  id                        String                @id @default(cuid())
+  code                      String                @unique
+  slug                      String                @unique
+  name                      String
+  category                  SkuCategory
+  status                    RecordStatus          @default(DRAFT)
+  type                      String
+  finish                    String
+  description               String?               @db.Text
+  targetWeightMinLbs        Decimal?              @db.Decimal(8, 2)
+  targetWeightMaxLbs        Decimal?              @db.Decimal(8, 2)
+  retailPrice               Decimal?              @db.Decimal(10, 2)
+  wholesalePrice            Decimal?              @db.Decimal(10, 2)
+  outerLength               Decimal?              @db.Decimal(8, 2)
+  outerWidth                Decimal?              @db.Decimal(8, 2)
+  outerHeight               Decimal?              @db.Decimal(8, 2)
+  innerLength               Decimal?              @db.Decimal(8, 2)
+  innerWidth                Decimal?              @db.Decimal(8, 2)
+  innerDepth                Decimal?              @db.Decimal(8, 2)
+  wallThickness             Decimal?              @db.Decimal(8, 2)
+  bottomThickness           Decimal?              @db.Decimal(8, 2)
+  topLipThickness           Decimal?              @db.Decimal(8, 2)
+  hollowCoreDepth           Decimal?              @db.Decimal(8, 2)
+  domeRiseMin               Decimal?              @db.Decimal(8, 2)
+  domeRiseMax               Decimal?              @db.Decimal(8, 2)
+  longRibCount              Int?
+  crossRibCount             Int?
+  ribWidth                  Decimal?              @db.Decimal(8, 2)
+  ribHeight                 Decimal?              @db.Decimal(8, 2)
+  drainDiameter             Decimal?              @db.Decimal(8, 2)
+  reinforcementDiameter     Decimal?              @db.Decimal(8, 2)
+  reinforcementThickness    Decimal?              @db.Decimal(8, 2)
+  draftAngle                Decimal?              @db.Decimal(8, 2)
+  cornerRadius              Decimal?              @db.Decimal(8, 2)
+  fiberPercent              Decimal?              @db.Decimal(5, 4)
+  datumSystemJson           Json?
+  calculatorDefaults        Json?
+  generatedOutputs          GeneratedOutput[]
+  promptTemplateOverrides   PromptTemplate[]      @relation("PromptTemplateOverrideSku")
+  rulesOverrides            RulesMaster[]         @relation("RulesMasterOverrideSku")
+  materialsOverrides        MaterialsMaster[]     @relation("MaterialsMasterOverrideSku")
+  qcTemplateOverrides       QcTemplate[]          @relation("QcTemplateOverrideSku")
+  buildPacketOverrides      BuildPacketTemplate[] @relation("BuildPacketTemplateOverrideSku")
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+
+  @@map("skus")
+}
+
+model PromptTemplate {
+  id               String                 @id @default(cuid())
+  skuOverrideId    String?
+  key              String
+  name             String
+  category         PromptTemplateCategory
+  categoryScope    CategoryScope          @default(GLOBAL)
+  skuCategory      SkuCategory?
+  outputType       OutputType
+  status           RecordStatus           @default(DRAFT)
+  version          Int                    @default(1)
+  systemPrompt     String?                @db.Text
+  templateBody     String                 @db.Text
+  variablesJson    Json?
+  notes            String?                @db.Text
+  skuOverride      Sku?                   @relation("PromptTemplateOverrideSku", fields: [skuOverrideId], references: [id], onDelete: SetNull)
+  generatedOutputs GeneratedOutput[]
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@unique([key, version, categoryScope, skuCategory, skuOverrideId])
+  @@index([categoryScope, skuCategory, outputType])
+  @@index([skuOverrideId])
+
+  @@map("prompt_templates")
+}
+
+model RulesMaster {
+  id            String        @id @default(cuid())
+  skuOverrideId String?
+  code          String
+  title         String
+  category      RuleCategory
+  categoryScope CategoryScope @default(GLOBAL)
+  skuCategory   SkuCategory?
+  outputType    OutputType?
+  status        RecordStatus  @default(ACTIVE)
+  priority      Int           @default(1)
+  description   String?       @db.Text
+  ruleText      String        @db.Text
+  source        String?
+  metadata      Json?
+  skuOverride   Sku?          @relation("RulesMasterOverrideSku", fields: [skuOverrideId], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([code, categoryScope, skuCategory, skuOverrideId])
+  @@index([categoryScope, skuCategory, outputType])
+  @@index([skuOverrideId])
+  @@map("rules_master")
+}
+
+model MaterialsMaster {
+  id            String           @id @default(cuid())
+  skuOverrideId String?
+  code          String
+  name          String
+  category      MaterialCategory
+  categoryScope CategoryScope    @default(GLOBAL)
+  skuCategory   SkuCategory?
+  status        RecordStatus     @default(ACTIVE)
+  unit          String
+  quantity      Decimal?         @db.Decimal(10, 2)
+  unitCost      Decimal?         @db.Decimal(10, 2)
+  specification String?          @db.Text
+  notes         String?          @db.Text
+  metadata      Json?
+  skuOverride   Sku?             @relation("MaterialsMasterOverrideSku", fields: [skuOverrideId], references: [id], onDelete: SetNull)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([code, categoryScope, skuCategory, skuOverrideId])
+  @@index([categoryScope, skuCategory])
+  @@index([skuOverrideId])
+
+  @@map("materials_master")
+}
+
+model QcTemplate {
+  id                     String        @id @default(cuid())
+  skuOverrideId          String?
+  templateKey            String
+  name                   String
+  category               QcCategory
+  categoryScope          CategoryScope @default(GLOBAL)
+  skuCategory            SkuCategory?
+  status                 RecordStatus  @default(ACTIVE)
+  checklistJson          Json
+  acceptanceCriteriaJson Json?
+  rejectionCriteriaJson  Json?
+  notes                  String?       @db.Text
+  skuOverride            Sku?          @relation("QcTemplateOverrideSku", fields: [skuOverrideId], references: [id], onDelete: SetNull)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  @@unique([templateKey, categoryScope, skuCategory, skuOverrideId])
+  @@index([categoryScope, skuCategory])
+  @@index([skuOverrideId])
+
+  @@map("qc_templates")
+}
+
+model BuildPacketTemplate {
+  id               String            @id @default(cuid())
+  skuOverrideId    String?
+  packetKey        String
+  sectionKey       String
+  name             String
+  sectionOrder     Int
+  categoryScope    CategoryScope     @default(GLOBAL)
+  skuCategory      SkuCategory?
+  outputType       OutputType        @default(BUILD_PACKET)
+  status           RecordStatus      @default(ACTIVE)
+  content          String            @db.Text
+  variables        Json?
+  skuOverride      Sku?              @relation("BuildPacketTemplateOverrideSku", fields: [skuOverrideId], references: [id], onDelete: SetNull)
+  generatedOutputs GeneratedOutput[]
+  generatedOutputBuildPacketSections GeneratedOutputBuildPacketSection[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([packetKey, sectionKey, categoryScope, skuCategory, skuOverrideId])
+  @@index([categoryScope, skuCategory, outputType])
+  @@index([skuOverrideId])
+  @@map("build_packet_templates")
+}
+
+model GeneratedOutput {
+  id                    String               @id @default(cuid())
+  skuId                 String
+  promptTemplateId      String?
+  buildPacketTemplateId String?
+  title                 String
+  outputType            OutputType
+  status                OutputStatus         @default(QUEUED)
+  version               Int                  @default(1)
+  inputPayload          Json
+  outputPayload         Json?
+  generatedBy           String?
+  sku                   Sku                  @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  promptTemplate        PromptTemplate?      @relation(fields: [promptTemplateId], references: [id], onDelete: SetNull)
+  buildPacketTemplate   BuildPacketTemplate? @relation(fields: [buildPacketTemplateId], references: [id], onDelete: SetNull)
+  buildPacketSections   GeneratedOutputBuildPacketSection[]
+  imageAssets           GeneratedImageAsset[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@map("generated_outputs")
+}
+
+model GeneratedOutputBuildPacketSection {
+  id                    String               @id @default(cuid())
+  generatedOutputId     String
+  buildPacketTemplateId String?
+  sectionKey            String
+  sectionName           String
+  sectionOrder          Int
+  content               String               @db.Text
+  generatedOutput       GeneratedOutput      @relation(fields: [generatedOutputId], references: [id], onDelete: Cascade)
+  buildPacketTemplate   BuildPacketTemplate? @relation(fields: [buildPacketTemplateId], references: [id], onDelete: SetNull)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([generatedOutputId, sectionOrder])
+  @@map("generated_output_build_packet_sections")
+}
+
+model GeneratedImageAsset {
+  id                String          @id @default(cuid())
+  generatedOutputId String
+  promptTextUsed    String          @db.Text
+  modelName         String
+  imageUrl          String?
+  filePath          String?
+  status            OutputStatus    @default(QUEUED)
+  width             Int?
+  height            Int?
+  metadataJson      Json?
+  generatedOutput   GeneratedOutput @relation(fields: [generatedOutputId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([generatedOutputId, createdAt])
+  @@map("generated_image_assets")
+}
+
+model AuditLog {
+  id            String          @id @default(cuid())
+  actorId       String
+  actorName     String
+  actorRole     UserRole
+  entityType    AuditEntityType
+  entityId      String
+  action        AuditAction
+  summary       String
+  changedFields Json?
+  createdAt     DateTime        @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}
+
+// ── SLAT WALL MODULE ──────────────────────────────────────────
+
+model SlatWallProject {
+  id              String                 @id @default(cuid())
+  code            String                 @unique
+  slug            String                 @unique
+  name            String
+  status          SlatWallProjectStatus  @default(DRAFT)
+  clientName      String?
+  location        String?
+  designer        String?
+  engineer        String?
+  revision        String?
+  description     String?                @db.Text
+  positionAName   String?
+  positionBName   String?
+  config          SlatWallConfig?
+  artworks        SlatWallArtwork[]
+  slats           SlatRecord[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@map("slat_wall_projects")
+}
+
+model SlatWallConfig {
+  id                String            @id @default(cuid())
+  projectId         String            @unique
+  totalSlatCount    Int               @default(32)
+  slatWidth         Decimal           @default(7) @db.Decimal(8, 2)
+  slatThickness     Decimal           @default(0.45) @db.Decimal(8, 2)
+  slatHeight        Decimal           @default(180) @db.Decimal(8, 2)
+  totalWallWidth    Decimal?          @db.Decimal(8, 2)
+  supportFrameType  String?
+  pivotType         String?
+  rotationAngleA    Decimal           @default(0) @db.Decimal(8, 2)
+  rotationAngleB    Decimal           @default(180) @db.Decimal(8, 2)
+  slatSpacing       Decimal           @default(0.25) @db.Decimal(8, 2)
+  notes             String?           @db.Text
+  project           SlatWallProject   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@map("slat_wall_configs")
+}
+
+model SlatWallArtwork {
+  id               String              @id @default(cuid())
+  projectId        String
+  position         SlatPosition
+  originalFilename String?
+  filePath         String?
+  imageUrl         String?
+  width            Int?
+  height           Int?
+  description      String?             @db.Text
+  cropMode         String?
+  fitMode          String?
+  bleedMargin      Decimal?            @db.Decimal(8, 4)
+  safeMargin       Decimal?            @db.Decimal(8, 4)
+  status           RecordStatus        @default(DRAFT)
+  project          SlatWallProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@unique([projectId, position])
+  @@index([projectId])
+  @@map("slat_wall_artworks")
+}
+
+model SlatRecord {
+  id                String            @id @default(cuid())
+  projectId         String
+  slatIndex         Int
+  slatId            String
+  wallPosition      Int
+  width             Decimal?          @db.Decimal(8, 2)
+  height            Decimal?          @db.Decimal(8, 2)
+  thickness         Decimal?          @db.Decimal(8, 2)
+  weight            Decimal?          @db.Decimal(8, 2)
+  faceASliceId      String?
+  faceAImageUrl     String?
+  faceAFilePath     String?
+  faceAColorRef     String?
+  faceBSliceId      String?
+  faceBImageUrl     String?
+  faceBFilePath     String?
+  faceBColorRef     String?
+  orientation       String            @default("STANDARD")
+  pivotTopId        String?
+  pivotBottomId     String?
+  status            SlatRecordStatus  @default(PENDING)
+  notes             String?           @db.Text
+  project           SlatWallProject   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([projectId, slatIndex])
+  @@index([projectId, slatIndex])
+  @@map("slat_records")
+}

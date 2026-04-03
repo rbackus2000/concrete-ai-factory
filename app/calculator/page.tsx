@@ -1,0 +1,37 @@
+import { PageHeader } from "@/components/app-shell/page-header";
+import { CalculatorForm } from "@/components/forms/calculator-form";
+import { StateCard } from "@/components/ui/state-card";
+import { getCalculatorWorkspace } from "@/lib/services/calculator-service";
+
+export const dynamic = "force-dynamic";
+
+export default async function CalculatorPage() {
+  const calculator = await getCalculatorWorkspace();
+
+  if (!calculator) {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          eyebrow="Calculator"
+          title="Mix, pigment, sealer, and costing workspace"
+          description="Run the calculator engine from real SKU defaults and live material baselines, then override the working assumptions as needed."
+        />
+        <StateCard
+          title="Calculator workspace unavailable"
+          description="Seed at least one active SKU with calculator defaults and material records before running the calculator."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Calculator"
+        title="Mix, pigment, sealer, and costing workspace"
+        description="Run the calculator engine from real SKU defaults and live material baselines, then override the working assumptions as needed."
+      />
+      <CalculatorForm initialResult={calculator.initialResult} skus={calculator.skus} />
+    </div>
+  );
+}
