@@ -44,9 +44,14 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
           title={`${project.code} — ${project.name}`}
           description={project.description || "Kinetic rotating slat wall installation."}
         />
-        <Link href={`/slat-walls/${projectId}/edit`}>
-          <Button variant="outline">Edit Project</Button>
-        </Link>
+        <div className="flex gap-3">
+          <Link href={`/slat-walls/${projectId}/simulator`}>
+            <Button>Simulator</Button>
+          </Link>
+          <Link href={`/slat-walls/${projectId}/edit`}>
+            <Button variant="outline">Edit Project</Button>
+          </Link>
+        </div>
       </div>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
