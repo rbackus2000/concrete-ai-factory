@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { SCENARIO_LIST } from "@/lib/engines/print-generator/scenarios";
 import { Textarea } from "@/components/ui/textarea";
 import {
   slatWallProjectEditorSchema,
@@ -155,18 +156,43 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
 
       <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
         <CardHeader>
-          <CardTitle>Position Images</CardTitle>
+          <CardTitle>Design Scenario</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">Select a scenario to auto-fill Side A, Side B, and emergent image configurations.</p>
+          <div className="grid grid-cols-5 gap-3">
+            {SCENARIO_LIST.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  const descTemplate = (subject: string) =>
+                    `A unified full-wall composite image spanning the entire rotating vertical slat installation, rendered as a premium large-scale architectural artwork. The image should read clearly and continuously across the full width and height of the wall when all slats align in this viewing position. The subject of the image is: ${subject}. The composition should feel bold, clean, cohesive, and visually strong at architectural scale, with tonal continuity across all slats and no disconnected panel artwork.`;
+
+                  form.setValue("positionAName", s.sideALabel, { shouldValidate: true });
+                  form.setValue("positionBName", s.sideBLabel, { shouldValidate: true });
+                  form.setValue("positionADescription", descTemplate(s.sideALabel));
+                  form.setValue("positionBDescription", descTemplate(s.sideBLabel));
+                }}
+                className="rounded-2xl border border-border/70 p-4 text-left transition hover:border-primary hover:bg-primary/5"
+              >
+                <p className="text-xs font-medium text-muted-foreground">{s.sideALabel}</p>
+                <p className="text-xs text-muted-foreground">+</p>
+                <p className="text-xs font-medium text-muted-foreground">{s.sideBLabel}</p>
+                <p className="mt-2 text-sm font-bold" style={{ color: s.color }}>{s.emergentLabel}</p>
+              </button>
+            ))}
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="positionAName">Position A Name</Label>
-              <Input id="positionAName" placeholder="e.g. Cityscape" {...form.register("positionAName")} />
+              <Input id="positionAName" {...form.register("positionAName")} />
               <FieldError message={form.formState.errors.positionAName?.message} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="positionBName">Position B Name</Label>
-              <Input id="positionBName" placeholder="e.g. Forest" {...form.register("positionBName")} />
+              <Input id="positionBName" {...form.register("positionBName")} />
               <FieldError message={form.formState.errors.positionBName?.message} />
             </div>
           </div>
@@ -176,7 +202,6 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
               <Textarea
                 id="positionADescription"
                 rows={4}
-                placeholder="Describe the full-wall composite image for Position A. This feeds directly into the AI image generation prompt."
                 {...form.register("positionADescription")}
               />
             </div>
@@ -185,7 +210,6 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
               <Textarea
                 id="positionBDescription"
                 rows={4}
-                placeholder="Describe the full-wall composite image for Position B. This feeds directly into the AI image generation prompt."
                 {...form.register("positionBDescription")}
               />
             </div>
