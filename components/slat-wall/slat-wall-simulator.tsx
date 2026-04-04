@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useTransition } from "react";
+
+import { generateSimulatorImage } from "@/app/actions/slat-wall-simulator-actions";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +21,7 @@ type Scenario = {
 };
 
 type SlatWallSimulatorProps = {
+  projectId: string;
   slatCount: number;
   slatWidth: number;
   wallWidthFt: number;
@@ -294,11 +297,38 @@ function SlatWallCanvas({
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 
-export function SlatWallSimulator({ slatCount, slatWidth, wallWidthFt, projectCode }: SlatWallSimulatorProps) {
+export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt, projectCode }: SlatWallSimulatorProps) {
   const [activeScenario, setActiveScenario] = useState(SCENARIOS[0]);
   const [activeState, setActiveState] = useState<"A" | "B" | "C">("A");
   const [isAnimating, setIsAnimating] = useState(false);
   const animRef = useRef<number>(0);
+  const [isPending, startTransition] = useTransition();
+
+  // AI-generated images
+  const [aiImages, setAiImages] = useState<Record<string, string>>({});
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+  const [viewMode, setViewMode] = useState<"canvas" | "ai">("canvas");
+
+  const generateAI = useCallback(
+    (state: "A" | "B" | "C") => {
+      if (aiLoading[state]) return;
+      setAiLoading((prev) => ({ ...prev, [state]: true }));
+      startTransition(async () => {
+        try {
+          const result = await generateSimulatorImage({ projectId, state });
+          if (result.imageUrl) {
+            setAiImages((prev) => ({ ...prev, [state]: result.imageUrl! }));
+          }
+          setViewMode("ai");
+        } catch (error) {
+          console.error("AI generation failed:", error);
+        } finally {
+          setAiLoading((prev) => ({ ...prev, [state]: false }));
+        }
+      });
+    },
+    [projectId, aiLoading],
+  );
 
   const animateToState = useCallback(
     (targetState: "A" | "B" | "C") => {
@@ -390,6 +420,71 @@ export function SlatWallSimulator({ slatCount, slatWidth, wallWidthFt, projectCo
         ))}
       </div>
 
+      {/* View Mode + AI Generate */}
+      <div style={{ padding: "0 24px 12px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={() => setViewMode("canvas")}
+          style={{
+            background: viewMode === "canvas" ? "#2a2a2a" : "transparent",
+            color: viewMode === "canvas" ? "#f0ede6" : "#555",
+            border: "1px solid #2a2a2a",
+            padding: "6px 14px",
+            fontSize: "9px",
+            letterSpacing: "1.5px",
+            cursor: "pointer",
+            fontFamily: "monospace",
+            borderRadius: "2px",
+          }}
+        >
+          CANVAS PREVIEW
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("ai")}
+          style={{
+            background: viewMode === "ai" ? "#2a2a2a" : "transparent",
+            color: viewMode === "ai" ? "#f0ede6" : "#555",
+            border: "1px solid #2a2a2a",
+            padding: "6px 14px",
+            fontSize: "9px",
+            letterSpacing: "1.5px",
+            cursor: "pointer",
+            fontFamily: "monospace",
+            borderRadius: "2px",
+          }}
+        >
+          AI GENERATED
+        </button>
+        <div style={{ flex: 1 }} />
+        {(["A", "B", "C"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            disabled={!!aiLoading[s] || isPending}
+            onClick={() => generateAI(s)}
+            style={{
+              background: aiLoading[s] ? "#1a1a1a" : "transparent",
+              color: aiImages[s] ? "#4ade80" : aiLoading[s] ? "#666" : activeScenario.color,
+              border: `1px solid ${aiImages[s] ? "#4ade80" : activeScenario.color}`,
+              padding: "6px 14px",
+              fontSize: "9px",
+              letterSpacing: "1.5px",
+              cursor: aiLoading[s] ? "wait" : "pointer",
+              fontFamily: "monospace",
+              borderRadius: "2px",
+              opacity: aiLoading[s] ? 0.6 : 1,
+            }}
+          >
+            {aiLoading[s]
+              ? `GENERATING ${s === "C" ? "TRANSITION" : s}...`
+              : aiImages[s]
+                ? `${s === "C" ? "TRANSITION" : `SIDE ${s}`} ✓`
+                : `GENERATE ${s === "C" ? "TRANSITION" : `SIDE ${s}`}`}
+          </button>
+        ))}
+      </div>
+
       {/* State Tabs */}
       <div style={{ display: "flex", borderTop: "1px solid #1e1e1e", borderBottom: "1px solid #1e1e1e" }}>
         {(
@@ -424,15 +519,44 @@ export function SlatWallSimulator({ slatCount, slatWidth, wallWidthFt, projectCo
         ))}
       </div>
 
-      {/* Main Canvas */}
+      {/* Main Display */}
       <div style={{ padding: "16px", background: "#0d0d0d" }}>
-        <SlatWallCanvas
-          scenario={activeScenario}
-          state={activeState}
-          slatCount={slatCount}
-          width={1200}
-          height={400}
-        />
+        {viewMode === "ai" && aiImages[activeState] ? (
+          <div style={{ position: "relative" }}>
+            <img
+              alt={`Position ${activeState} AI render`}
+              src={aiImages[activeState]}
+              style={{ width: "100%", display: "block", borderRadius: "4px" }}
+            />
+            <a
+              download={`${projectCode}-simulator-${activeState.toLowerCase()}.png`}
+              href={aiImages[activeState]}
+              style={{
+                position: "absolute",
+                top: "8px",
+                right: "8px",
+                background: "rgba(0,0,0,0.7)",
+                color: "#fff",
+                padding: "6px 12px",
+                fontSize: "9px",
+                letterSpacing: "1.5px",
+                borderRadius: "4px",
+                textDecoration: "none",
+                fontFamily: "monospace",
+              }}
+            >
+              DOWNLOAD
+            </a>
+          </div>
+        ) : (
+          <SlatWallCanvas
+            scenario={activeScenario}
+            state={activeState}
+            slatCount={slatCount}
+            width={1200}
+            height={400}
+          />
+        )}
       </div>
 
       {/* State Info */}
@@ -462,7 +586,7 @@ export function SlatWallSimulator({ slatCount, slatWidth, wallWidthFt, projectCo
         ).map(({ state, label, sub }) => (
           <div
             key={state}
-            onClick={() => animateToState(state)}
+            onClick={() => { animateToState(state); setActiveState(state); }}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === "Enter" && animateToState(state)}
@@ -474,16 +598,25 @@ export function SlatWallSimulator({ slatCount, slatWidth, wallWidthFt, projectCo
               cursor: "pointer",
             }}
           >
-            <SlatWallCanvas
-              scenario={activeScenario}
-              state={state}
-              slatCount={slatCount}
-              width={400}
-              height={160}
-            />
+            {viewMode === "ai" && aiImages[state] ? (
+              <img
+                alt={`${label} preview`}
+                src={aiImages[state]}
+                style={{ width: "100%", height: "160px", objectFit: "cover", display: "block" }}
+              />
+            ) : (
+              <SlatWallCanvas
+                scenario={activeScenario}
+                state={state}
+                slatCount={slatCount}
+                width={400}
+                height={160}
+              />
+            )}
             <div style={{ padding: "6px 10px" }}>
               <div style={{ fontSize: "7px", letterSpacing: "2px", color: stateColors[state] }}>
                 {label}
+                {aiImages[state] ? " (AI)" : ""}
               </div>
               <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>{sub}</div>
             </div>

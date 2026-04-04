@@ -31,6 +31,7 @@ export default async function SimulatorPage({ params }: SimulatorPageProps) {
         description="Interactive rotating slat wall visualization with horizontal line density rendering and three-state optical reveal."
       />
       <SlatWallSimulator
+        projectId={projectId}
         slatCount={config.totalSlatCount}
         slatWidth={config.slatWidth}
         wallWidthFt={wallWidthFt}
