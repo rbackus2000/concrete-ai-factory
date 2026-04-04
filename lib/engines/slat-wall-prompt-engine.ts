@@ -340,18 +340,59 @@ Rotation: Position A = ${fmt(c.rotationAngleA)}°, Position B = ${fmt(c.rotation
 Slat Spacing: ${fmt(c.slatSpacing)}"`,
 
     `3. SUBSTRATE SPEC — GFRC SLAT CONSTRUCTION
+
+3.1 DESIGN INTENT
+Each slat shall be designed as a dimensionally stable architectural display element, not as a plain thin concrete member. The slat body shall include localized reinforced top and bottom connection zones with cast-in reinforced steel insert blocks, together with a lightweight internal body construction and concealed mid-span anti-warp reinforcement sufficient to resist bowing, twisting, and long-term display distortion.
+
+The middle span shall NOT use a full-length central structural steel spine. However, the slat may incorporate concealed non-primary stiffening elements — such as composite stiffener strips, internal ribs, lightweight core geometry, or similar stabilization methods — to maintain straightness and image alignment under normal environmental exposure.
+
+3.2 MATERIAL
 Material: Glass Fiber Reinforced Concrete (GFRC)
-Thickness: ${fmt(c.slatThickness)}" nominal
 Reinforcement: AR (alkali-resistant) glass fiber at 2.5-3% by weight
 Mix Type: SCC (self-consolidating concrete) for thin-section casting
-Casting: Single-layer pour into precision mold
-Dimensions: ${fmt(c.slatWidth)}" W x ${fmt(c.slatHeight)}" H (${heightFeet(project)} ft)
-Weight: approximately ${estWeight} lbs per slat
+Casting: Precision mold pour with controlled fiber distribution
+
+3.3 DIMENSIONS
+Width: ${fmt(c.slatWidth)}" nominal
+Height: ${fmt(c.slatHeight)}" (${heightFeet(project)} ft)
+Thickness: ${fmt(c.slatThickness)}" nominal body thickness
+Weight: approximately ${estWeight} lbs per slat (estimated)
+
+3.4 CONNECTION ZONES (TOP AND BOTTOM)
+Each slat shall have localized reinforced zones at the top and bottom ends:
+- Cast-in reinforced steel insert block embedded in GFRC
+- Insert block provides threaded/mechanical connection point for pivot hardware
+- Concrete cover: minimum 3/16" around insert block
+- Embed depth: minimum 2x fastener diameter
+- Zone length: approximately 6-8" from each end
+- Zone may be locally thickened beyond ${fmt(c.slatThickness)}" body to accommodate insert block and fastener loads
+- Insert block material: mild steel, hot-dip galvanized or stainless
+
+3.5 MIDDLE SPAN BODY
+- Lightweight GFRC construction at ${fmt(c.slatThickness)}" nominal thickness
+- No full-length central steel spine
+- Concealed anti-warp reinforcement permitted:
+  - Composite stiffener strips (carbon fiber, fiberglass, or similar)
+  - Internal ribs cast into back face
+  - Lightweight core geometry (foam core sandwich if needed for flatness)
+  - Pre-tension or post-tension elements if engineering requires
+- Goal: maintain straightness within 1/16" over full ${fmt(c.slatHeight)}" height under normal interior environmental conditions
+- Both visible faces must remain flat, smooth, and print-ready
+
+3.6 TOLERANCES
+Flatness: Within 1/16" over full ${fmt(c.slatHeight)}" height
+Width: +/- 1/32"
+Thickness: +/- 1/32" in body zone
 Edge Condition: Eased edges, all corners minimum 1/16" radius
-Flatness Tolerance: Within 1/16" over full ${fmt(c.slatHeight)}" height
-Thickness Tolerance: +/- 1/32"
+
+3.7 CURE AND HANDLING
 Cure: Minimum 7-day wet cure before surface prep
-Each slat has TWO printable faces — Face A and Face B`,
+Handling: Edge guards required during transport — GFRC chips easily at thin sections
+Storage: Store flat on padded rails, never stack unsupported
+
+3.8 PRINTABLE FACES
+Each slat has TWO printable faces — Face A and Face B
+Both faces must meet identical flatness, smoothness, and sealer-readiness standards`,
 
     `4. SURFACE PREP SPEC
 Purpose: Prepare cured GFRC faces for sealer and UV print adhesion
