@@ -118,7 +118,14 @@ export default async function OutputsPage({ searchParams }: OutputsPageProps) {
                         />
                       ) : null}
                     </TableCell>
-                    <TableCell className="font-medium">{output.skuCode}</TableCell>
+                    <TableCell className="font-medium">
+                      {output.source === "SLAT_WALL" ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Badge variant="secondary">SW</Badge>
+                          {output.skuCode}
+                        </span>
+                      ) : output.skuCode}
+                    </TableCell>
                     <TableCell>{output.title}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{output.outputType}</Badge>

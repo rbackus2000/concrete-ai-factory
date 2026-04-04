@@ -59,18 +59,29 @@ export async function listGeneratedOutputs(filters?: {
       code: sku.code,
       name: sku.name,
     })),
-    outputs: outputs.map((output) => ({
-      id: output.id,
-      skuCode: output.sku.code,
-      outputType: output.outputType,
-      title: output.title,
-      status: output.status,
-      version: output.version,
-      createdAt: output.createdAt.toISOString(),
-      promptTemplateKey: output.promptTemplate?.key ?? null,
-      packetSectionKey: output.buildPacketTemplate?.sectionKey ?? null,
-      imageUrl: output.imageAssets[0]?.imageUrl ?? null,
-    })),
+    outputs: outputs.map((output) => {
+      const payload = output.outputPayload as Record<string, unknown> | null;
+      const isSlatWall = output.generatedBy === "slat-wall-simulator" || output.generatedBy === "slat-wall-generator";
+      const projectCode = isSlatWall && payload ? String(payload["slatWallOutputType"] ?? "").replace("SIMULATOR_", "") : null;
+      const inputPayload = output.inputPayload as Record<string, unknown> | null;
+      const displayCode = isSlatWall && inputPayload?.["projectCode"]
+        ? String(inputPayload["projectCode"])
+        : output.sku.code;
+
+      return {
+        id: output.id,
+        skuCode: displayCode,
+        source: isSlatWall ? "SLAT_WALL" as const : "SKU" as const,
+        outputType: output.outputType,
+        title: output.title,
+        status: output.status,
+        version: output.version,
+        createdAt: output.createdAt.toISOString(),
+        promptTemplateKey: output.promptTemplate?.key ?? null,
+        packetSectionKey: output.buildPacketTemplate?.sectionKey ?? null,
+        imageUrl: output.imageAssets[0]?.imageUrl ?? null,
+      };
+    }),
   };
 }
 
