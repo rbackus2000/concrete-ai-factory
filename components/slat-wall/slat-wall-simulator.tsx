@@ -166,33 +166,71 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    id: "lighthouse",
-    label: "Lighthouse",
-    sideA: "Open Horizon",
-    sideB: "Geometric Bands",
-    emergent: "Lighthouse",
-    color: "#6ea9d4",
+    id: "oni",
+    label: "Oni Mask",
+    sideA: "Storm Lightning Sky",
+    sideB: "Rising Sun",
+    emergent: "Samurai Oni Mask",
+    color: "#e63946",
+    // Storm: darkest at top (y=0), lightest at bottom (y=1)
     densityA: (y) => {
-      if (y > 0.72 && y < 0.78) return 0.95;
-      if (y > 0.78) return 0.85 - (y - 0.78) * 0.5;
-      if (y > 0.6) return 0.4 - (y - 0.6) * 2;
-      if (y < 0.2) return 0.02;
+      if (y < 0.06) return 0.3;
+      if (y < 0.14) return 0.55 + (0.14 - y) * 3;
+      if (y < 0.24) return 0.75 + (0.24 - y) * 2;
+      if (y < 0.36) return 0.95; // storm core — densest
+      if (y < 0.50) return 0.75;
+      if (y < 0.64) return 0.45;
+      if (y < 0.78) return 0.25;
+      if (y < 0.90) return 0.08;
+      return 0.0; // bottom clear air
+    },
+    // Rising Sun: disc centered at y=0.6, x=0.5. Dark ground at bottom.
+    densityB: (y, x) => {
+      const dx = x - 0.5;
+      const dy = y - 0.6;
+      const discR = 0.26;
+      const dist = Math.sqrt(dx * dx * 3.5 + dy * dy * 3.5);
+      // Ground/horizon at bottom
+      if (y > 0.88) return 0.85;
+      if (y > 0.78) return 0.9; // horizon — darkest base
+      // Sun disc
+      if (dist < discR) return 0.92 - dist * 0.3;
+      // Glow around disc
+      if (dist < discR + 0.12) return 0.3 - (dist - discR) * 2;
+      // Upper sky
+      if (y < 0.08) return 0.0;
+      if (y < 0.28) return 0.05;
       return 0.08;
     },
-    densityB: (y) => {
-      const band = Math.floor(y * 7);
-      return band % 2 === 0 ? 0.9 : 0.02;
-    },
+    // Oni Mask: formed by combining storm top-dark + sun center-disc
     densityC: (y, x) => {
-      const towerWidth = 0.12;
-      const inTower = Math.abs(x - 0.5) < towerWidth / 2 + (1 - y) * 0.04;
-      const lampRoom = Math.abs(x - 0.5) < 0.08 && y > 0.35 && y < 0.5;
-      const base = y > 0.78 && Math.abs(x - 0.5) < 0.15;
-      if (y < 0.15) return 0;
-      if (lampRoom) return 0.95;
-      if (inTower) return 0.8;
-      if (base) return 0.9;
-      return 0;
+      const dx = x - 0.5;
+      // --- Horns (top, at ~30% and ~70% width) ---
+      const leftHorn = Math.max(0, 0.8 - Math.sqrt(Math.pow(x - 0.3, 2) * 12 + Math.pow(y - 0.08, 2) * 5));
+      const rightHorn = Math.max(0, 0.8 - Math.sqrt(Math.pow(x - 0.7, 2) * 12 + Math.pow(y - 0.08, 2) * 5));
+      // --- Forehead (broad dark mass) ---
+      const forehead = y > 0.14 && y < 0.28 ? Math.max(0, 0.85 - Math.abs(dx) * 1.2) : 0;
+      // --- Face mass (dense center) ---
+      const faceMass = y > 0.28 && y < 0.58
+        ? Math.max(0, 0.9 - Math.sqrt(dx * dx * 2.5 + Math.pow(y - 0.43, 2)) * 2.5)
+        : 0;
+      // --- Eye voids (lighter zones) ---
+      const leftEye = Math.sqrt(Math.pow(x - 0.31, 2) * 8 + Math.pow(y - 0.42, 2) * 12);
+      const rightEye = Math.sqrt(Math.pow(x - 0.69, 2) * 8 + Math.pow(y - 0.42, 2) * 12);
+      const eyeVoid = (leftEye < 0.11 ? -0.85 : 0) + (rightEye < 0.11 ? -0.85 : 0);
+      // --- Nose bridge ---
+      const noseBridge = Math.abs(dx) < 0.06 && y > 0.38 && y < 0.52 ? 0.3 : 0;
+      // --- Mouth void ---
+      const mouth = Math.sqrt(Math.pow(dx, 2) * 6 + Math.pow(y - 0.58, 2) * 14);
+      const mouthVoid = mouth < 0.09 ? -0.7 : 0;
+      // --- Jaw (wide, heavy) ---
+      const jaw = y > 0.62 && y < 0.78
+        ? Math.max(0, 0.7 - Math.sqrt(Math.pow(dx * 0.9, 2) + Math.pow(y - 0.7, 2) * 3) * 2)
+        : 0;
+      // --- Combine ---
+      return Math.max(0, Math.min(1,
+        leftHorn + rightHorn + forehead + faceMass + eyeVoid + noseBridge + mouthVoid + jaw
+      ));
     },
   },
 ];
