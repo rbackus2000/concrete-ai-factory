@@ -166,70 +166,100 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    id: "oni",
-    label: "Oni Mask",
-    sideA: "Storm Lightning Sky",
+    id: "buddha",
+    label: "Buddha",
+    sideA: "Storm Sky",
     sideB: "Rising Sun",
-    emergent: "Samurai Oni Mask",
-    color: "#e63946",
-    // Storm: darkest at top (y=0), lightest at bottom (y=1)
+    emergent: "Buddha Face",
+    color: "#d4a96e",
+    // Storm Sky: smooth gradient, darkest at top (y=0), pure white at bottom (y=1)
     densityA: (y) => {
-      if (y < 0.06) return 0.3;
-      if (y < 0.14) return 0.55 + (0.14 - y) * 3;
-      if (y < 0.24) return 0.75 + (0.24 - y) * 2;
-      if (y < 0.36) return 0.95; // storm core — densest
-      if (y < 0.50) return 0.75;
-      if (y < 0.64) return 0.45;
-      if (y < 0.78) return 0.25;
-      if (y < 0.90) return 0.08;
-      return 0.0; // bottom clear air
+      if (y > 0.92) return 0.0;  // bottom — clear air
+      if (y > 0.80) return 0.08;
+      if (y > 0.68) return 0.25;
+      if (y > 0.54) return 0.45;
+      if (y > 0.42) return 0.6;
+      if (y > 0.30) return 0.75;
+      if (y > 0.18) return 0.85;
+      if (y > 0.08) return 0.95; // storm core — near solid
+      return 0.9; // top edge — storm continues
     },
-    // Rising Sun: disc centered at y=0.6, x=0.5. Dark ground at bottom.
+    // Rising Sun: disc centered at x=0.5, y=0.62 (canvas coords). Dense ground at bottom.
     densityB: (y, x) => {
       const dx = x - 0.5;
-      const dy = y - 0.6;
-      const discR = 0.26;
+      const discCenterY = 0.62;
+      const dy = y - discCenterY;
+      const discR = 0.27;
       const dist = Math.sqrt(dx * dx * 3.5 + dy * dy * 3.5);
-      // Ground/horizon at bottom
-      if (y > 0.88) return 0.85;
-      if (y > 0.78) return 0.9; // horizon — darkest base
+      // Top sky — near white
+      if (y < 0.07) return 0.0;
+      if (y < 0.16) return 0.03;
+      if (y < 0.28) return 0.06;
+      // Glow zone above disc
+      if (y < 0.38 && dist > discR) return 0.1;
       // Sun disc
-      if (dist < discR) return 0.92 - dist * 0.3;
-      // Glow around disc
-      if (dist < discR + 0.12) return 0.3 - (dist - discR) * 2;
-      // Upper sky
-      if (y < 0.08) return 0.0;
-      if (y < 0.28) return 0.05;
+      if (dist < discR) {
+        const edge = discR - dist;
+        return Math.min(0.95, 0.7 + edge * 1.5);
+      }
+      // Outer field beside disc
+      if (y > 0.35 && y < 0.85 && Math.abs(dx) > 0.27) return 0.06;
+      // Horizon and ground
+      if (y > 0.88) return 0.85;
+      if (y > 0.80) return 0.9; // horizon — darkest ground
       return 0.08;
     },
-    // Oni Mask: formed by combining storm top-dark + sun center-disc
+    // Buddha Face: serene, symmetrical, wide oval, half-closed eyes, ushnisha at top
     densityC: (y, x) => {
       const dx = x - 0.5;
-      // --- Horns (top, at ~30% and ~70% width) ---
-      const leftHorn = Math.max(0, 0.8 - Math.sqrt(Math.pow(x - 0.3, 2) * 12 + Math.pow(y - 0.08, 2) * 5));
-      const rightHorn = Math.max(0, 0.8 - Math.sqrt(Math.pow(x - 0.7, 2) * 12 + Math.pow(y - 0.08, 2) * 5));
-      // --- Forehead (broad dark mass) ---
-      const forehead = y > 0.14 && y < 0.28 ? Math.max(0, 0.85 - Math.abs(dx) * 1.2) : 0;
-      // --- Face mass (dense center) ---
-      const faceMass = y > 0.28 && y < 0.58
-        ? Math.max(0, 0.9 - Math.sqrt(dx * dx * 2.5 + Math.pow(y - 0.43, 2)) * 2.5)
+      const absDx = Math.abs(dx);
+
+      // --- Ushnisha crown (top, textured) ---
+      const ushnisha = y < 0.12
+        ? Math.max(0, 0.7 - absDx * 3) * (1 - y * 4)
         : 0;
-      // --- Eye voids (lighter zones) ---
-      const leftEye = Math.sqrt(Math.pow(x - 0.31, 2) * 8 + Math.pow(y - 0.42, 2) * 12);
-      const rightEye = Math.sqrt(Math.pow(x - 0.69, 2) * 8 + Math.pow(y - 0.42, 2) * 12);
-      const eyeVoid = (leftEye < 0.11 ? -0.85 : 0) + (rightEye < 0.11 ? -0.85 : 0);
-      // --- Nose bridge ---
-      const noseBridge = Math.abs(dx) < 0.06 && y > 0.38 && y < 0.52 ? 0.3 : 0;
-      // --- Mouth void ---
-      const mouth = Math.sqrt(Math.pow(dx, 2) * 6 + Math.pow(y - 0.58, 2) * 14);
-      const mouthVoid = mouth < 0.09 ? -0.7 : 0;
-      // --- Jaw (wide, heavy) ---
-      const jaw = y > 0.62 && y < 0.78
-        ? Math.max(0, 0.7 - Math.sqrt(Math.pow(dx * 0.9, 2) + Math.pow(y - 0.7, 2) * 3) * 2)
+
+      // --- Cranium dome (broad forehead) ---
+      const cranium = y > 0.12 && y < 0.26
+        ? Math.max(0, 0.8 - Math.sqrt(dx * dx * 3 + Math.pow(y - 0.19, 2) * 2) * 2.5)
         : 0;
-      // --- Combine ---
+
+      // --- Face mass (wide oval, densest zone) ---
+      const faceMass = y > 0.26 && y < 0.52
+        ? Math.max(0, 0.92 - Math.sqrt(dx * dx * 2.2 + Math.pow(y - 0.38, 2) * 1.5) * 2.2)
+        : 0;
+
+      // --- Half-closed eyes (horizontal slits, NOT round) ---
+      // Left eye: narrow horizontal band at y=0.44, x=0.28-0.40
+      const leftEyeY = Math.abs(y - 0.44) < 0.02;
+      const leftEyeX = x > 0.28 && x < 0.40;
+      const leftEye = leftEyeY && leftEyeX ? -0.55 : 0;
+      // Right eye: mirror
+      const rightEyeY = Math.abs(y - 0.44) < 0.02;
+      const rightEyeX = x > 0.60 && x < 0.72;
+      const rightEye = rightEyeY && rightEyeX ? -0.55 : 0;
+
+      // --- Nose (subtle center lightening) ---
+      const nose = absDx < 0.04 && y > 0.48 && y < 0.58
+        ? -0.15
+        : 0;
+
+      // --- Lips (thin horizontal lighter band — serene smile) ---
+      const lips = Math.abs(y - 0.66) < 0.012 && absDx < 0.12
+        ? -0.35
+        : 0;
+
+      // --- Jaw and chin (soft rounded, wide) ---
+      const jaw = y > 0.68 && y < 0.82
+        ? Math.max(0, 0.6 - Math.sqrt(Math.pow(dx * 1.1, 2) + Math.pow(y - 0.74, 2) * 2.5) * 2.5)
+        : 0;
+
+      // --- Long earlobes (extending down at sides) ---
+      const leftEar = Math.max(0, 0.4 - Math.sqrt(Math.pow(x - 0.19, 2) * 15 + Math.pow(y - 0.6, 2) * 2));
+      const rightEar = Math.max(0, 0.4 - Math.sqrt(Math.pow(x - 0.81, 2) * 15 + Math.pow(y - 0.6, 2) * 2));
+
       return Math.max(0, Math.min(1,
-        leftHorn + rightHorn + forehead + faceMass + eyeVoid + noseBridge + mouthVoid + jaw
+        ushnisha + cranium + faceMass + leftEye + rightEye + nose + lips + jaw + leftEar + rightEar
       ));
     },
   },
