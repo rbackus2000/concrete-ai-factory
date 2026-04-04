@@ -315,7 +315,13 @@ export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt
       setAiLoading((prev) => ({ ...prev, [state]: true }));
       startTransition(async () => {
         try {
-          const result = await generateSimulatorImage({ projectId, state });
+          const result = await generateSimulatorImage({
+            projectId,
+            state,
+            sideA: activeScenario.sideA,
+            sideB: activeScenario.sideB,
+            emergent: activeScenario.emergent,
+          });
           if (result.imageUrl) {
             setAiImages((prev) => ({ ...prev, [state]: result.imageUrl! }));
           }
@@ -327,7 +333,7 @@ export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt
         }
       });
     },
-    [projectId, aiLoading],
+    [projectId, activeScenario, aiLoading],
   );
 
   const animateToState = useCallback(
@@ -401,6 +407,8 @@ export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt
             onClick={() => {
               setActiveScenario(s);
               setActiveState("A");
+              setAiImages({});
+              setViewMode("canvas");
             }}
             type="button"
             style={{

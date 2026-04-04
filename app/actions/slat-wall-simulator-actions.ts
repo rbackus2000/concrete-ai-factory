@@ -10,7 +10,9 @@ import { decimalToNumber } from "@/lib/services/service-helpers";
 export async function generateSimulatorImage(input: {
   projectId: string;
   state: "A" | "B" | "C";
-  scenario?: string;
+  sideA: string;
+  sideB: string;
+  emergent: string;
 }) {
   await requireSession();
 
@@ -30,71 +32,68 @@ export async function generateSimulatorImage(input: {
   const wallFt = (wallW / 12).toFixed(1);
   const heightFt = (slatH / 12).toFixed(1);
 
-  const posAName = project.positionAName ?? "Image A";
-  const posBName = project.positionBName ?? "Image B";
-  const posADesc = project.positionADescription ?? posAName;
-  const posBDesc = project.positionBDescription ?? posBName;
+  const sideA = input.sideA;
+  const sideB = input.sideB;
+  const emergent = input.emergent;
+
+  const lineStyle = `STYLE RULES (MANDATORY):
+- BLACK INK ONLY on a light concrete/cream background (#dedad2 or similar warm off-white)
+- All imagery expressed ENTIRELY through horizontal black lines of varying density and thickness
+- Dense/thick lines = dark areas. Sparse/thin lines = light areas
+- NO color whatsoever — strictly monochrome black ink on light background
+- NO curves or diagonal lines — HORIZONTAL LINES ONLY
+- NO photographic realism — this is a line-density artwork system
+- Show ${slatCount} subtle vertical slat division lines evenly spaced (thin gaps between slats)
+- Each slat strip is ${slatW}" wide
+- The artwork should read as one unified composition across all slats
+- Premium, architectural, museum-quality line art`;
 
   let promptText: string;
 
   if (input.state === "A") {
-    promptText = `Generate a flat, full-frame artwork image that would appear on a ${wallFt} ft wide x ${heightFt} ft tall rotating slat wall when all ${slatCount} slats are in Position A.
+    promptText = `Generate a flat, full-frame horizontal-line-density artwork for a rotating slat wall. All ${slatCount} slats showing Side A.
 
-The image is: ${posADesc}
+SUBJECT: "${sideA}"
+Wall: ${wallFt} ft wide x ${heightFt} ft tall, ${slatCount} slats
 
-CRITICAL REQUIREMENTS:
-- The image must fill the ENTIRE frame edge to edge — no borders, no margins, no environment
-- Aspect ratio must match the wall proportions: ${wallFt} ft wide x ${heightFt} ft tall
-- The image should be a single continuous artwork — as if painted on a flat wall
-- Show ${slatCount} subtle vertical slat division lines evenly spaced across the width (thin lines, 40% opacity white or black depending on image brightness)
-- Each slat strip is ${slatW}" wide with ${spacing}" gaps between
-- The artwork should read as one unified composition across all slats
-- Premium, architectural quality, bold composition suitable for museum-scale display
+${lineStyle}
 
-Do NOT show: room environment, frames, lighting, 3D perspective, wall mounting. This is the flat artwork only with slat lines overlaid.
+The image of "${sideA}" must be recognizable through varying horizontal line density — denser lines in dark/shadow areas, sparser lines in highlight areas. Fill the entire frame edge to edge.
 
-RB Studio | ${project.code} | Position A`;
+Do NOT show: color, room environment, frames, 3D perspective, photographic imagery. Black horizontal lines on light background ONLY.
+
+RB Studio | ${project.code} | Side A — ${sideA}`;
   } else if (input.state === "B") {
-    promptText = `Generate a flat, full-frame artwork image that would appear on a ${wallFt} ft wide x ${heightFt} ft tall rotating slat wall when all ${slatCount} slats are in Position B.
+    promptText = `Generate a flat, full-frame horizontal-line-density artwork for a rotating slat wall. All ${slatCount} slats showing Side B.
 
-The image is: ${posBDesc}
+SUBJECT: "${sideB}"
+Wall: ${wallFt} ft wide x ${heightFt} ft tall, ${slatCount} slats
 
-CRITICAL REQUIREMENTS:
-- The image must fill the ENTIRE frame edge to edge — no borders, no margins, no environment
-- Aspect ratio must match the wall proportions: ${wallFt} ft wide x ${heightFt} ft tall
-- The image should be a single continuous artwork — as if painted on a flat wall
-- Show ${slatCount} subtle vertical slat division lines evenly spaced across the width (thin lines, 40% opacity white or black depending on image brightness)
-- Each slat strip is ${slatW}" wide with ${spacing}" gaps between
-- The artwork should read as one unified composition across all slats
-- Premium, architectural quality, bold composition suitable for museum-scale display
+${lineStyle}
 
-Do NOT show: room environment, frames, lighting, 3D perspective, wall mounting. This is the flat artwork only with slat lines overlaid.
+The image of "${sideB}" must be recognizable through varying horizontal line density — denser lines in dark/shadow areas, sparser lines in highlight areas. Fill the entire frame edge to edge.
 
-RB Studio | ${project.code} | Position B`;
+Do NOT show: color, room environment, frames, 3D perspective, photographic imagery. Black horizontal lines on light background ONLY.
+
+RB Studio | ${project.code} | Side B — ${sideB}`;
   } else {
-    promptText = `Generate a flat, full-frame image showing a rotating slat wall in its MID-ROTATION transitional state between two artworks.
+    promptText = `Generate a flat, full-frame image showing a rotating slat wall in its emergent three-state reveal — alternating slats from Side A and Side B combine to reveal a hidden third image.
 
-The wall is ${wallFt} ft wide x ${heightFt} ft tall with ${slatCount} slats, each ${slatW}" wide.
+SIDE A: "${sideA}" (shown on odd slats)
+SIDE B: "${sideB}" (shown on even slats)
+EMERGENT IMAGE: "${emergent}" (visible when alternating slats are viewed together)
 
-Position A artwork: ${posADesc}
-Position B artwork: ${posBDesc}
+Wall: ${wallFt} ft wide x ${heightFt} ft tall, ${slatCount} slats
 
-In this transitional state:
-- Alternating slats show fragments of Image A and Image B
-- Some slats are angled showing thin concrete edges (dark vertical stripes)
-- The result is an abstract vertical fragmentation — elegant and kinetic
-- Fragments of both images are visible but neither reads as complete
-- The overall effect should feel like a visual transition, not chaos
+${lineStyle}
 
-CRITICAL REQUIREMENTS:
-- Fill the ENTIRE frame edge to edge — no borders, no environment
-- ${slatCount} vertical slat divisions visible
-- Mix of Image A fragments, Image B fragments, and dark edge-on slat strips
-- Premium, museum-quality abstract kinetic art aesthetic
+Odd-numbered slats show horizontal line density of "${sideA}".
+Even-numbered slats show horizontal line density of "${sideB}".
+Together, the alternating slats reveal the emergent form of "${emergent}" — the hidden third image that appears only when both sides are visible simultaneously.
 
-Do NOT show: room, frames, lighting, 3D perspective. Flat artwork view only.
+Do NOT show: color, room environment, frames, 3D perspective, photographic imagery. Black horizontal lines on light background ONLY.
 
-RB Studio | ${project.code} | Transition State`;
+RB Studio | ${project.code} | Emergent — ${emergent}`;
   }
 
   // Create a temporary output record
@@ -110,7 +109,9 @@ RB Studio | ${project.code} | Transition State`;
       inputPayload: {
         projectId: input.projectId,
         simulatorState: input.state,
-        scenario: input.scenario,
+        sideA: input.sideA,
+        sideB: input.sideB,
+        emergent: input.emergent,
       } as Prisma.InputJsonValue,
       outputPayload: {
         text: promptText,
