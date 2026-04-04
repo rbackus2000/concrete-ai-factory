@@ -222,6 +222,39 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
           <CardTitle>Wall Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Wall Size Preset</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: "SW-SMALL", sub: "16 slats · 12 ft · 8 ft tall", slats: 16, width: 9, thickness: 0.45, height: 96 },
+                { label: "SW-STANDARD", sub: "32 slats · 24 ft · 10 ft tall", slats: 32, width: 9, thickness: 0.45, height: 120 },
+                { label: "SW-LARGE", sub: "48 slats · 36 ft · 12 ft tall", slats: 48, width: 9, thickness: 0.45, height: 144 },
+                { label: "Custom", sub: "Enter your own dimensions", slats: 0, width: 0, thickness: 0, height: 0 },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    if (preset.slats > 0) {
+                      form.setValue("totalSlatCount", preset.slats, { shouldValidate: true });
+                      form.setValue("slatWidth", preset.width, { shouldValidate: true });
+                      form.setValue("slatThickness", preset.thickness, { shouldValidate: true });
+                      form.setValue("slatHeight", preset.height, { shouldValidate: true });
+                      form.setValue("slatSpacing", 0.25, { shouldValidate: true });
+                    }
+                  }}
+                  className={`rounded-xl border p-3 text-left transition hover:bg-secondary/40 ${
+                    preset.slats > 0 && Number(form.watch("totalSlatCount")) === preset.slats
+                      ? "border-primary bg-primary/10"
+                      : "border-border/70"
+                  }`}
+                >
+                  <p className="text-sm font-medium">{preset.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{preset.sub}</p>
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="totalSlatCount">Total Slats</Label>
