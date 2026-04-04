@@ -26,6 +26,7 @@ type SlatWallSimulatorProps = {
   slatWidth: number;
   wallWidthFt: number;
   projectCode: string;
+  initialAiImages?: Record<string, string>;
 };
 
 // ─── SCENARIOS ────────────────────────────────────────────────────────────────
@@ -297,17 +298,18 @@ function SlatWallCanvas({
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 
-export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt, projectCode }: SlatWallSimulatorProps) {
+export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt, projectCode, initialAiImages }: SlatWallSimulatorProps) {
   const [activeScenario, setActiveScenario] = useState(SCENARIOS[0]);
   const [activeState, setActiveState] = useState<"A" | "B" | "C">("A");
   const [isAnimating, setIsAnimating] = useState(false);
   const animRef = useRef<number>(0);
   const [isPending, startTransition] = useTransition();
 
-  // AI-generated images
-  const [aiImages, setAiImages] = useState<Record<string, string>>({});
+  // AI-generated images — initialize from saved DB images
+  const [aiImages, setAiImages] = useState<Record<string, string>>(initialAiImages ?? {});
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
-  const [viewMode, setViewMode] = useState<"canvas" | "ai">("canvas");
+  const hasAnyAiImages = Object.keys(aiImages).length > 0;
+  const [viewMode, setViewMode] = useState<"canvas" | "ai">(hasAnyAiImages ? "ai" : "canvas");
 
   const generateAI = useCallback(
     (state: "A" | "B" | "C") => {
@@ -487,7 +489,7 @@ export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt
             {aiLoading[s]
               ? `GENERATING ${s === "C" ? "TRANSITION" : s}...`
               : aiImages[s]
-                ? `${s === "C" ? "TRANSITION" : `SIDE ${s}`} ✓`
+                ? `REDO ${s === "C" ? "TRANSITION" : `SIDE ${s}`}`
                 : `GENERATE ${s === "C" ? "TRANSITION" : `SIDE ${s}`}`}
           </button>
         ))}

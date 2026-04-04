@@ -106,6 +106,38 @@ export async function getSlatWallDetail(projectId: string) {
   };
 }
 
+export async function getSlatWallSimulatorImages(projectId: string) {
+  const outputs = await prisma.generatedOutput.findMany({
+    where: {
+      generatedBy: "slat-wall-simulator",
+      outputPayload: { path: ["slatWallProjectId"], equals: projectId },
+    },
+    include: {
+      imageAssets: {
+        where: { status: "GENERATED" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const images: Record<string, { imageUrl: string; outputId: string }> = {};
+
+  for (const output of outputs) {
+    const payload = output.outputPayload as Record<string, unknown> | null;
+    const stateType = String(payload?.["slatWallOutputType"] ?? "");
+    const state = stateType.replace("SIMULATOR_", "");
+    const imageUrl = output.imageAssets[0]?.imageUrl;
+
+    if (["A", "B", "C"].includes(state) && imageUrl && !images[state]) {
+      images[state] = { imageUrl, outputId: output.id };
+    }
+  }
+
+  return images;
+}
+
 export async function getSlatWallForEdit(projectId: string) {
   const project = await prisma.slatWallProject.findUnique({
     where: { id: projectId },
