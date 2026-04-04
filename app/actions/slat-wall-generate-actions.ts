@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import {
-  buildSlatWallDrawingPrompt,
+  buildSlatWallDrawingPrompts,
   buildSlatWallPrompt,
   type SlatWallOutputType,
   type SlatWallProjectData,
@@ -131,37 +131,43 @@ export async function generateSlatWallOutputAction(input: {
     }
   }
 
-  // Generate system architecture drawing for BUILD_PACKET
+  // Generate technical drawings for BUILD_PACKET (system architecture + pivot assembly)
   if (input.outputType === "BUILD_PACKET") {
-    try {
-      const drawing = buildSlatWallDrawingPrompt(projectData);
-      const result = await generateImageWithGemini({
-        generatedOutputId: output.id,
-        promptText: drawing.promptText,
-        suffix: "system-drawing",
-        imageSize: "2K",
-      });
+    const drawings = buildSlatWallDrawingPrompts(projectData);
 
-      await prisma.generatedImageAsset.create({
-        data: {
+    const drawingResults = await Promise.allSettled(
+      drawings.map(async (drawing) => {
+        const result = await generateImageWithGemini({
           generatedOutputId: output.id,
-          promptTextUsed: drawing.promptText,
-          modelName: result.modelName,
-          imageUrl: result.imageUrl,
-          filePath: result.filePath,
-          status: "GENERATED",
-          width: result.width,
-          height: result.height,
-          metadataJson: {
-            drawingType: drawing.drawingType,
-            sectionKey: "system-architecture",
-          } satisfies Prisma.InputJsonValue,
-        },
-      });
+          promptText: drawing.promptText,
+          suffix: drawing.drawingType,
+          imageSize: "2K",
+        });
 
-      imageUrl = result.imageUrl;
-    } catch (error) {
-      console.error("[slat-wall-gen] Drawing generation failed:", error instanceof Error ? error.message : error);
+        await prisma.generatedImageAsset.create({
+          data: {
+            generatedOutputId: output.id,
+            promptTextUsed: drawing.promptText,
+            modelName: result.modelName,
+            imageUrl: result.imageUrl,
+            filePath: result.filePath,
+            status: "GENERATED",
+            width: result.width,
+            height: result.height,
+            metadataJson: {
+              drawingType: drawing.drawingType,
+              sectionKey: drawing.drawingType,
+            } satisfies Prisma.InputJsonValue,
+          },
+        });
+
+        return result.imageUrl;
+      }),
+    );
+
+    const firstSuccess = drawingResults.find((r) => r.status === "fulfilled");
+    if (firstSuccess && firstSuccess.status === "fulfilled") {
+      imageUrl = firstSuccess.value;
     }
   }
 

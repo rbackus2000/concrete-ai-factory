@@ -194,7 +194,79 @@ ${creativeDirection}`;
   }
 }
 
-export function buildSlatWallDrawingPrompt(project: SlatWallProjectData): SlatWallDrawingPrompt {
+export function buildSlatWallDrawingPrompts(project: SlatWallProjectData): SlatWallDrawingPrompt[] {
+  return [
+    buildSystemArchitectureDrawing(project),
+    buildPivotAssemblyDrawing(project),
+  ];
+}
+
+function buildPivotAssemblyDrawing(project: SlatWallProjectData): SlatWallDrawingPrompt {
+  const c = project.config;
+
+  return {
+    drawingType: "pivot_assembly",
+    promptText: `Create a clean architectural engineering board showing the rotating slat assembly with localized reinforced end zones for a GFRC kinetic slat wall system.
+
+Project: ${project.code} — ${project.name}
+Slat: ${fmt(c.slatWidth)}" W x ${fmt(c.slatHeight)}" H x ${fmt(c.slatThickness)}" T thin GFRC concrete
+
+Board title: "ARCHITECTURAL ENGINEERING BOARD: ROTATING SLAT ASSEMBLY WITH LOCALIZED REINFORCED END ZONES"
+
+Board must include these views with clear professional labels:
+
+1. ASSEMBLY ELEVATION (left side):
+   Full-height single slat showing:
+   - Rotation axis (vertical centerline)
+   - Slat body (thin GFRC concrete, ${fmt(c.slatThickness)}" thick)
+   - Unreinforced middle span (thin spine, full ${fmt(c.slatHeight)}" height)
+   - Reinforced top connection zone (thickened end with cast-in steel insert block)
+   - Reinforced bottom connection zone (thickened end with cast-in steel insert block)
+
+2. TOP PIVOT DETAIL (upper center):
+   Exploded/cutaway view showing:
+   - Low-voltage geared motor
+   - Reduction drive
+   - Shaft coupling
+   - Top pivot shaft
+   - Top drive U-bracket connecting to slat
+   - Fasteners into reinforced insert block
+
+3. TOP CONNECTION ZONE DETAIL (upper right):
+   Cross-section cutaway showing:
+   - Cast-in reinforced steel insert block embedded in GFRC
+   - Concrete cover around insert
+   - Embed depth
+   - Fastener path from U-bracket through concrete into steel insert
+   - Section hatching on concrete
+
+4. BOTTOM PIVOT DETAIL (lower center):
+   View showing:
+   - Bottom pivot shaft
+   - Passive bearing housing (no motor — free rotation)
+   - Bottom support frame connection
+
+5. BOTTOM CONNECTION ZONE DETAIL (lower right):
+   Cross-section cutaway showing:
+   - Cast-in reinforced steel insert block embedded in GFRC
+   - Concrete cover
+   - Embed depth
+   - Fastener path into reinforced insert block
+   - Section hatching on concrete
+
+Style:
+- Light neutral or white background
+- Premium architectural engineering graphic style
+- Clean professional labels with leader lines — no gibberish text
+- Realistic proportions and construction detail
+- Mix of 3D cutaway and 2D section views
+- Less cinematic rendering, more system clarity and engineering precision
+
+Title block: "RB Studio | ${project.code} | PIVOT ASSEMBLY DETAIL"`,
+  };
+}
+
+function buildSystemArchitectureDrawing(project: SlatWallProjectData): SlatWallDrawingPrompt {
   const c = project.config;
   const ww = wallWidthInches(project);
 
