@@ -48,6 +48,9 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
           <Link href={`/slat-walls/${projectId}/simulator`}>
             <Button>Simulator</Button>
           </Link>
+          <Link href={`/slat-walls/${projectId}/print-generator`}>
+            <Button>Print Generator</Button>
+          </Link>
           <Link href={`/slat-walls/${projectId}/edit`}>
             <Button variant="outline">Edit Project</Button>
           </Link>
