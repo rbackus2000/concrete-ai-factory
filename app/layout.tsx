@@ -17,11 +17,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen font-sans text-foreground">
-        <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
+        <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
           <AppSidebar />
-          <main className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-concrete-grid bg-[size:42px_42px] opacity-20" />
-            <div className="relative mx-auto max-w-7xl px-6 py-8 lg:px-10">
+          <main className="overflow-hidden">
+            <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
               {children}
             </div>
           </main>

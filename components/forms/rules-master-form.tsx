@@ -87,7 +87,7 @@ export function RulesMasterForm({
   };
 
   return (
-    <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+    <Card>
       <CardHeader>
         <CardTitle>{mode === "create" ? "New Rules Master Record" : "Edit Rules Master Record"}</CardTitle>
       </CardHeader>

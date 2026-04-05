@@ -24,10 +24,14 @@ import {
   generateSlatDXF,
   generateSpecSheet,
 } from "@/lib/engines/print-generator/generators";
+import { convertDxfBatchToDwg } from "@/app/actions/dwg-convert-action";
 
 type Props = {
   projectCode: string;
   defaultSlatCount: number;
+  defaultSlatWidthIn?: number;
+  defaultSlatHeightIn?: number;
+  aiImages?: Record<string, string>;
 };
 
 // ─── PREVIEW CANVAS ────────────────────────────────────────────
@@ -109,13 +113,30 @@ function PreviewCanvas({
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────
 
-export function PrintGeneratorClient({ projectCode, defaultSlatCount }: Props) {
+function detectWallSizeKey(slatCount: number, widthIn: number, heightIn: number): WallSizeKey | "custom" {
+  const widthMM = widthIn * 25.4;
+  const heightMM = heightIn * 25.4;
+  for (const [key, preset] of Object.entries(WALL_SIZES) as [WallSizeKey, (typeof WALL_SIZES)[WallSizeKey]][]) {
+    if (
+      preset.slatCount === slatCount &&
+      Math.abs(preset.slatWidthMM - widthMM) < 1 &&
+      Math.abs(preset.slatHeightMM - heightMM) < 1
+    ) {
+      return key;
+    }
+  }
+  return "custom";
+}
+
+export function PrintGeneratorClient({ projectCode, defaultSlatCount, defaultSlatWidthIn = 9, defaultSlatHeightIn = 120, aiImages }: Props) {
   const [scenarioId, setScenarioId] = useState("skull");
-  const [wallSizeKey, setWallSizeKey] = useState<WallSizeKey | "custom">("standard");
+  const [wallSizeKey, setWallSizeKey] = useState<WallSizeKey | "custom">(() =>
+    detectWallSizeKey(defaultSlatCount, defaultSlatWidthIn, defaultSlatHeightIn),
+  );
   const [customSlats, setCustomSlats] = useState(defaultSlatCount);
-  const [customWidthIn, setCustomWidthIn] = useState(9);
-  const [customHeightFt, setCustomHeightFt] = useState(10);
-  const [formats, setFormats] = useState({ pdf: true, svg: true, dxf: false });
+  const [customWidthIn, setCustomWidthIn] = useState(defaultSlatWidthIn);
+  const [customHeightFt, setCustomHeightFt] = useState(defaultSlatHeightIn / 12);
+  const [formats, setFormats] = useState({ pdf: true, svg: true, dxf: true });
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, label: "" });
   const [zipBlob, setZipBlob] = useState<Blob | null>(null);
@@ -147,6 +168,7 @@ export function PrintGeneratorClient({ projectCode, defaultSlatCount }: Props) {
     const total = config.slatCount * 2;
     const manifest: typeof fileManifest = [];
     let current = 0;
+    const dxfBatch: Array<{ name: string; dxf: string; slat: number; face: string; lines: number }> = [];
 
     for (let slatIndex = 0; slatIndex < config.slatCount; slatIndex++) {
       for (const face of ["A", "B"] as const) {
@@ -174,12 +196,34 @@ export function PrintGeneratorClient({ projectCode, defaultSlatCount }: Props) {
           manifest.push({ name: `${baseName}.svg`, slat: slatIndex + 1, face, lines: slatData.totalLines, format: "SVG" });
         }
         if (dxfFolder) {
-          dxfFolder.file(`${baseName}.dxf`, generateSlatDXF(slatData));
+          const dxfContent = generateSlatDXF(slatData);
+          dxfFolder.file(`${baseName}.dxf`, dxfContent);
           manifest.push({ name: `${baseName}.dxf`, slat: slatIndex + 1, face, lines: slatData.totalLines, format: "DXF" });
+          dxfBatch.push({ name: baseName, dxf: dxfContent, slat: slatIndex + 1, face, lines: slatData.totalLines });
         }
 
         // Yield to UI
         await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+
+    // Convert DXF to DWG via server-side ODA File Converter
+    if (dxfBatch.length > 0) {
+      setProgress({ current: total, total, label: "Converting DXF to DWG..." });
+      try {
+        const dwgResults = await convertDxfBatchToDwg(dxfBatch.map((f) => ({ name: f.name, dxf: f.dxf })));
+        const dwgFolder = root.folder("DWG_AUTOCAD")!;
+        for (const result of dwgResults) {
+          if (result.dwgBytes) {
+            dwgFolder.file(`${result.name}.dwg`, new Uint8Array(result.dwgBytes));
+            const src = dxfBatch.find((f) => f.name === result.name);
+            if (src) {
+              manifest.push({ name: `${result.name}.dwg`, slat: src.slat, face: src.face, lines: src.lines, format: "DWG" });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("DWG conversion failed:", err);
       }
     }
 
@@ -208,7 +252,7 @@ export function PrintGeneratorClient({ projectCode, defaultSlatCount }: Props) {
     <div className="space-y-6">
       {/* CONFIG */}
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader><CardTitle>Configuration</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -293,20 +337,32 @@ export function PrintGeneratorClient({ projectCode, defaultSlatCount }: Props) {
         </Card>
 
         {/* PREVIEW */}
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
-          <CardHeader><CardTitle>Live Preview — {scenario.label}</CardTitle></CardHeader>
+        <Card>
+          <CardHeader><CardTitle>{aiImages && Object.keys(aiImages).length > 0 ? "AI Generated Preview" : `Live Preview — ${scenario.label}`}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Side A — {scenario.sideALabel}</p>
-              <PreviewCanvas scenario={scenario} state="A" slatCount={config.slatCount} />
+              {aiImages?.A ? (
+                <img alt="Side A AI render" className="w-full rounded object-cover" src={aiImages.A} />
+              ) : (
+                <PreviewCanvas scenario={scenario} state="A" slatCount={config.slatCount} />
+              )}
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Side B — {scenario.sideBLabel}</p>
-              <PreviewCanvas scenario={scenario} state="B" slatCount={config.slatCount} />
+              {aiImages?.B ? (
+                <img alt="Side B AI render" className="w-full rounded object-cover" src={aiImages.B} />
+              ) : (
+                <PreviewCanvas scenario={scenario} state="B" slatCount={config.slatCount} />
+              )}
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Emergent — {scenario.emergentLabel}</p>
-              <PreviewCanvas scenario={scenario} state="C" slatCount={config.slatCount} />
+              {aiImages?.C ? (
+                <img alt="Transition AI render" className="w-full rounded object-cover" src={aiImages.C} />
+              ) : (
+                <PreviewCanvas scenario={scenario} state="C" slatCount={config.slatCount} />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -314,7 +370,7 @@ export function PrintGeneratorClient({ projectCode, defaultSlatCount }: Props) {
 
       {/* GENERATE */}
       {isGenerating ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardContent className="py-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
@@ -344,7 +400,7 @@ export function PrintGeneratorClient({ projectCode, defaultSlatCount }: Props) {
 
       {/* MANIFEST */}
       {fileManifest.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>File Manifest ({fileManifest.length} files)</CardTitle>
           </CardHeader>

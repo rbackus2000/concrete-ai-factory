@@ -35,7 +35,7 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
         description="Read-only internal history for record changes and output export activity."
       />
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Filter Audit Events</CardTitle>
         </CardHeader>
@@ -119,7 +119,7 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
       </Card>
 
       {workspace.logs.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Audit Events</CardTitle>
           </CardHeader>

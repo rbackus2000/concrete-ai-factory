@@ -30,7 +30,7 @@ export default async function PacketPage({ params }: PacketPageProps) {
       />
 
       <section className="grid gap-4 md:grid-cols-3">
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Core Geometry</CardTitle>
           </CardHeader>
@@ -56,7 +56,7 @@ export default async function PacketPage({ params }: PacketPageProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Critical Rules</CardTitle>
           </CardHeader>
@@ -70,7 +70,7 @@ export default async function PacketPage({ params }: PacketPageProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Reject If</CardTitle>
           </CardHeader>
@@ -86,7 +86,7 @@ export default async function PacketPage({ params }: PacketPageProps) {
 
       <div className="grid gap-4">
         {preview.sections.map((section) => (
-          <Card key={section.sectionKey} className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+          <Card key={section.sectionKey}>
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">

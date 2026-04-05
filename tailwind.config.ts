@@ -31,17 +31,17 @@ const config: Config = {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
       },
-      backgroundImage: {
-        "concrete-grid":
-          "linear-gradient(rgba(61, 52, 45, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(61, 52, 45, 0.08) 1px, transparent 1px)",
-      },
       boxShadow: {
-        panel: "0 24px 60px rgba(32, 24, 18, 0.08)",
+        panel: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
       },
       borderRadius: {
         lg: "var(--radius)",

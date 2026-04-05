@@ -32,7 +32,7 @@ export default async function MaterialsMasterPage() {
         </Link>
       </div>
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Material Records</CardTitle>
         </CardHeader>

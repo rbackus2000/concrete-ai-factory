@@ -36,7 +36,7 @@ export default async function OutputsPage({ searchParams }: OutputsPageProps) {
         description="Inspect saved prompt, packet, and calculation outputs by SKU before adding export workflows."
       />
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
         </CardHeader>
@@ -89,7 +89,7 @@ export default async function OutputsPage({ searchParams }: OutputsPageProps) {
       </Card>
 
       {history.outputs.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Saved Outputs</CardTitle>
           </CardHeader>

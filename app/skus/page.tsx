@@ -28,7 +28,7 @@ export default async function SkusPage() {
       />
 
       {skus.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Current SKUs</CardTitle>
           </CardHeader>

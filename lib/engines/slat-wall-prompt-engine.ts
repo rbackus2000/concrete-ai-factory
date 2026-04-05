@@ -185,7 +185,7 @@ Layout sections:
 
 [QC Requirements] — Slat flatness, print fidelity, color consistency, pivot alignment, image registration across adjacent slats.
 
-Footer: "RB Studio" on the left, project ref, "${project.code}-REV A", "CONFIDENTIAL - INTERNAL USE ONLY".
+Footer: The RB Studio logo mark (vertically stacked R over B inside a thin rectangular border, "STUDIO" in spaced uppercase below) on the left, project ref "${project.code}-REV A", "CONFIDENTIAL - INTERNAL USE ONLY" on the right.
 
 ${creativeDirection}`;
 
@@ -262,7 +262,7 @@ Style:
 - Mix of 3D cutaway and 2D section views
 - Less cinematic rendering, more system clarity and engineering precision
 
-Title block: "RB Studio | ${project.code} | PIVOT ASSEMBLY DETAIL"`,
+Title block: Include the RB Studio logo mark (vertically stacked R over B inside a thin rectangular border) with "${project.code} | PIVOT ASSEMBLY DETAIL" and "STUDIO" in spaced uppercase below the mark.`,
   };
 }
 
@@ -301,7 +301,7 @@ Style:
 - real architectural graphic design
 - no gibberish text — use only clean professional labels
 - less cinematic rendering, more system clarity
-- include title block: "RB Studio | ${project.code} | SYSTEM ARCHITECTURE"`,
+- include title block with the RB Studio logo mark (vertically stacked R over B inside a thin rectangular border, "STUDIO" in spaced uppercase below) and "${project.code} | SYSTEM ARCHITECTURE"`,
   };
 }
 
@@ -502,87 +502,178 @@ Stop Mechanism: Precision rotation stops at ${fmt(c.rotationAngleA)}° and ${fmt
 Installation Alignment: S-01 at left end of wall, ${lastSlat} at right end`,
 
     `11. ELECTRICAL + CONTROLS SYSTEM
-CONTROL INTENT:
-The Rotating Slat Image Wall System shall operate as a synchronized, programmable kinetic architectural installation that rotates between two fixed display states:
-- Position A (${fmt(c.rotationAngleA)}°) = Face A visible = "${project.positionAName}"
-- Position B (${fmt(c.rotationAngleB)}°) = Face B visible = "${project.positionBName}"
-The system shall automatically rotate on a configurable time delay, hold each position for a programmable dwell period, and confirm final alignment before the next motion cycle begins.
 
-SYSTEM ARCHITECTURE:
-- Synchronized zoned drive strategy — grouped slats per zone, not independent motors per slat
-- Master PLC/controller coordinates dwell timing, move commands, position confirmation, fault handling
-- Estimated ${Math.ceil(c.totalSlatCount / 7)} zones of approximately ${Math.min(7, c.totalSlatCount)} slats each
+CONTROL INTENT:
+The SW-01 Rotating Slat Wall System shall operate as a three-state kinetic installation:
+- State A: All slats at ${fmt(c.rotationAngleA)}deg - Face A visible - "${project.positionAName}"
+- State B: All slats at ${fmt(c.rotationAngleB)}deg - Face B visible - "${project.positionBName}"
+- State C (Emergent): Odd slats show Face A, Even slats show Face B - hidden third image revealed
+The system cycles A > B > C > A automatically on configurable dwell timers.
+
+SYSTEM ARCHITECTURE - TWO MOTOR GROUP DESIGN:
+The drive system uses TWO independent motors, each driving its own group of slats via separate timing belts:
+
+- MOTOR-ODD: Drives odd-numbered slats (S-01, S-03, S-05, S-07...) via dedicated timing belt
+  Total slats on Motor-Odd: ${Math.ceil(c.totalSlatCount / 2)}
+- MOTOR-EVEN: Drives even-numbered slats (S-02, S-04, S-06, S-08...) via dedicated timing belt
+  Total slats on Motor-Even: ${Math.floor(c.totalSlatCount / 2)}
+
+Each slat pivot shaft has a GT2 timing pulley keyed to ONLY its group's belt. The other belt passes freely via idler bearings. No mechanical coupling between groups. No clutches required.
+
+DRIVE MECHANISM (TOP RAIL CROSS SECTION):
+Two parallel timing belts run along the top mounting rail:
+- Belt 1 (Motor-Odd): engages pulleys on S-01, S-03, S-05... / idles past S-02, S-04, S-06...
+- Belt 2 (Motor-Even): engages pulleys on S-02, S-04, S-06... / idles past S-01, S-03, S-05...
+Each motor mounts at one end of the top rail inside the concealed enclosure.
+
+THREE-STATE ROTATION SEQUENCE:
+
+  STATE A (home position):
+    Motor-Odd  = 0deg   > Odd slats show Face A
+    Motor-Even = 0deg   > Even slats show Face A
+    Result: Full "${project.positionAName}" image visible
+    [Dwell timer: configurable, default 45 seconds]
+
+  TRANSITION A > B (both motors rotate simultaneously):
+    Motor-Odd  rotates to 180deg
+    Motor-Even rotates to 180deg
+
+  STATE B:
+    Motor-Odd  = 180deg > Odd slats show Face B
+    Motor-Even = 180deg > Even slats show Face B
+    Result: Full "${project.positionBName}" image visible
+    [Dwell timer: configurable, default 45 seconds]
+
+  TRANSITION B > C (only Motor-Odd moves):
+    Motor-Odd  rotates back to 0deg
+    Motor-Even stays at 180deg (no movement)
+
+  STATE C (emergent):
+    Motor-Odd  = 0deg   > Odd slats show Face A
+    Motor-Even = 180deg > Even slats show Face B
+    Result: Alternating A/B strips reveal emergent hidden image
+    [Dwell timer: configurable, default 45 seconds]
+
+  TRANSITION C > A (only Motor-Even moves):
+    Motor-Odd  stays at 0deg (no movement)
+    Motor-Even rotates back to 0deg
+
+  > Back to State A - cycle repeats
+
+KEY ADVANTAGE: Each transition requires only ONE motor to move (except A>B which moves both simultaneously). No mechanical conflicts. No clutches. Simple and reliable.
 
 POWER ARCHITECTURE:
 - System voltage: 24V DC for motion and controls
-- Facility provides dedicated building power feed to controls enclosure
-- Building power converted locally to regulated 24V DC
-- Internal distribution: 24V DC motor power, 24V DC control power, sensor power, Ethernet/network
-- Optional PoE for HMI terminals, network gateways, diagnostics only (not primary motor power)
+- Facility provides dedicated 20A building power circuit to controls enclosure
+- Building power converted locally to regulated 24V DC via switching power supply
+- Internal distribution: 24V DC motor power, 24V DC control power, sensor power
 
-MOTOR AND DRIVE STRATEGY:
-- Low-voltage geared motor system or 24V DC servo/BLDC gearmotor per synchronized zone
-- Zone transmission: timing belt, chain drive, gear track, or mechanically linked shafting
-- Motion goals: smooth controlled rotation, synchronized arrival, repeatable alignment, low vibration
-- Controlled acceleration/deceleration profiles
-
-AUTOMATIC DWELL CYCLE:
-1. System startup → verify healthy power, no active fault
-2. Confirm home/reference position
-3. Move to Position A → hold for configurable dwell time
-4. Rotate to Position B → confirm alignment → hold for configurable dwell time
-5. Rotate back to Position A → repeat cycle
-Field-programmable: dwell times, transition speed, acceleration/deceleration profiles, scheduled hours, maintenance disable
+MOTOR SPECIFICATIONS:
+- Motor type: NEMA 23 stepper motors (2 required)
+- Motor drivers: TB6600 or equivalent stepper drivers (2 required)
+- Steps per 180deg rotation: 400 (depends on microstepping and gear ratio)
+- Rotation speed: Adjustable 5-60 seconds per 180deg rotation
+- Controlled acceleration/deceleration ramp profiles
 
 POSITION SENSING AND CONFIRMATION:
-- Primary feedback: motor/drive/controller position data
-- Secondary confirmation: external physical position sensing (magnetic proximity, hall-effect, optical, or encoder-based)
-- Required states: Position A reached, Position B reached, synchronization maintained, no jam/stall
-- Fault threshold: if position differs beyond tolerance → stop motion, log fault, require authorized reset
+- Primary feedback: stepper motor step counting (open loop) with home calibration
+- Secondary confirmation: inductive proximity sensor or hall-effect sensor (1 per motor group)
+- Home sensors mounted on one reference slat per group for startup calibration
+- Required states confirmed: State A reached, State B reached, State C reached, no jam/stall
+
+CONTROLLER:
+- Arduino Mega or ESP32 microcontroller
+- Firmware: state machine cycling through A > B > C > A
+- Configurable parameters via serial/USB or DIP switches:
+  - Dwell time per state (default 45 seconds)
+  - Rotation speed (default 10 seconds per 180deg)
+  - Acceleration ramp profile
+  - Scheduled operating hours (optional)
+- Status LED indicators: Power, State A, State B, State C, Fault
 
 SAFETY AND FAULT HANDLING:
-- Emergency stop at controls enclosure + optional remote E-stop
-- Fault conditions monitored: motion failure, zone sync error, over-current/torque, sensor failure, obstruction, power interruption
-- Fault response: stop all motion, hold safe state, log fault, require reset
-- Maintenance mode: automatic-cycle disable, reduced-speed manual jog for service
-
-CONTROLLER REQUIREMENTS:
-- Compact industrial PLC or automation controller
-- HMI with: Auto Mode, Manual Mode, Dwell Settings, Position Status, Fault/Alarm Status, Service Mode
-- Optional: Ethernet, remote diagnostics, PoE-powered HMI, building management integration
+- Emergency stop button at controls enclosure
+- Fault conditions: motor stall, over-current, home sensor failure, power interruption
+- Fault response: stop all motion, hold current state, illuminate fault LED
+- Maintenance mode: disable automatic cycle, manual jog via push buttons
+- Power loss recovery: on power restore, run home calibration before resuming cycle
 
 TOP FRAME MOTOR ENCLOSURE:
-- Concealed housing for: motors, transmission, control nodes, power distribution, sensors, wiring
-- Removable access panels for motor replacement, transmission service, sensor replacement, wiring service
+- Concealed housing in top mounting rail for: 2 motors, 2 drivers, controller, power supply, belt tensioners
+- Removable access panels for motor replacement, belt tensioning, controller access
+- Ventilation slots for motor/driver heat dissipation
 
 BOTTOM FRAME SUPPORT:
-- Lower bearing support, alignment support, guided rotation support
-- Minimal service access for inspection and adjustment
+- Lower passive bearing housings for each slat pivot
+- Alignment rail for consistent slat spacing
+- No active components at bottom - passive bearing only
 
 CABLING:
-- Low-voltage motor power, control wiring, sensor wiring, Ethernet/network
-- Concealed raceways, motion-rated flexible paths, organized service loops
-- Separation between motor power, control/sensor, and data wiring
-- All wiring, zones, sensors, and service points permanently labeled
+- Motor power cables (2): from drivers to motors in top enclosure
+- Sensor cables (2): from home sensors to controller
+- Power input cable: from building circuit to 24V power supply
+- All wiring concealed in top rail enclosure
+- Service loops at motor connections for maintenance access
 
-COMMISSIONING:
-- Verify: rotation direction, zone synchronization, Position A/B alignment, dwell timing, fault handling, sensor operation, manual jog
-- Service access to: motor enclosure, controller, sensors, transmission, lower bearings
+HARDWARE BILL OF MATERIALS:
+  NEMA 23 stepper motors: 2
+  TB6600 stepper drivers: 2
+  GT2 timing belt: 2 runs (length = wall width + tensioner slack)
+  GT2 timing pulleys (20T): ${c.totalSlatCount} (one per slat pivot) + 2 (motor shafts) + 2 (idler tensioners)
+  Inductive proximity sensors: 2 (home position per group)
+  Arduino Mega or ESP32: 1
+  24V 10A switching power supply: 1
+  DIN rail mount enclosure: 1
+  Emergency stop button: 1
+  Status LED panel: 1
+  Wiring harness and connectors: 1 set
 
-BASIS-OF-DESIGN SUMMARY:
-- Motion/Control Power: 24V DC
-- Communications: Ethernet / optional PoE for interface only
-- Motion Strategy: zoned synchronized drive (${Math.ceil(c.totalSlatCount / 7)} zones, ~${Math.min(7, c.totalSlatCount)} slats/zone)
-- Controller: PLC or compact industrial automation controller
-- Feedback: drive/controller feedback + physical position sensing
-- Operation: automatic timed dwell-cycle rotation
-- Safety: E-stop, fault stop, maintenance lockout, manual jog
-- Enclosure: concealed top frame with removable service access
+COMMISSIONING CHECKLIST:
+1. Verify Motor-Odd drives only odd slats (no even slat movement)
+2. Verify Motor-Even drives only even slats (no odd slat movement)
+3. Run home calibration on both motors - confirm sensor triggers
+4. Test State A position - all slats at 0deg - full Side A image visible
+5. Test State B position - all slats at 180deg - full Side B image visible
+6. Test State C position - odd at 0deg, even at 180deg - emergent image visible
+7. Run full automatic cycle: A > B > C > A at least 3 complete loops
+8. Verify dwell timers are accurate
+9. Test emergency stop - confirm immediate halt
+10. Test power loss recovery - confirm home recalibration on restart
+11. Verify rotation speed and acceleration profiles are smooth
+12. Check belt tension on both belts
+13. Confirm all status LEDs function correctly
+14. Document final dwell times and speed settings
 
 ENGINEERING NOTE:
-This is a production-aware basis of design. Final motor sizing, current draw, power-supply sizing, controller selection, sensor selection, safety compliance, and enclosure design shall be verified during prototype development and final engineering.`,
+This is a production-ready basis of design for the two-motor-group drive architecture. Final motor torque calculations, belt tension specifications, and enclosure thermal management shall be verified during prototype development.`,
 
-    `12. INSTALL SEQUENCE
+    `12. SLAT ROTATION SCHEDULE - INSTALLATION REFERENCE
+This table shows every slat's motor group assignment and rotation angle for each of the three display states.
+The installation crew must verify each slat is connected to the CORRECT motor group belt before commissioning.
+
+Slat ID | Motor Group | Belt   | State A (0deg) | State B (180deg) | State C (Emergent)
+${Array.from({ length: c.totalSlatCount }, (_, i) => {
+  const n = i + 1;
+  const id = `S-${String(n).padStart(2, "0")}`;
+  const group = n % 2 === 1 ? "ODD " : "EVEN";
+  const belt = n % 2 === 1 ? "Belt 1" : "Belt 2";
+  const stateA = "0deg  (Face A)  ";
+  const stateB = "180deg (Face B) ";
+  const stateC = n % 2 === 1 ? "0deg  (Face A)  " : "180deg (Face B) ";
+  return `${id}     | ${group}        | ${belt} | ${stateA} | ${stateB}  | ${stateC}`;
+}).join("\n")}
+
+MOTOR GROUP SUMMARY:
+  Motor-Odd (Belt 1): Drives ${Math.ceil(c.totalSlatCount / 2)} slats (${Array.from({ length: Math.ceil(c.totalSlatCount / 2) }, (_, i) => `S-${String(i * 2 + 1).padStart(2, "0")}`).join(", ")})
+  Motor-Even (Belt 2): Drives ${Math.floor(c.totalSlatCount / 2)} slats (${Array.from({ length: Math.floor(c.totalSlatCount / 2) }, (_, i) => `S-${String(i * 2 + 2).padStart(2, "0")}`).join(", ")})
+
+BELT CONNECTION VERIFICATION:
+Before commissioning, manually rotate each motor independently and verify:
+1. Run Motor-Odd only: ONLY odd-numbered slats should move. If any even slat moves, the belt/pulley connection is wrong.
+2. Run Motor-Even only: ONLY even-numbered slats should move. If any odd slat moves, the belt/pulley connection is wrong.
+3. If a slat moves with the wrong motor, check: pulley keyed to wrong belt, idler bearing seized, or belt routing error.`,
+
+    `13. INSTALL SEQUENCE
 1. Install top frame track — verify level, plumb, and structural anchor
 2. Install bottom frame track — verify alignment to top track
 3. Install pivot hardware at each of ${c.totalSlatCount} positions — verify spacing at ${fmt(c.slatWidth + c.slatSpacing)}" on center
@@ -594,12 +685,19 @@ This is a production-aware basis of design. Final motor sizing, current draw, po
    c. Engage bottom pivot
    d. Confirm free rotation between Position A and Position B
    e. Confirm stop positions lock at ${fmt(c.rotationAngleA)}° and ${fmt(c.rotationAngleB)}°
-7. Set all slats to Position A — verify full image reads correctly across entire wall
-8. Rotate all slats to Position B — verify second image reads correctly
-9. Check slat spacing consistency — adjust any drifted pivots
-10. Final QC signoff on both positions`,
+7. Connect Belt 1 (Motor-Odd) to odd slat pulleys: S-01, S-03, S-05...
+8. Connect Belt 2 (Motor-Even) to even slat pulleys: S-02, S-04, S-06...
+9. Verify belt connections per Section 12 rotation schedule
+10. Run Motor-Odd only - confirm ONLY odd slats move
+11. Run Motor-Even only - confirm ONLY even slats move
+12. Set all slats to State A (both motors 0deg) - verify full "${project.positionAName}" image
+13. Set all slats to State B (both motors 180deg) - verify full "${project.positionBName}" image
+14. Set State C (Motor-Odd 0deg, Motor-Even 180deg) - verify emergent image
+15. Run full automatic cycle: A > B > C > A at least 3 complete loops
+16. Check slat spacing consistency - adjust any drifted pivots
+17. Final QC signoff on all three states`,
 
-    `13. QC CHECKLIST
+    `14. QC CHECKLIST
 SUBSTRATE QC:
   - [ ] Slat width: ${fmt(c.slatWidth)}" +/- 1/32"
   - [ ] Slat height: ${fmt(c.slatHeight)}" +/- 1/16"
@@ -646,7 +744,7 @@ INSTALLED READ TEST:
   - [ ] No visible misalignment between adjacent slat images
   - [ ] Transition state reads as elegant abstract fragmentation`,
 
-    `14. FAILURE POINTS (READ THIS)
+    `15. FAILURE POINTS (READ THIS)
 Most common production failures:
 - Incorrect slat order — destroys image continuity (MOST CRITICAL)
 - Slat installed backward (Face A/B swap) — wrong image on wrong position

@@ -47,7 +47,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       <OutputExportActions canPrint={detail.outputType === "BUILD_PACKET"} outputId={detail.id} />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>SKU</CardTitle>
           </CardHeader>
@@ -57,7 +57,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
             </Link>
           </CardContent>
         </Card>
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Output Type</CardTitle>
           </CardHeader>
@@ -65,7 +65,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
             <p className="font-medium">{detail.outputType}</p>
           </CardContent>
         </Card>
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Status</CardTitle>
           </CardHeader>
@@ -73,7 +73,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
             <Badge variant="secondary">{detail.status}</Badge>
           </CardContent>
         </Card>
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Version</CardTitle>
           </CardHeader>
@@ -84,7 +84,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       </section>
 
       {detail.imageAssets.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Rendered Images</CardTitle>
           </CardHeader>
@@ -135,7 +135,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       ) : null}
 
       {detail.text ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <CardTitle>{detail.outputType === "IMAGE_RENDER" ? "Underlying Prompt Text" : "Rendered Text"}</CardTitle>
             <CopyButton text={detail.text} />
@@ -149,7 +149,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       ) : null}
 
       {isSectionRecordArray(detail.sections) && detail.sections.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Packet Sections</CardTitle>
           </CardHeader>
@@ -170,7 +170,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       ) : null}
 
       {isRecordArray(detail.rulesApplied) && detail.rulesApplied.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Rules Applied</CardTitle>
           </CardHeader>
@@ -191,7 +191,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       ) : null}
 
       {isRecordArray(detail.qcTemplatesApplied) && detail.qcTemplatesApplied.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>QC Templates Applied</CardTitle>
           </CardHeader>
@@ -219,7 +219,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
             const items = Array.isArray(card.items) ? card.items : [];
 
             return (
-              <Card key={`${String(card.title ?? "card")}-${index}`} className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+              <Card key={`${String(card.title ?? "card")}-${index}`}>
                 <CardHeader>
                   <CardTitle>{String(card.title ?? "Card")}</CardTitle>
                 </CardHeader>
@@ -245,7 +245,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       ) : null}
 
       {detail.metrics ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Calculation Metrics</CardTitle>
           </CardHeader>
@@ -257,7 +257,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
         </Card>
       ) : null}
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Source References</CardTitle>
         </CardHeader>
@@ -299,7 +299,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       </Card>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Input Payload</CardTitle>
           </CardHeader>
@@ -310,7 +310,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
           </CardContent>
         </Card>
 
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Output Payload</CardTitle>
           </CardHeader>
@@ -325,7 +325,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
       {detail.imageAssets.length > 0 ? (
         <section className="grid gap-4">
           {detail.imageAssets.map((asset) => (
-            <Card key={`${asset.id}-metadata`} className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+            <Card key={`${asset.id}-metadata`}>
               <CardHeader>
                 <CardTitle>Image Provider Metadata</CardTitle>
               </CardHeader>

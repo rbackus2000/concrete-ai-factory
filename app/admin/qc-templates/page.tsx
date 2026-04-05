@@ -32,7 +32,7 @@ export default async function QcTemplatesPage() {
         </Link>
       </div>
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>QC Records</CardTitle>
         </CardHeader>

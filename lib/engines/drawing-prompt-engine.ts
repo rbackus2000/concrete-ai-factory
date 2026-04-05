@@ -34,7 +34,7 @@ const drawingSectionKeyMap: Record<SkuCategory, Partial<Record<TechnicalDrawingT
 };
 
 const DRAWING_STYLE_PREFIX =
-  "Generate a high-quality black-and-white technical engineering line drawing on a pure white background. Use clean black lines, standard engineering drawing conventions, dimension callout lines with values, section hatching for cut views, dashed lines for hidden edges, and thin centerlines for symmetry axes. No color, no shading, no gradients, no perspective — strictly 2D orthographic projection. Include a title block in the lower-right corner with: company name \"RB Studio\", SKU code, part name, weight range, and drawing type.";
+  "Generate a high-quality black-and-white technical engineering line drawing on a pure white background. Use clean black lines, standard engineering drawing conventions, dimension callout lines with values, section hatching for cut views, dashed lines for hidden edges, and thin centerlines for symmetry axes. No color, no shading, no gradients, no perspective — strictly 2D orthographic projection. Include a title block in the lower-right corner with: the RB Studio logo mark (a vertically stacked R over B inside a thin rectangular border, with \"STUDIO\" in spaced uppercase tracking below), SKU code, part name, weight range, and drawing type.";
 
 function buildSinkDimensionsPrompt(sku: Sku): string {
   return `${DRAWING_STYLE_PREFIX}

@@ -86,7 +86,7 @@ export function QcTemplateForm({
   };
 
   return (
-    <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+    <Card>
       <CardHeader>
         <CardTitle>{mode === "create" ? "New QC Template" : "Edit QC Template"}</CardTitle>
       </CardHeader>

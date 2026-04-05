@@ -86,7 +86,7 @@ export function BuildPacketTemplateForm({
   };
 
   return (
-    <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+    <Card>
       <CardHeader>
         <CardTitle>{mode === "create" ? "New Build Packet Section" : "Edit Build Packet Section"}</CardTitle>
       </CardHeader>

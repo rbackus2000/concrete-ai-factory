@@ -1,13 +1,16 @@
 import json
+import os
 import sys
 from io import BytesIO
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import Image, ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer
+
+LOGO_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public", "rb-studio-logo.png")
 
 
 def build_styles():
@@ -110,6 +113,16 @@ def build_pdf(payload):
     styles = build_styles()
     story = []
 
+    # Logo
+    if os.path.exists(LOGO_PATH):
+        try:
+            logo = Image(LOGO_PATH, width=1.2 * inch, height=0.4 * inch)
+            logo.hAlign = "CENTER"
+            story.append(logo)
+            story.append(Spacer(1, 0.15 * inch))
+        except Exception:
+            pass
+
     story.append(Paragraph(payload.get("title", "Packet Export"), styles["PacketTitle"]))
     story.append(
         Paragraph(
@@ -189,7 +202,15 @@ def build_pdf(payload):
 
     story.extend(lines_to_paragraphs("\n".join(source_lines), styles["PacketBody"]))
 
-    doc.build(story)
+    def add_page_footer(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(colors.HexColor("#6b7280"))
+        canvas.drawString(0.65 * inch, 0.45 * inch, "RB Studio  |  CONFIDENTIAL - INTERNAL USE ONLY")
+        canvas.drawRightString(LETTER[0] - 0.65 * inch, 0.45 * inch, f"Page {doc.page}")
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=add_page_footer, onLaterPages=add_page_footer)
     return buffer.getvalue()
 
 

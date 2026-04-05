@@ -54,6 +54,28 @@ function fillPacketTokens(template: string, sku: Sku) {
     draftAngle: fmt(sku.draftAngle),
     cornerRadius: fmt(sku.cornerRadius),
     drainDiameter: fmt(sku.drainDiameter),
+    drainType: sku.drainType || "Round",
+    basinSlopeDeg: fmt(sku.basinSlopeDeg),
+    slopeDirection: sku.slopeDirection || "Center",
+    mountType: sku.mountType || "FREESTANDING",
+    hasOverflow: sku.hasOverflow ? "YES" : "NO",
+    overflowHoleDiameter: sku.hasOverflow ? fmt(sku.overflowHoleDiameter) : "N/A",
+    overflowPosition: sku.overflowPosition || "N/A",
+    bracketModel: sku.bracketSpec?.bracketModel || "N/A",
+    bracketCount: sku.bracketSpec ? `${sku.bracketSpec.bracketCount}` : "0",
+    bracketToCenter: sku.bracketSpec?.bracketToCenter || "N/A",
+    wallType: sku.bracketSpec?.wallType || "N/A",
+    channelWidthIn: sku.bracketSpec ? fmt(sku.bracketSpec.channelWidthIn) : "0",
+    channelDepthIn: sku.bracketSpec ? fmt(sku.bracketSpec.channelDepthIn) : "0",
+    channelLengthIn: sku.bracketSpec ? fmt(sku.bracketSpec.channelLengthIn) : "0",
+    channelSpacingFromCenter: sku.bracketSpec?.channelSpacingFromCenter || "N/A",
+    channelDimensions: sku.bracketSpec
+      ? `${fmt(sku.bracketSpec.channelWidthIn)}" wide x ${fmt(sku.bracketSpec.channelDepthIn)}" deep x ${fmt(sku.bracketSpec.channelLengthIn)}" long`
+      : "N/A",
+    hardwareBomText: sku.bracketSpec?.hardwareBom
+      .map((h) => `- ${h.item} x ${h.qty}${h.notes ? ` (${h.notes})` : ""}`)
+      .join("\n") || "No mounting hardware required",
+    installNotes: sku.bracketSpec?.installNotes || "",
     reinforcementDiameter: fmt(sku.reinforcementDiameter),
     reinforcementThickness: fmt(sku.reinforcementThickness),
     longRibCount: fmt(sku.longRibCount),

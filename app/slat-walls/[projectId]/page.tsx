@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getSlatWallDetail } from "@/lib/services/slat-wall-service";
+import { getSlatWallDetail, getSlatWallSimulatorImages } from "@/lib/services/slat-wall-service";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +25,21 @@ type SlatWallDetailPageProps = {
 
 export default async function SlatWallDetailPage({ params }: SlatWallDetailPageProps) {
   const { projectId } = await params;
-  const detail = await getSlatWallDetail(projectId);
+  const [detail, savedImages] = await Promise.all([
+    getSlatWallDetail(projectId),
+    getSlatWallSimulatorImages(projectId),
+  ]);
 
   if (!detail) {
     notFound();
   }
 
   const { project, config, artworks, slats } = detail;
+  const simulatorImages = Object.entries(savedImages).map(([state, data]) => ({
+    state,
+    label: state === "A" ? "Side A" : state === "B" ? "Side B" : "Transition",
+    imageUrl: data.imageUrl,
+  }));
   const wallWidth = config
     ? config.totalSlatCount * (config.slatWidth + config.slatSpacing)
     : 0;
@@ -51,6 +59,9 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
           <Link href={`/slat-walls/${projectId}/print-generator`}>
             <Button>Print Generator</Button>
           </Link>
+          <Link href={`/slat-walls/${projectId}/proposal`}>
+            <Button>Proposal</Button>
+          </Link>
           <Link href={`/slat-walls/${projectId}/edit`}>
             <Button variant="outline">Edit Project</Button>
           </Link>
@@ -58,26 +69,26 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
       </div>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader><CardTitle>Status</CardTitle></CardHeader>
           <CardContent>
             <Badge variant="secondary">{project.status}</Badge>
           </CardContent>
         </Card>
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader><CardTitle>Client</CardTitle></CardHeader>
           <CardContent>
             <p className="font-medium">{project.clientName || "—"}</p>
             <p className="text-sm text-muted-foreground">{project.location || "No location"}</p>
           </CardContent>
         </Card>
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader><CardTitle>Position A</CardTitle></CardHeader>
           <CardContent>
             <p className="font-medium">{project.positionAName || "Image A"}</p>
           </CardContent>
         </Card>
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader><CardTitle>Position B</CardTitle></CardHeader>
           <CardContent>
             <p className="font-medium">{project.positionBName || "Image B"}</p>
@@ -86,7 +97,7 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
       </section>
 
       {config ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader><CardTitle>Wall Configuration</CardTitle></CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-4 text-sm">
@@ -129,8 +140,26 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
 
       <SlatWallGeneratorForm projectId={projectId} projectCode={project.code} />
 
+      {simulatorImages.length > 0 ? (
+        <Card>
+          <CardHeader><CardTitle>Simulator AI Renders</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-3">
+            {simulatorImages.map((img) => (
+              <div key={img.state} className="rounded-2xl border border-border/70 p-4 space-y-2">
+                <Badge>{img.label}</Badge>
+                <img
+                  alt={`${img.label} AI render`}
+                  className="w-full rounded-xl object-cover"
+                  src={img.imageUrl}
+                />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {artworks.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader><CardTitle>Artwork Inputs</CardTitle></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             {artworks.map((artwork) => (
@@ -163,7 +192,7 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
       )}
 
       {slats.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Slat Schedule ({slats.length} slats)</CardTitle>
           </CardHeader>

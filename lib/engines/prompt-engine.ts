@@ -188,12 +188,16 @@ function buildPromptVariables({
   const overrideColor = values.colorOverride && values.colorOverride !== "SKU Default"
     ? values.colorOverride
     : null;
+  const overrideFinish = values.finishOverride && values.finishOverride !== "SKU Default"
+    ? values.finishOverride
+    : null;
   const overrideSealer = values.sealerOverride && values.sealerOverride !== "SKU Default"
     ? values.sealerOverride
     : null;
-  const effectiveFinish = overrideColor || overrideSealer
-    ? `${overrideSealer ?? "Matte"} ${overrideColor ?? baseFinish.replace(/^(Matte|Satin|Gloss)\s+/i, "")}`
-    : baseFinish;
+  const colorName = overrideColor ?? baseFinish.replace(/^(Matte|Satin|Gloss|Classic|Foundry|Industrial)\s+/i, "");
+  const finishName = overrideFinish ?? "Classic";
+  const sealerName = overrideSealer ?? "Matte";
+  const effectiveFinish = `${sealerName} ${finishName} ${colorName}`;
   const isSink = sku.category === "VESSEL_SINK";
   const isFurniture = sku.category === "FURNITURE";
   const isPanel = sku.category === "PANEL";
@@ -224,10 +228,13 @@ function buildPromptVariables({
     bottomThickness: formatNumber(sku.bottomThickness),
     topLipThickness: formatNumber(sku.topLipThickness),
     drainDiameter: formatNumber(sku.drainDiameter),
+    drainType: sku.drainType || "Round",
+    basinSlopeDeg: formatNumber(sku.basinSlopeDeg),
+    slopeDirection: sku.slopeDirection || "Center",
     hasDrain: showDrain,
     showDrain,
     showFaucet,
-    mountType: "vessel mount",
+    mountType: sku.mountType || (isFurniture ? "freestanding" : "vessel mount"),
     supportType: isFurniture ? "integrated architectural support" : "",
     useContext: isFurniture ? "a refined residential or hospitality interior" : "",
     topThickness: formatNumber(sku.topLipThickness || sku.outerHeight),

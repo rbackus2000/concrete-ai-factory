@@ -25,7 +25,7 @@ export default async function DashboardPage() {
           const Icon = icons[index];
 
           return (
-            <Card key={stat.label} className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+            <Card key={stat.label}>
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         {summary.featuredSku ? (
-          <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+          <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -83,7 +83,7 @@ export default async function DashboardPage() {
           </Card>
         ) : null}
 
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Seeded modules</p>
             <CardTitle className="mt-2 text-2xl">What this scaffold already knows</CardTitle>

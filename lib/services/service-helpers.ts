@@ -93,6 +93,33 @@ function parseCalculatorDefaults(value: Prisma.JsonValue | null | undefined) {
   };
 }
 
+function parseBracketSpec(value: Prisma.JsonValue | null | undefined) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  return {
+    bracketModel: typeof record["bracketModel"] === "string" ? record["bracketModel"] : "",
+    bracketCount: Number(record["bracketCount"] ?? 0),
+    bracketToCenter: typeof record["bracketToCenter"] === "string" ? record["bracketToCenter"] : "",
+    wallType: typeof record["wallType"] === "string" ? record["wallType"] : "",
+    channelWidthIn: Number(record["channelWidthIn"] ?? 0),
+    channelDepthIn: Number(record["channelDepthIn"] ?? 0),
+    channelLengthIn: Number(record["channelLengthIn"] ?? 0),
+    channelSpacingFromCenter: typeof record["channelSpacingFromCenter"] === "string" ? record["channelSpacingFromCenter"] : "",
+    hardwareBom: Array.isArray(record["hardwareBom"])
+      ? (record["hardwareBom"] as Array<Record<string, unknown>>).map((item) => ({
+          item: typeof item["item"] === "string" ? item["item"] : "",
+          qty: typeof item["qty"] === "string" ? item["qty"] : "",
+          notes: typeof item["notes"] === "string" ? item["notes"] : undefined,
+        }))
+      : [],
+    installNotes: typeof record["installNotes"] === "string" ? record["installNotes"] : undefined,
+  };
+}
+
 export function parseStringArray(value: Prisma.JsonValue | null | undefined) {
   if (!Array.isArray(value)) {
     return [];
@@ -140,6 +167,14 @@ export function mapSkuRecord(sku: PrismaSku): Sku {
     ribWidth: decimalToNumber(sku.ribWidth) ?? 0,
     ribHeight: decimalToNumber(sku.ribHeight) ?? 0,
     drainDiameter: decimalToNumber(sku.drainDiameter) ?? 0,
+    drainType: sku.drainType ?? "",
+    basinSlopeDeg: decimalToNumber(sku.basinSlopeDeg) ?? 0,
+    slopeDirection: sku.slopeDirection ?? "",
+    mountType: sku.mountType ?? "",
+    hasOverflow: sku.hasOverflow,
+    overflowHoleDiameter: decimalToNumber(sku.overflowHoleDiameter) ?? 0,
+    overflowPosition: sku.overflowPosition ?? "",
+    bracketSpec: parseBracketSpec(sku.bracketSpecJson),
     reinforcementDiameter: decimalToNumber(sku.reinforcementDiameter) ?? 0,
     reinforcementThickness: decimalToNumber(sku.reinforcementThickness) ?? 0,
     draftAngle: decimalToNumber(sku.draftAngle) ?? 0,

@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/app-shell/page-header";
 import { SlatWallProjectForm } from "@/components/forms/slat-wall-project-form";
+import { Button } from "@/components/ui/button";
 import { getSlatWallForEdit } from "@/lib/services/slat-wall-service";
 
 export const dynamic = "force-dynamic";
@@ -22,11 +24,16 @@ export default async function EditSlatWallPage({ params }: EditSlatWallPageProps
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="Slat Walls"
-        title={`Edit ${project.code}`}
-        description="Update project configuration and wall dimensions."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          eyebrow="Slat Walls"
+          title={`Edit ${project.code}`}
+          description="Update project configuration and wall dimensions."
+        />
+        <Link href={`/slat-walls/${projectId}`}>
+          <Button variant="outline">Back to Project</Button>
+        </Link>
+      </div>
       <SlatWallProjectForm
         mode="edit"
         projectId={projectId}

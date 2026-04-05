@@ -19,6 +19,7 @@ export default async function GeneratorPage() {
         <GeneratorForm
           outputTypes={config.outputTypes}
           recentOutputs={config.recentOutputs}
+          referenceImages={config.referenceImages}
           skus={config.skus}
         />
       ) : (

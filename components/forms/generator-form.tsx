@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { OutputType } from "@/lib/schemas/domain";
 import {
   colorOptions,
+  finishOptions,
   sealerOptions,
   generatorFormSchema,
   getImageScenePresetsForCategory,
@@ -33,6 +34,7 @@ type GeneratorFormProps = {
     category: string;
   }>;
   outputTypes: readonly OutputType[];
+  referenceImages: Record<string, string>;
   recentOutputs: Array<{
     id: string;
     skuCode: string;
@@ -48,7 +50,7 @@ type GeneratorFormProps = {
   }>;
 };
 
-export function GeneratorForm({ skus, outputTypes, recentOutputs }: GeneratorFormProps) {
+export function GeneratorForm({ skus, outputTypes, referenceImages, recentOutputs }: GeneratorFormProps) {
   const [isPending, startTransition] = useTransition();
   const [serverNotice, setServerNotice] = useState<{
     tone: "success" | "error";
@@ -133,7 +135,7 @@ export function GeneratorForm({ skus, outputTypes, recentOutputs }: GeneratorFor
         setHistory((current) => [result, ...current.filter((entry) => entry.id !== result.id)].slice(0, 10));
         setServerNotice({
           tone: "success",
-          message: `Saved GeneratedOutput ${result.id}.`,
+          message: `Saved: ${result.title}`,
         });
       } catch (error) {
         setServerNotice({
@@ -146,7 +148,7 @@ export function GeneratorForm({ skus, outputTypes, recentOutputs }: GeneratorFor
 
   return (
     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Generate Output</CardTitle>
         </CardHeader>
@@ -162,6 +164,25 @@ export function GeneratorForm({ skus, outputTypes, recentOutputs }: GeneratorFor
                 ))}
               </Select>
             </div>
+
+            {referenceImages[selectedSkuCode] ? (
+              <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-3">
+                <img
+                  alt="Reference"
+                  className="h-14 w-14 rounded-lg object-cover"
+                  src={referenceImages[selectedSkuCode]}
+                />
+                <div>
+                  <p className="text-xs font-medium text-green-800">Reference image locked</p>
+                  <p className="text-xs text-green-600">All generated images will match this render.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs font-medium text-amber-800">No reference image yet</p>
+                <p className="text-xs text-amber-600">Generate an IMAGE RENDER first to lock the product appearance.</p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="outputType">Output Type</Label>
@@ -195,13 +216,23 @@ export function GeneratorForm({ skus, outputTypes, recentOutputs }: GeneratorFor
               </div>
             ) : null}
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="colorOverride">Color</Label>
                 <Select id="colorOverride" {...form.register("colorOverride")}>
                   {colorOptions.map((color) => (
                     <option key={color} value={color}>
                       {color}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="finishOverride">Finish</Label>
+                <Select id="finishOverride" {...form.register("finishOverride")}>
+                  {finishOptions.map((finish) => (
+                    <option key={finish} value={finish}>
+                      {finish}
                     </option>
                   ))}
                 </Select>
@@ -252,7 +283,7 @@ export function GeneratorForm({ skus, outputTypes, recentOutputs }: GeneratorFor
       </Card>
 
       <div className="space-y-4">
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Generated Payload</CardTitle>
           </CardHeader>
@@ -260,23 +291,27 @@ export function GeneratorForm({ skus, outputTypes, recentOutputs }: GeneratorFor
             {generated ? (
               <>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Saved Record</p>
-                    <p className="font-medium">{generated.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Output Type</p>
-                    <p className="font-medium">{generated.outputType}</p>
+                  <div className="md:col-span-2">
+                    <p className="text-sm text-muted-foreground">Output</p>
+                    <p className="text-lg font-bold">{generated.title}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">SKU</p>
                     <p className="font-medium">{generated.skuCode}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Template Reference</p>
+                    <p className="text-sm text-muted-foreground">Output Type</p>
+                    <p className="font-medium">{generated.outputType.replaceAll("_", " ")}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Template</p>
                     <p className="font-medium">
                       {generated.promptTemplateKey ?? generated.buildPacketSectionKey ?? "Runtime-only"}
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <p className="font-medium">{generated.status}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -340,7 +375,7 @@ export function GeneratorForm({ skus, outputTypes, recentOutputs }: GeneratorFor
           </CardContent>
         </Card>
 
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Recent Generated Outputs</CardTitle>
           </CardHeader>

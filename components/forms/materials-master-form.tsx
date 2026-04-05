@@ -86,7 +86,7 @@ export function MaterialsMasterForm({
   };
 
   return (
-    <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+    <Card>
       <CardHeader>
         <CardTitle>{mode === "create" ? "New Material Record" : "Edit Material Record"}</CardTitle>
       </CardHeader>

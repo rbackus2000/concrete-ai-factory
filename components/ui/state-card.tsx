@@ -10,7 +10,7 @@ type StateCardProps = {
 
 export function StateCard({ title, description, action }: StateCardProps) {
   return (
-    <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+    <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>

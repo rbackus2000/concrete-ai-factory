@@ -158,17 +158,55 @@ export async function generateSlatPDF(slatData: SlatData, totalSlats: number): P
 export function generateSlatDXF(slatData: SlatData): string {
   const { slatWidthMM, slatHeightMM, lineWeightMM, lines } = slatData;
 
-  let dxf = `0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n`;
+  // Build a complete R2000 DXF with all required sections
+  let dxf = "";
 
-  // Stencil cuts
+  // HEADER — target R12 (AC1009) for maximum compatibility
+  dxf += "0\nSECTION\n2\nHEADER\n";
+  dxf += "9\n$ACADVER\n1\nAC1009\n";
+  dxf += "9\n$INSUNITS\n70\n4\n";
+  dxf += `9\n$EXTMIN\n10\n0.0\n20\n0.0\n`;
+  dxf += `9\n$EXTMAX\n10\n${slatWidthMM.toFixed(4)}\n20\n${slatHeightMM.toFixed(4)}\n`;
+  dxf += "0\nENDSEC\n";
+
+  // TABLES
+  dxf += "0\nSECTION\n2\nTABLES\n";
+  dxf += "0\nTABLE\n2\nLTYPE\n70\n1\n";
+  dxf += "0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n";
+  dxf += "0\nENDTAB\n";
+  dxf += "0\nTABLE\n2\nLAYER\n70\n4\n";
+  dxf += "0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n";
+  dxf += "0\nLAYER\n2\nSTENCIL_CUTS\n70\n0\n62\n7\n6\nCONTINUOUS\n";
+  dxf += "0\nLAYER\n2\nSTENCIL_BORDER\n70\n0\n62\n1\n6\nCONTINUOUS\n";
+  dxf += "0\nLAYER\n2\nREGISTRATION\n70\n0\n62\n3\n6\nCONTINUOUS\n";
+  dxf += "0\nENDTAB\n";
+  dxf += "0\nENDSEC\n";
+
+  // ENTITIES — use LINE entities (R12 compatible, no LWPOLYLINE)
+  dxf += "0\nSECTION\n2\nENTITIES\n";
+
+  // Stencil cuts — draw as 4 LINE entities per rectangle
   for (const line of lines) {
     const y0 = line.y.toFixed(4);
     const y1 = (line.y + lineWeightMM).toFixed(4);
-    dxf += `0\nLWPOLYLINE\n8\nSTENCIL_CUTS\n90\n4\n70\n1\n10\n0.0000\n20\n${y0}\n10\n${slatWidthMM.toFixed(4)}\n20\n${y0}\n10\n${slatWidthMM.toFixed(4)}\n20\n${y1}\n10\n0.0000\n20\n${y1}\n`;
+    const w = slatWidthMM.toFixed(4);
+    // Bottom edge
+    dxf += `0\nLINE\n8\nSTENCIL_CUTS\n10\n0.0000\n20\n${y0}\n11\n${w}\n21\n${y0}\n`;
+    // Right edge
+    dxf += `0\nLINE\n8\nSTENCIL_CUTS\n10\n${w}\n20\n${y0}\n11\n${w}\n21\n${y1}\n`;
+    // Top edge
+    dxf += `0\nLINE\n8\nSTENCIL_CUTS\n10\n${w}\n20\n${y1}\n11\n0.0000\n21\n${y1}\n`;
+    // Left edge
+    dxf += `0\nLINE\n8\nSTENCIL_CUTS\n10\n0.0000\n20\n${y1}\n11\n0.0000\n21\n${y0}\n`;
   }
 
-  // Border
-  dxf += `0\nLWPOLYLINE\n8\nSTENCIL_BORDER\n90\n4\n70\n1\n10\n0.0000\n20\n0.0000\n10\n${slatWidthMM.toFixed(4)}\n20\n0.0000\n10\n${slatWidthMM.toFixed(4)}\n20\n${slatHeightMM.toFixed(4)}\n10\n0.0000\n20\n${slatHeightMM.toFixed(4)}\n`;
+  // Border — 4 lines
+  const bw = slatWidthMM.toFixed(4);
+  const bh = slatHeightMM.toFixed(4);
+  dxf += `0\nLINE\n8\nSTENCIL_BORDER\n10\n0.0000\n20\n0.0000\n11\n${bw}\n21\n0.0000\n`;
+  dxf += `0\nLINE\n8\nSTENCIL_BORDER\n10\n${bw}\n20\n0.0000\n11\n${bw}\n21\n${bh}\n`;
+  dxf += `0\nLINE\n8\nSTENCIL_BORDER\n10\n${bw}\n20\n${bh}\n11\n0.0000\n21\n${bh}\n`;
+  dxf += `0\nLINE\n8\nSTENCIL_BORDER\n10\n0.0000\n20\n${bh}\n11\n0.0000\n21\n0.0000\n`;
 
   // Registration holes
   const holes = [
@@ -181,14 +219,24 @@ export function generateSlatDXF(slatData: SlatData): string {
     dxf += `0\nCIRCLE\n8\nREGISTRATION\n10\n${h.x.toFixed(4)}\n20\n${h.y.toFixed(4)}\n40\n2.5000\n`;
   }
 
-  dxf += `0\nENDSEC\n0\nEOF`;
+  dxf += "0\nENDSEC\n";
+  dxf += "0\nEOF";
   return dxf;
 }
 
 // ─── SPEC SHEET ────────────────────────────────────────────────
 
 export function generateSpecSheet(scenario: PrintScenario, sizeLabel: string, config: WallConfig): string {
-  return `RB STUDIO — PRINT SPECIFICATION SHEET
+  return `════════════════════════════════════════
+        ┌──────┐
+        │  R   │
+        │ ═══  │
+        │  B   │
+        └──────┘
+         STUDIO
+════════════════════════════════════════
+
+RB STUDIO — PRINT SPECIFICATION SHEET
 Generated: ${new Date().toISOString()}
 
 INSTALLATION DETAILS
@@ -224,5 +272,9 @@ QUALITY CONTROL
 2. View from 20-30 feet — verify image continuity
 3. Check line weight consistency
 4. Verify slat numbers match files before full run
+
+════════════════════════════════════════
+RB STUDIO | CONFIDENTIAL - INTERNAL USE ONLY
+════════════════════════════════════════
 `;
 }

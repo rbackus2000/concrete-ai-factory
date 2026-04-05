@@ -28,13 +28,21 @@ export default async function SlatWallsPage() {
           title="Kinetic slat wall projects"
           description="Rotating vertical GFRC slat walls with dual-image UV print artwork."
         />
-        <Link href="/slat-walls/new">
-          <Button>New Project</Button>
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/slat-walls/calculator">
+            <Button variant="outline">Cost Calculator</Button>
+          </Link>
+          <Link href="/slat-walls/proposals">
+            <Button variant="outline">Proposals</Button>
+          </Link>
+          <Link href="/slat-walls/new">
+            <Button>New Project</Button>
+          </Link>
+        </div>
       </div>
 
       {projects.length > 0 ? (
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Projects</CardTitle>
           </CardHeader>

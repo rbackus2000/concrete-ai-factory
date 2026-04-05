@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/app-shell/page-header";
 import { SlatWallSimulator } from "@/components/slat-wall/slat-wall-simulator";
+import { Button } from "@/components/ui/button";
 import { getSlatWallDetail, getSlatWallSimulatorImages } from "@/lib/services/slat-wall-service";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +35,16 @@ export default async function SimulatorPage({ params }: SimulatorPageProps) {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="Slat Walls"
-        title={`${project.code} — Simulator`}
-        description="Interactive rotating slat wall visualization with horizontal line density rendering and three-state optical reveal."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          eyebrow="Slat Walls"
+          title={`${project.code} — Simulator`}
+          description="Interactive rotating slat wall visualization with horizontal line density rendering and three-state optical reveal."
+        />
+        <Link href={`/slat-walls/${projectId}`}>
+          <Button variant="outline">Back to Project</Button>
+        </Link>
+      </div>
       <SlatWallSimulator
         projectId={projectId}
         slatCount={config.totalSlatCount}

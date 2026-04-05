@@ -106,6 +106,7 @@ enum MaterialCategory {
   INSERT
   SEALER
   PACKAGING
+  HARDWARE
 }
 
 enum RuleCategory {
@@ -154,6 +155,14 @@ model Sku {
   ribWidth                  Decimal?              @db.Decimal(8, 2)
   ribHeight                 Decimal?              @db.Decimal(8, 2)
   drainDiameter             Decimal?              @db.Decimal(8, 2)
+  drainType                 String?
+  basinSlopeDeg             Decimal?              @db.Decimal(5, 2)
+  slopeDirection            String?
+  mountType                 String?
+  bracketSpecJson           Json?
+  hasOverflow               Boolean               @default(false)
+  overflowHoleDiameter      Decimal?              @db.Decimal(8, 2)
+  overflowPosition          String?
   reinforcementDiameter     Decimal?              @db.Decimal(8, 2)
   reinforcementThickness    Decimal?              @db.Decimal(8, 2)
   draftAngle                Decimal?              @db.Decimal(8, 2)
@@ -478,4 +487,85 @@ model SlatRecord {
   @@unique([projectId, slatIndex])
   @@index([projectId, slatIndex])
   @@map("slat_records")
+}
+
+model SlatWallProposal {
+  id              String   @id @default(cuid())
+  proposalNumber  String   @unique
+  clientName      String
+  projectName     String
+  clientEmail     String?
+  siteAddress     String?
+  scenarioId      String
+  wallSize        String
+  slatCount       Int
+  slatWidthIn     Decimal? @db.Decimal(6, 2)
+  slatHeightFt    Decimal? @db.Decimal(6, 2)
+  printMethod     String
+  includeInstall  Boolean  @default(true)
+  clientPrice     Int
+  breakdown       Json
+  pdfUrl          String?
+  status          String   @default("draft")
+  validUntil      DateTime?
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("slat_wall_proposals")
+}
+
+// ── EQUIPMENT PROCUREMENT TRACKER ──────────────────────────────
+
+model EquipmentCategory {
+  id         String          @id @default(cuid())
+  name       String
+  slug       String          @unique
+  phase      Int
+  phaseLabel String
+  sortOrder  Int
+  items      EquipmentItem[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@map("equipment_categories")
+}
+
+model EquipmentItem {
+  id            String            @id @default(cuid())
+  categoryId    String
+  category      EquipmentCategory @relation(fields: [categoryId], references: [id])
+  name          String
+  description   String            @db.Text
+  why           String            @db.Text
+  options       String            @db.Text
+  costLow       Int
+  costHigh      Int
+  priority      String
+  phase         Int
+  supplierName  String?
+  supplierUrl   String?
+  supplierNotes String?           @db.Text
+  status        String            @default("needed")
+  actualCost    Int?
+  purchaseDate  DateTime?
+  notes         String?           @db.Text
+  quantity      Int               @default(1)
+  sortOrder     Int
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@map("equipment_items")
+}
+
+model EquipmentBudget {
+  id              String   @id @default(cuid())
+  label           String
+  allocatedAmount Int
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("equipment_budgets")
 }

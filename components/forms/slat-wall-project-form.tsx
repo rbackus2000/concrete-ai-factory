@@ -93,7 +93,7 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
 
   return (
     <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Project Information</CardTitle>
         </CardHeader>
@@ -154,7 +154,7 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
         </CardContent>
       </Card>
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Design Scenario</CardTitle>
         </CardHeader>
@@ -217,7 +217,7 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
         </CardContent>
       </Card>
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Wall Configuration</CardTitle>
         </CardHeader>

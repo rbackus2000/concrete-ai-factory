@@ -42,27 +42,35 @@ export function getImageScenePresetsForCategory(category?: string | null) {
 
 export const colorOptions = [
   "SKU Default",
-  // Neutrals
+  // 8 Standard concrete colors (Benjamin Moore reference)
+  "Linen",          // BM White Opulance OC-69 — warm off-white
+  "Frost",          // BM Silver Dollar 1460 — cool light gray
+  "Beach",          // BM Gray Huskie 1473 — warm mid-gray
+  "Graphite",       // BM Sterling Silver 1461 — cool mid-gray
+  "Pewter",         // BM Graystone 1475 — warm medium gray
+  "Storm",          // BM Eagle Rock 1469 — cool dark gray
+  "Shadow",         // BM Kendall Charcoal HC-166 — dark charcoal
+  "Carbon",         // BM Graphite 1603 — near-black
+  // Woodform colors (wood-grain textured GFRC)
+  "Mist",           // Light whitewashed wood tone
+  "Dune",           // Warm natural blonde wood tone
+  "Fog",            // Cool gray wood tone
+  "Forest",         // Warm honey/amber wood tone
+  "Grove",          // Medium warm brown wood tone
+  "Twilight",       // Cool medium brown wood tone
+  "Mocha",          // Deep rich brown wood tone
+  "Ember",          // Near-black charred wood tone
+  // Legacy / custom
   "Natural Gray",
-  "Warm White",
-  "Black",
-  "Raw Concrete",
-  // Signature pigment colors
-  "Earth",
-  "Smoke",
-  "Coal",
-  "Universe",
-  "Slate",
-  "Sand",
-  "Wheat",
-  "Moss",
-  "Wine",
-  "Chocolate",
-  "Brick",
-  "Ash",
-  "Mushroom",
-  "Sky",
-  "Straw",
+  "Custom (specify in notes)",
+] as const;
+
+export const finishOptions = [
+  "SKU Default",
+  "Classic",        // Smooth, uniform, fine sand particles — all surfaces including sink basins
+  "Foundry",        // Naturally mottled, hand-troweled — NOT for sink basins
+  "Industrial",     // Raw, distressed, visible air pores — vertical surfaces only
+  "Woodform",       // Wood-grain texture cast from real walnut slab molds — indoor/outdoor
 ] as const;
 
 export const sealerOptions = [
@@ -78,6 +86,7 @@ export const generatorFormSchema = z.object({
   outputType: outputTypeSchema,
   scenePreset: imageScenePresetSchema.optional(),
   colorOverride: z.string().optional(),
+  finishOverride: z.string().optional(),
   sealerOverride: z.string().optional(),
   requestedOutput: z.string().trim().min(2, "Requested output should be a little more specific."),
   creativeDirection: z.string().trim().min(2, "Creative direction should include a little context."),

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { Prisma } from "@prisma/client";
@@ -78,8 +78,12 @@ function mapRuleRecord(rule: {
   };
 }
 
-function buildGeneratedTitle(skuCode: string, scenePreset?: string) {
-  return `${skuCode} IMAGE RENDER${scenePreset ? ` · ${scenePreset.toUpperCase()}` : ""}`;
+function buildGeneratedTitle(skuCode: string, opts?: { scenePreset?: string; color?: string; sealer?: string }) {
+  const parts = [skuCode, "IMAGE RENDER"];
+  if (opts?.scenePreset) parts.push(`· ${opts.scenePreset.toUpperCase()}`);
+  if (opts?.color && opts.color !== "SKU Default") parts.push(`· ${opts.color}`);
+  if (opts?.sealer && opts.sealer !== "SKU Default") parts.push(`· ${opts.sealer}`);
+  return parts.join(" ");
 }
 
 function parseDimensionsFromSize(size: string) {
@@ -137,19 +141,75 @@ async function saveBase64Image({
   };
 }
 
+/**
+ * Look up the most recent successful IMAGE_RENDER for a SKU.
+ * Returns the absolute file path if it exists on disk, or null.
+ */
+export async function getSkuReferenceImagePath(skuId: string): Promise<string | null> {
+  const asset = await prisma.generatedImageAsset.findFirst({
+    where: {
+      status: "GENERATED",
+      filePath: { not: null },
+      generatedOutput: {
+        skuId,
+        outputType: "IMAGE_RENDER",
+        status: "GENERATED",
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!asset?.filePath) return null;
+
+  try {
+    await readFile(asset.filePath);
+    return asset.filePath;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateImageWithGemini({
   generatedOutputId,
   promptText,
   suffix,
   imageSize,
+  referenceImagePath,
 }: {
   generatedOutputId: string;
   promptText: string;
   suffix?: string;
   imageSize?: string;
+  referenceImagePath?: string | null;
 }): Promise<ProviderImageResult> {
   const config = getProviderConfig();
   const effectiveImageSize = imageSize ?? config.imageSize;
+
+  // Build parts array — reference image first (if available), then text
+  const requestParts: Record<string, unknown>[] = [];
+
+  if (referenceImagePath) {
+    try {
+      const imageBuffer = await readFile(referenceImagePath);
+      const b64 = imageBuffer.toString("base64");
+      requestParts.push({
+        inlineData: {
+          mimeType: "image/png",
+          data: b64,
+        },
+      });
+      // Prepend reference instruction to prompt
+      requestParts.push({
+        text: `REFERENCE IMAGE: The attached image is the approved hero render for this product. You MUST match the exact same product appearance, shape, color, finish, material texture, and proportions shown in the reference image. Do not deviate from the product design.\n\n${promptText}`,
+      });
+    } catch {
+      // Reference image unreadable — fall back to text-only
+      requestParts.push({ text: promptText });
+    }
+  } else {
+    requestParts.push({ text: promptText });
+  }
+
   const response = await fetch(
     `${config.baseUrl}/models/${config.model}:generateContent?key=${encodeURIComponent(config.apiKey)}`,
     {
@@ -160,11 +220,7 @@ export async function generateImageWithGemini({
       body: JSON.stringify({
         contents: [
           {
-            parts: [
-              {
-                text: promptText,
-              },
-            ],
+            parts: requestParts,
           },
         ],
         generationConfig: {
@@ -324,7 +380,11 @@ export async function generateImageRenderOutput(values: GeneratorFormValues) {
     data: {
       skuId: sku.id,
       promptTemplateId: promptTemplate.id,
-      title: buildGeneratedTitle(sku.code, parsed.scenePreset),
+      title: buildGeneratedTitle(sku.code, {
+        scenePreset: parsed.scenePreset,
+        color: parsed.colorOverride,
+        sealer: parsed.sealerOverride,
+      }),
       outputType: "IMAGE_RENDER",
       status: "QUEUED",
       inputPayload: parsed as Prisma.InputJsonValue,

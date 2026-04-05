@@ -113,7 +113,7 @@ export function CalculatorForm({ skus, initialResult }: CalculatorFormProps) {
 
   return (
     <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Run Calculator</CardTitle>
         </CardHeader>
@@ -156,7 +156,7 @@ export function CalculatorForm({ skus, initialResult }: CalculatorFormProps) {
       <div className="space-y-4">
         <section className="grid gap-4 md:grid-cols-3">
           {result.cards.map((card) => (
-            <Card key={card.title} className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+            <Card key={card.title}>
               <CardHeader>
                 <CardTitle>{card.title}</CardTitle>
               </CardHeader>
@@ -172,7 +172,7 @@ export function CalculatorForm({ skus, initialResult }: CalculatorFormProps) {
           ))}
         </section>
 
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Metric Detail</CardTitle>
           </CardHeader>

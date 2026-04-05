@@ -134,7 +134,7 @@ export function SkuEditForm({ skuCode, defaultValues }: SkuEditFormProps) {
   };
 
   return (
-    <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+    <Card>
       <CardHeader>
         <CardTitle>Edit SKU Definition</CardTitle>
       </CardHeader>

@@ -13,7 +13,6 @@ import {
   SquareStack,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { navigationItems } from "@/lib/data/navigation";
 import { cn } from "@/lib/utils";
 
@@ -43,23 +42,20 @@ export function AppSidebarClient({
   const items = navigationItems.filter((item) => item.href !== "/admin" || canAccessAdmin);
 
   return (
-    <aside className="border-r border-white/40 bg-[linear-gradient(180deg,rgba(67,52,43,0.97),rgba(40,31,24,0.98))] px-5 py-6 text-stone-100">
-      <div className="sticky top-6 space-y-8">
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-white/10 text-stone-50 hover:bg-white/10">Internal auth enabled</Badge>
-            <Badge className="bg-white/10 text-stone-50 hover:bg-white/10">{role}</Badge>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-stone-300">Concrete AI Factory</p>
-            <h1 className="mt-3 text-3xl font-semibold text-white">Production control for concrete products</h1>
-          </div>
-          <p className="text-sm leading-7 text-stone-300">
-            Signed in as {displayName}. Internal workflows stay available to all authenticated users, while admin records stay gated.
-          </p>
+    <aside className="flex flex-col border-r border-zinc-800 bg-zinc-900 px-4 py-5 text-zinc-300">
+      <div className="sticky top-5 flex flex-1 flex-col">
+        {/* Brand */}
+        <div className="mb-8 flex flex-col items-center px-2 pt-2">
+          <img
+            alt="RB Studio"
+            className="h-16 w-auto"
+            src="/rb-studio-logo-white.png"
+          />
+          <p className="mt-3 text-[10px] tracking-[0.25em] text-zinc-500">CONCRETE AI FACTORY</p>
         </div>
 
-        <nav className="space-y-2">
+        {/* Nav */}
+        <nav className="flex-1 space-y-1">
           {items.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = iconMap[item.icon];
@@ -69,25 +65,30 @@ export function AppSidebarClient({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                   isActive
-                    ? "bg-white text-primary shadow-lg"
-                    : "text-stone-200 hover:bg-white/10 hover:text-white",
+                    ? "bg-zinc-800 text-white font-medium"
+                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200",
                 )}
               >
-                <Icon className="size-4" />
+                <Icon className="size-4 shrink-0" />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-          <p className="text-sm font-medium text-white">Seeded SKU</p>
-          <p className="mt-2 text-2xl font-semibold text-white">S1-EROSION</p>
-          <p className="mt-2 text-sm leading-6 text-stone-300">
-            GFRC architectural vessel sink with seeded prompts, mold rules, QC checkpoints, and packet sections.
-          </p>
+        {/* User */}
+        <div className="mt-6 border-t border-zinc-800 pt-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800 text-xs font-medium text-zinc-300">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-zinc-200">{displayName}</p>
+              <p className="text-[11px] text-zinc-500">{role}</p>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

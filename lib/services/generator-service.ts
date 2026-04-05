@@ -22,7 +22,7 @@ import {
   type QcTemplateRecord,
 } from "../engines/validation-engine";
 import { buildTechnicalDrawingPrompts } from "../engines/drawing-prompt-engine";
-import { generateImageRenderOutput, generateImageWithGemini } from "./image-generation-service";
+import { generateImageRenderOutput, generateImageWithGemini, getSkuReferenceImagePath } from "./image-generation-service";
 import { outputTypeValues } from "../schemas/domain";
 import { generatorFormSchema, type GeneratorFormValues } from "../schemas/generator";
 import {
@@ -186,12 +186,16 @@ function readGeneratedText(outputPayload: Prisma.JsonValue | null) {
   return "";
 }
 
-function buildGeneratedTitle(skuCode: string, outputType: GeneratorFormValues["outputType"]) {
-  return `${skuCode} ${outputType.replaceAll("_", " ")}`;
+function buildGeneratedTitle(skuCode: string, outputType: GeneratorFormValues["outputType"], opts?: { color?: string; sealer?: string; scenePreset?: string }) {
+  const parts = [skuCode, outputType.replaceAll("_", " ")];
+  if (opts?.scenePreset) parts.push(`· ${opts.scenePreset.toUpperCase()}`);
+  if (opts?.color && opts.color !== "SKU Default") parts.push(`· ${opts.color}`);
+  if (opts?.sealer && opts.sealer !== "SKU Default") parts.push(`· ${opts.sealer}`);
+  return parts.join(" ");
 }
 
 export async function getGeneratorConfig() {
-  const [skus, promptTemplates, recentOutputs] = await Promise.all([
+  const [skus, promptTemplates, recentOutputs, referenceImageRows] = await Promise.all([
     prisma.sku.findMany({
       where: {
         status: "ACTIVE",
@@ -223,7 +227,33 @@ export async function getGeneratorConfig() {
         },
       },
     }),
+    // Get latest IMAGE_RENDER per SKU for reference image indicators
+    prisma.generatedImageAsset.findMany({
+      where: {
+        status: "GENERATED",
+        imageUrl: { not: null },
+        generatedOutput: {
+          outputType: "IMAGE_RENDER",
+          status: "GENERATED",
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        generatedOutput: {
+          select: { sku: { select: { code: true } } },
+        },
+      },
+    }),
   ]);
+
+  // Deduplicate to latest per SKU code
+  const referenceImages: Record<string, string> = {};
+  for (const row of referenceImageRows) {
+    const code = row.generatedOutput.sku?.code;
+    if (code && row.imageUrl && !referenceImages[code]) {
+      referenceImages[code] = row.imageUrl;
+    }
+  }
 
   return {
     skus: skus.map((sku) => ({
@@ -251,6 +281,7 @@ export async function getGeneratorConfig() {
           ? output.outputPayload["promptText"]
           : readGeneratedText(output.outputPayload),
     })),
+    referenceImages,
   };
 }
 
@@ -421,7 +452,11 @@ export async function generateOutput(values: GeneratorFormValues) {
       skuId: sku.id,
       promptTemplateId,
       buildPacketTemplateId,
-      title: buildGeneratedTitle(sku.code, parsed.outputType),
+      title: buildGeneratedTitle(sku.code, parsed.outputType, {
+        color: parsed.colorOverride,
+        sealer: parsed.sealerOverride,
+        scenePreset: parsed.scenePreset,
+      }),
       outputType: parsed.outputType,
       status: "GENERATED",
       inputPayload: parsed as Prisma.InputJsonValue,
@@ -442,6 +477,9 @@ export async function generateOutput(values: GeneratorFormValues) {
     },
   });
 
+  // Look up reference image for this SKU (from a previous IMAGE_RENDER)
+  const referenceImagePath = await getSkuReferenceImagePath(sku.id);
+
   // Generate technical drawings for BUILD_PACKET outputs
   if (parsed.outputType === "BUILD_PACKET") {
     const drawingPrompts = buildTechnicalDrawingPrompts(mappedSku);
@@ -453,6 +491,7 @@ export async function generateOutput(values: GeneratorFormValues) {
           promptText: drawing.promptText,
           suffix: drawing.drawingType,
           imageSize: "1K",
+          referenceImagePath,
         });
 
         await prisma.generatedImageAsset.create({
@@ -517,6 +556,7 @@ export async function generateOutput(values: GeneratorFormValues) {
         generatedOutputId: created.id,
         promptText: imagePromptText,
         imageSize: "2K",
+        referenceImagePath,
       });
 
       const asset = await prisma.generatedImageAsset.create({

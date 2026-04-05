@@ -80,7 +80,7 @@ export function SlatWallGeneratorForm({ projectId, projectCode }: SlatWallGenera
     <div className="space-y-6">
       {/* Generator form */}
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Generate Output</CardTitle>
           </CardHeader>
@@ -125,7 +125,7 @@ export function SlatWallGeneratorForm({ projectId, projectCode }: SlatWallGenera
 
         {/* Other outputs (non Position A/B) */}
         {otherOutput ? (
-          <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+          <Card>
             <CardHeader>
               <CardTitle>{otherOutput.title}</CardTitle>
             </CardHeader>
@@ -166,7 +166,7 @@ export function SlatWallGeneratorForm({ projectId, projectCode }: SlatWallGenera
             </CardContent>
           </Card>
         ) : !positionA && !positionB ? (
-          <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+          <Card>
             <CardHeader>
               <CardTitle>Generated Output</CardTitle>
             </CardHeader>
@@ -208,7 +208,7 @@ function PositionCard({
   projectCode: string;
 }) {
   return (
-    <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+    <Card>
       <CardHeader>
         <CardTitle>{label}</CardTitle>
       </CardHeader>

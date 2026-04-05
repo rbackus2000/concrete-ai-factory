@@ -36,6 +36,11 @@ const adminSections = [
     href: "/admin/audit-logs",
     description: "Review write activity and export access events by actor, entity, and action.",
   },
+  {
+    title: "Equipment Tracker",
+    href: "/admin/equipment",
+    description: "Procurement tracker for studio build-out — equipment, tools, and infrastructure by phase.",
+  },
 ] as const;
 
 export default function AdminPage() {
@@ -50,7 +55,7 @@ export default function AdminPage() {
       <section className="grid gap-4 md:grid-cols-2">
         {adminSections.map((section) => (
           <Link key={section.href} href={section.href}>
-            <Card className="h-full border-white/70 bg-white/85 shadow-panel backdrop-blur transition hover:border-primary/40">
+            <Card className="h-full transition hover:border-primary/40">
               <CardHeader>
                 <CardTitle>{section.title}</CardTitle>
               </CardHeader>

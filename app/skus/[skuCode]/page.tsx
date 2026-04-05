@@ -62,6 +62,13 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
             ribWidth: sku.ribWidth,
             ribHeight: sku.ribHeight,
             drainDiameter: sku.drainDiameter,
+            drainType: sku.drainType,
+            basinSlopeDeg: sku.basinSlopeDeg,
+            slopeDirection: sku.slopeDirection,
+            mountType: sku.mountType,
+            hasOverflow: sku.hasOverflow,
+            overflowHoleDiameter: sku.overflowHoleDiameter,
+            overflowPosition: sku.overflowPosition,
             reinforcementDiameter: sku.reinforcementDiameter,
             reinforcementThickness: sku.reinforcementThickness,
             draftAngle: sku.draftAngle,
@@ -74,7 +81,7 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
         />
 
         <div className="space-y-4">
-          <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+          <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
               <div>
                 <CardTitle className="text-2xl">{sku.name}</CardTitle>
@@ -108,7 +115,7 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
             </CardContent>
           </Card>
 
-          <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+          <Card>
             <CardHeader>
               <CardTitle>Datum System</CardTitle>
             </CardHeader>
@@ -125,7 +132,7 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3">
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Materials</CardTitle>
           </CardHeader>
@@ -144,7 +151,7 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>Rules Master</CardTitle>
           </CardHeader>
@@ -161,7 +168,7 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+        <Card>
           <CardHeader>
             <CardTitle>QC Templates</CardTitle>
           </CardHeader>
@@ -183,7 +190,7 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
         </Card>
       </section>
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
           <CardTitle>Generated Output History</CardTitle>
           <Link
@@ -210,7 +217,7 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-white/70 bg-white/85 shadow-panel backdrop-blur">
+      <Card>
         <CardHeader>
           <CardTitle>Reject If</CardTitle>
         </CardHeader>
