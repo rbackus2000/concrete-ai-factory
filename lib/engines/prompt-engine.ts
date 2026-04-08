@@ -92,6 +92,17 @@ const imageRenderTemplateKeyByCategory: Partial<
   },
 };
 
+const finishDescriptions: Record<string, string> = {
+  Classic:
+    "smooth, uniform GFRC surface with fine sand particle texture and consistent coloring",
+  Foundry:
+    "naturally mottled, hand-troweled GFRC surface with subtle color variation and artisan character",
+  Industrial:
+    "raw, distressed GFRC surface with visible air pores, exposed aggregate texture, and intentional imperfections",
+  Woodform:
+    "GFRC concrete cast against real wood-grain molds so the finished surface carries a realistic, deeply embossed wood-plank texture with visible grain lines, knots, and saw marks — the object is concrete but reads visually as reclaimed hardwood lumber",
+};
+
 const categoryNegativeRules: Partial<Record<SkuCategory, string[]>> = {
   VESSEL_SINK: [
     "Do not make the basin look like a generic trough sink, ramp sink, or simple rectangular bowl.",
@@ -209,6 +220,7 @@ function buildPromptVariables({
     productName: sku.name,
     categoryLabel: formatCategoryLabel(sku.category),
     finish: effectiveFinish,
+    finishDescription: finishDescriptions[finishName] ?? `${finishName} GFRC surface finish`,
     outerDimensions: `${formatNumber(sku.outerLength)} x ${formatNumber(sku.outerWidth)} x ${formatNumber(sku.outerHeight)} inches`,
     innerDimensions: `${formatNumber(sku.innerLength)} x ${formatNumber(sku.innerWidth)} inches at ${formatNumber(sku.innerDepth)} inches deep`,
     targetWeight: `${formatNumber(sku.targetWeight.min)} to ${formatNumber(sku.targetWeight.max)}`,
