@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bot,
   Box,
   Calculator,
   Columns3,
@@ -24,6 +25,7 @@ const iconMap = {
   outputs: History,
   packet: SquareStack,
   calculator: Calculator,
+  jacob: Bot,
   admin: Settings2,
 };
 
@@ -45,13 +47,12 @@ export function AppSidebarClient({
     <aside className="flex flex-col border-r border-zinc-800 bg-zinc-900 px-4 py-5 text-zinc-300">
       <div className="sticky top-5 flex flex-1 flex-col">
         {/* Brand */}
-        <div className="mb-8 flex flex-col items-center px-2 pt-2">
+        <div className="mb-8 flex flex-col items-center pt-2">
           <img
-            alt="RB Studio"
-            className="h-16 w-auto"
+            alt="RB Architecture Concrete Studio"
+            className="h-auto w-full"
             src="/rb-studio-logo-white.png"
           />
-          <p className="mt-3 text-[10px] tracking-[0.25em] text-zinc-500">CONCRETE AI FACTORY</p>
         </div>
 
         {/* Nav */}

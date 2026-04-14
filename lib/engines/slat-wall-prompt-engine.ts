@@ -761,3 +761,432 @@ Most common production failures:
 
   return sections.join("\n\n") + (creativeDirection ? `\n\n${creativeDirection}` : "");
 }
+
+// ─── SIMULATOR PROMPT SYSTEM ──────────────────────────────────
+// Master system prompt + per-state builders for the three-state
+// rotating slat wall AI image generation (Gemini).
+
+export type SlatWallSimulatorPromptConfig = {
+  slatCount: number;
+  slatWidthInches: number;
+  wallWidthFeet: string;
+  wallHeightFeet: string;
+  backgroundTone: string;
+  sideASubject: string;
+  sideBSubject: string;
+  emergentSubject: string;
+  sideAInterpretationGuidance: string;
+  sideBInterpretationGuidance: string;
+  emergentInterpretationGuidance: string;
+  projectCode: string;
+};
+
+export type SlatWallImageCombo = {
+  id: string;
+  label: string;
+  emergent: string;
+  sideA: string;
+  sideB: string;
+  description: string;
+  sideAGuidance: string;
+  sideBGuidance: string;
+  emergentGuidance: string;
+};
+
+// ─── 9 CURATED IMAGE COMBINATIONS ────────────────────────────
+
+export const SLAT_WALL_IMAGE_COMBOS: SlatWallImageCombo[] = [
+  {
+    id: "bear",
+    label: "City Skyline + Storm Clouds → Bear",
+    emergent: "Bear",
+    sideA: "City Skyline",
+    sideB: "Storm Clouds",
+    description:
+      "Best overall. Strong silhouette, easy to recognize, good large massing.",
+    sideAGuidance:
+      "Interpret the city skyline as bold tower silhouette massing with strong height variation and broad value zones. Avoid windows, facade detail, tiny buildings, or small texture. Favor simplified city-form blocks that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the storm clouds as broad dark cloud masses and simplified storm-front forms. Avoid soft photographic vapor detail and subtle atmospheric texture. Favor large high-contrast cloud groupings that remain legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the bear as a bold recognizable silhouette or large head-and-shoulders mass. Avoid fur detail and internal texture. Favor strong body mass, head shape, shoulder shape, and large black/cream grouping so the bear remains legible through alternating slat interleaving.",
+  },
+  {
+    id: "wolf",
+    label: "Mountain Peak + Solar Eclipse → Wolf",
+    emergent: "Wolf",
+    sideA: "Mountain Peak",
+    sideB: "Solar Eclipse",
+    description:
+      "Very strong, elegant, angular emergent image.",
+    sideAGuidance:
+      "Interpret the mountain peak as bold ridgeline masses with strong angular silhouettes. Avoid fine rock texture, snow detail, or tiny terrain features. Favor simplified peak shapes and broad dark/light mountain forms that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the solar eclipse as a dark circular aura with radiating band masses. Avoid fine corona detail or subtle light gradients. Favor bold dark disc shape with strong concentric or radiating dark/light bands that remain legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the wolf as a bold head profile or three-quarter head silhouette. Avoid fur detail, whiskers, or fine facial features. Favor strong muzzle shape, ear silhouette, neck mass, and large black/cream grouping so the wolf remains legible through alternating slat interleaving.",
+  },
+  {
+    id: "eagle",
+    label: "Desert Dunes + Crescent Moon → Eagle",
+    emergent: "Eagle",
+    sideA: "Desert Dunes",
+    sideB: "Crescent Moon",
+    description:
+      "Very readable if the emergent image is simplified.",
+    sideAGuidance:
+      "Interpret the desert dunes as layered sand ridge masses with flowing horizontal curvature. Avoid fine sand grain texture or tiny ripple detail. Favor bold sweeping dune forms and broad dark/light banding that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the crescent moon as bold celestial arc forms with strong dark/light contrast. Avoid fine star detail or subtle atmospheric glow. Favor large arc shapes and broad tonal masses that remain legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the eagle as a bold silhouette — either head/beak profile or full side silhouette with broad wings. Avoid feather detail and fine plumage texture. Favor strong head/beak shape, broad wing mass, and large black/cream grouping so the eagle remains legible through alternating slat interleaving.",
+  },
+  {
+    id: "skull",
+    label: "Ocean Waves + Solar Disc → Skull",
+    emergent: "Skull",
+    sideA: "Ocean Waves",
+    sideB: "Solar Disc",
+    description:
+      "Graphic, high-contrast, easy to read, slightly darker mood.",
+    sideAGuidance:
+      "Interpret the ocean waves as bold horizontal wave band masses with strong rhythmic curvature. Avoid fine foam detail, spray texture, or subtle water patterns. Favor large simplified wave forms and broad dark/light banding that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the solar disc as a bold radiating circular mass with strong concentric band structure. Avoid fine ray detail or subtle light gradients. Favor large disc shape with bold dark/light radial grouping that remains legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the skull as a bold iconic silhouette with simplified eye sockets, cranium mass, and jaw shape. Avoid tiny cracks, teeth detail, or over-detailed bone texture. Favor strong cranium dome, dark eye socket masses, and large black/cream grouping so the skull remains legible through alternating slat interleaving.",
+  },
+  {
+    id: "human-face",
+    label: "Storm Sky + Rising Sun → Human Face",
+    emergent: "Human Face",
+    sideA: "Storm Sky",
+    sideB: "Rising Sun",
+    description:
+      "Very premium, artistic. Face reads well if simplified.",
+    sideAGuidance:
+      "Interpret the storm sky as bold dark cloud masses with strong atmospheric banding. Avoid soft photographic vapor detail or subtle light effects. Favor large simplified storm forms and broad dark/light grouping that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the rising sun as bold horizon glow bands with strong radial or horizontal light massing. Avoid subtle gradient transitions or fine atmospheric detail. Favor large simplified sun/horizon forms and broad dark/light banding that remain legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the human face as a bold profile silhouette or calm frontal portrait with simplified planes. Avoid eyelashes, skin texture, photographic realism, or fine facial features. Think sculpture silhouette, not portrait photo. Favor strong forehead, cheekbone, jaw contour, and large black/cream grouping so the face remains legible through alternating slat interleaving.",
+  },
+  {
+    id: "raven",
+    label: "Pine Forest + Night Sky → Raven",
+    emergent: "Raven",
+    sideA: "Pine Forest",
+    sideB: "Night Sky",
+    description:
+      "Excellent for darker, sharper visual language.",
+    sideAGuidance:
+      "Interpret the pine forest as bold vertical tree silhouette bands with strong dark massing. Avoid fine needle texture, branch detail, or individual tree rendering. Favor simplified forest-edge silhouettes and broad dark/light grouping that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the night sky as broad dark cloud band masses with simplified atmospheric structure. Avoid fine star detail, subtle gradients, or wispy cloud texture. Favor large dark/light sky groupings that remain legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the raven as a bold profile or perched silhouette emphasizing beak, head, and body contour. Avoid feather detail, fine plumage, or realistic rendering. Favor strong beak shape, head mass, body contour, and large black/cream grouping so the raven remains legible through alternating slat interleaving.",
+  },
+  {
+    id: "lion",
+    label: "Savannah Tree Line + Desert Storm → Lion",
+    emergent: "Lion",
+    sideA: "Savannah Tree Line",
+    sideB: "Desert Storm",
+    description:
+      "Big heroic read, iconic and bold.",
+    sideAGuidance:
+      "Interpret the savannah tree line as bold horizon-level tree silhouette bands with strong dark massing. Avoid fine leaf texture, individual branches, or detailed bark. Favor simplified acacia-like tree forms and broad dark/light grouping that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the desert storm as bold heat-wave and storm cloud masses with strong horizontal banding. Avoid fine sand detail or subtle atmospheric effects. Favor large simplified storm forms and broad dark/light grouping that remain legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the lion as a bold head silhouette or profile with simplified mane mass. Avoid hair detail, whiskers, or fine facial features. Think emblem, not wildlife photo. Favor strong mane mass, head shape, and large black/cream grouping so the lion remains legible through alternating slat interleaving.",
+  },
+  {
+    id: "whale",
+    label: "Ocean Wave Horizon + Moonlit Clouds → Whale",
+    emergent: "Whale",
+    sideA: "Ocean Wave Horizon",
+    sideB: "Moonlit Clouds",
+    description:
+      "Fluid, calm motion. Very elegant in line-density style.",
+    sideAGuidance:
+      "Interpret the ocean wave horizon as bold flowing wave band masses with strong horizontal curvature. Avoid fine foam texture, spray detail, or small ripple patterns. Favor large simplified wave forms and broad dark/light banding that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the moonlit clouds as broad dark cloud masses with simplified tide-band structure and lunar glow. Avoid fine star detail or subtle atmospheric gradients. Favor large simplified cloud/tide forms and broad dark/light grouping that remain legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the whale as a bold side silhouette — broad back, tail, and head contour only. Avoid water spray detail, eye detail, or fine body texture. Favor strong single-mass body shape and large black/cream grouping so the whale remains legible through alternating slat interleaving.",
+  },
+  {
+    id: "tree",
+    label: "Mountain Ridgeline + Rain Bands → Tree",
+    emergent: "Tree",
+    sideA: "Mountain Ridgeline",
+    sideB: "Rain Bands",
+    description:
+      "Simple, strong, highly manufacturable. Easiest emergent to read.",
+    sideAGuidance:
+      "Interpret the mountain ridgeline as bold peak silhouette masses with strong angular forms. Avoid fine rock texture, snow detail, or tiny terrain features. Favor simplified ridge shapes and broad dark/light mountain forms that remain legible across the slat wall.",
+    sideBGuidance:
+      "Interpret the rain bands as bold atmospheric band masses with strong horizontal movement. Avoid fine raindrop detail or subtle mist texture. Favor large simplified storm/rain forms and broad dark/light grouping that remain legible across the slat wall.",
+    emergentGuidance:
+      "Interpret the tree as a bold solitary tree silhouette with strong trunk and canopy mass. Avoid too many branch details, fine leaf texture, or realistic bark. Favor strong iconic shape — trunk plus canopy — and large black/cream grouping so the tree remains legible through alternating slat interleaving.",
+  },
+];
+
+// ─── SHARED NEGATIVE RULES ───────────────────────────────────
+
+const SIMULATOR_NEGATIVE_RULES = `NEGATIVE RULES:
+- Do not create a standalone poster composition
+- Do not ignore the shared slat grid
+- Do not add or subtract slat columns — render EXACTLY the specified count
+- Do not shift the grid — the first slat must begin exactly at the left edge of the canvas
+- Do not change crop, margins, or background tone between states
+- Do not use fine photoreal detail
+- Do not use tiny textures
+- Do not leave any slat blank
+- Do not introduce color
+- Do not add perspective or environment
+- Do not use diagonal hatching, dots, or painterly shading
+- Do not let high-density lines bleed together into solid black blobs — all horizontal lines must remain distinct and non-overlapping
+- Do not render the emergent image as a transparent overlay — it must read as interleaved vertical strips, not a ghosted third layer
+- Do not add cracks, stains, debris, or weathering to the background — use minimalist smooth concrete texture only
+- Do not make the emergent image feel unrelated to Side A and Side B`;
+
+// ─── PROMPT BUILDERS ──────────────────────────────────────────
+
+export function buildSimulatorMasterPrompt(config: SlatWallSimulatorPromptConfig): string {
+  // Compute pixel-exact grid dimensions for a 2048px wide canvas
+  const canvasWidth = 2048;
+  const dividerWidth = 2;
+  const totalDividers = config.slatCount + 1; // dividers on both edges and between slats
+  const usableWidth = canvasWidth - totalDividers * dividerWidth;
+  const colWidth = Math.floor(usableWidth / config.slatCount);
+
+  return `MASTER SYSTEM PROMPT
+
+MANDATORY CANVAS STRUCTURE (DO NOT ALTER — DEFINE THIS BEFORE ANY SUBJECT):
+The canvas is a ${canvasWidth}-pixel-wide image with a rigid coordinate system.
+This coordinate system is SHARED across all three states (A, B, and C) and must not be altered between them.
+
+THE GRID (PIXEL-EXACT):
+- Total columns: EXACTLY ${config.slatCount}
+- Column width: ${colWidth} pixels each
+- Divider: ${dividerWidth}-pixel black vertical line between every column and at both edges
+- First divider: x=0 (left edge of canvas)
+- Column 1 content area: x=${dividerWidth} to x=${dividerWidth + colWidth}
+- Column 2 content area: x=${dividerWidth + colWidth + dividerWidth} to x=${dividerWidth * 2 + colWidth * 2}
+- Pattern continues uniformly to column ${config.slatCount}
+- ALL content must be placed WITHIN these column boundaries — content must NEVER cross a column divider
+- This grid is IDENTICAL for State A, State B, and State C — do not shift, resize, or redefine it
+
+MANDATORY CONSTRUCTION RULE (DO NOT IGNORE):
+All subjects must be constructed SOLELY within the column grid using horizontal line-art shading.
+SOLID BLACK SHAPES, SOLID BLACK FILLS, SOLID BLACK BANDS, WAVY SOLID SHAPES, AND FILLED SILHOUETTES ARE EXPLICITLY FORBIDDEN.
+This includes shadows — tonal shadows must be rendered SOLELY using horizontal lines at ~1px pitch. Solid black shadow shapes are forbidden.
+Every visual element — every subject, every background area, every shadow — must be built from parallel horizontal lines at varying density. Nothing else.
+
+WALL GEOMETRY:
+- Total slats: ${config.slatCount}
+- Slat width: ${config.slatWidthInches} inches
+- Wall width: ${config.wallWidthFeet} ft
+- Wall height: ${config.wallHeightFeet} ft
+
+VISUAL SYSTEM:
+- Side A = all ${config.slatCount} columns showing Side A content
+- Side B = all ${config.slatCount} columns showing Side B content
+- Emergent State C = odd columns (1, 3, 5...) show Side A content, even columns (2, 4, 6...) show Side B content
+- The emergent image is NOT an unrelated third poster — it is an optical byproduct of interleaving A and B data
+
+THE SHADING RULE (CRITICAL — THIS IS THE ONLY WAY TO CREATE TONAL VALUES):
+Within each column, construct ALL tonal values using ONLY parallel horizontal black lines at varying spacing:
+- Darkest areas (value 9/10): horizontal lines spaced 1px apart (tight, but each line individually distinct — NEVER merging into solid black)
+- Medium-dark areas (value 7/10): horizontal lines spaced 2px apart
+- Medium areas (value 5/10): horizontal lines spaced 3px apart
+- Light areas (value 3/10): horizontal lines spaced 6px apart
+- Lightest areas (value 1/10): horizontal lines spaced 10px apart
+- White/empty areas: no lines, just the cream background showing through
+There is NO other shading method. Solid fills are not "dark" — they are ERRORS.
+
+EXPLICITLY FORBIDDEN:
+- Solid black fills or shapes of any kind (including for shadows, silhouettes, or dark areas)
+- Wavy bands or organic solid shapes
+- Diagonal hatching or cross-hatching
+- Dots, stipple, or pointillism
+- Painterly texture or brush strokes
+- Any graphic element that is not a horizontal line within a column
+- Content crossing column divider boundaries
+- Perspective, 3D depth, or environment rendering
+- Color of any kind — black ink on ${config.backgroundTone} only
+- Frames, borders, labels, or text
+- Photographic realism
+
+TONAL ANCHOR RULE:
+- Side A and Side B are not independent images — they are tonal data layers that combine to form the emergent State C
+- For Side A: tonal density must be high (tight lines) where the Emergent Subject "${config.emergentSubject}" needs darkness, and low (spaced lines) where it needs light
+- For Side B: the inverse tonal relationship — dense where Side A is sparse, sparse where Side A is dense
+- When odd A columns and even B columns are interleaved in State C, the Emergent Subject appears through the combined tonal sum
+- Side A and Side B MUST be designed with the emergent image in mind, not as standalone compositions
+
+DESIGN PRIORITIES:
+- Bold silhouette readable from 20 feet away
+- Large-scale massing, not fine detail
+- Simplified tonal masses using ONLY the horizontal line density system
+- Strong contrast between tight-line (dark) and spaced-line (light) zones
+- Architectural precision and pixel-exact grid consistency
+- All three states share the IDENTICAL grid, crop window, margins, background tone, and column alignment`;
+}
+
+export function buildSimulatorSideAPrompt(config: SlatWallSimulatorPromptConfig): string {
+  const master = buildSimulatorMasterPrompt(config);
+
+  return `${master}
+
+GENERATE: SIDE A ONLY
+
+CONSTRUCTION REMINDER: You MUST use the strict ${config.slatCount}-column grid and horizontal line-density shading system defined in the Master System Prompt. SOLID BLACK SHAPES ARE FORBIDDEN — including for shadows, dark mountain faces, dark sky areas, or any other dark region. The ONLY way to create darkness is with tightly-spaced (1px apart) horizontal lines that remain individually distinct.
+
+SUBJECT: ${config.sideASubject}
+
+HOW TO BUILD THIS IMAGE:
+1. Start with the EXACT pixel-coordinate grid from the Master System Prompt (${config.slatCount} columns, same divider positions)
+2. Within each column, render the "${config.sideASubject}" subject using ONLY horizontal lines at varying density
+3. Dark areas of the subject = tightly spaced horizontal lines (1px apart, but each line individually visible — NEVER solid black)
+4. Medium areas = horizontal lines 3px apart
+5. Light areas = horizontal lines 10px apart
+6. The subject must read as one unified composition across all ${config.slatCount} columns
+7. Content must stay within column boundaries — do not cross divider lines
+
+ROLE OF SIDE A:
+- This is one part of a linked tri-state slat-wall system
+- It must read clearly when all slats display Side A
+- It must also support the emergent image "${config.emergentSubject}" when interleaved with Side B
+- Do NOT generate a standalone poster — generate a strict line-density rendering on the slat grid
+
+SUBJECT INTERPRETATION:
+${config.sideAInterpretationGuidance}
+
+TONAL ANCHOR CONSTRAINT:
+Side A's tonal density must be high (tight lines) where the Emergent Subject "${config.emergentSubject}" needs darkness, and low (spaced lines) where it needs light. This ensures that when A and B strips are interleaved in State C, the emergent subject appears through the combined tonal sum.
+
+${SIMULATOR_NEGATIVE_RULES}
+
+RB Studio | ${config.projectCode} | Side A — ${config.sideASubject}`;
+}
+
+export function buildSimulatorSideBPrompt(config: SlatWallSimulatorPromptConfig): string {
+  const master = buildSimulatorMasterPrompt(config);
+
+  return `${master}
+
+GENERATE: SIDE B ONLY
+
+CONSTRUCTION REMINDER: You MUST use the strict ${config.slatCount}-column grid and horizontal line-density shading system defined in the Master System Prompt. SOLID BLACK SHAPES ARE FORBIDDEN — including for shadows, dark cloud areas, dark sky regions, or any other dark element. The ONLY way to create darkness is with tightly-spaced (1px apart) horizontal lines that remain individually distinct.
+
+SUBJECT: ${config.sideBSubject}
+
+HOW TO BUILD THIS IMAGE:
+1. Start with the EXACT pixel-coordinate grid from the Master System Prompt (${config.slatCount} columns, same divider positions)
+2. Within each column, render the "${config.sideBSubject}" subject using ONLY horizontal lines at varying density
+3. Dark areas of the subject = tightly spaced horizontal lines (1px apart, but each line individually visible — NEVER solid black)
+4. Medium areas = horizontal lines 3px apart
+5. Light areas = horizontal lines 10px apart
+6. The subject must read as one unified composition across all ${config.slatCount} columns
+7. Content must stay within column boundaries — do not cross divider lines
+
+ROLE OF SIDE B:
+- This is one part of a linked tri-state slat-wall system
+- It must read clearly when all slats display Side B
+- It must also support the emergent image "${config.emergentSubject}" when interleaved with Side A
+- Do NOT generate a standalone poster — generate a strict line-density rendering on the slat grid
+
+SUBJECT INTERPRETATION:
+${config.sideBInterpretationGuidance}
+
+TONAL ANCHOR CONSTRAINT:
+Side B's tonal density must complement Side A — where Side A is dense, Side B should be sparse, and vice versa. This inverse tonal relationship ensures the Emergent Subject "${config.emergentSubject}" appears through the combined sum when A and B strips are interleaved in State C.
+
+${SIMULATOR_NEGATIVE_RULES}
+
+RB Studio | ${config.projectCode} | Side B — ${config.sideBSubject}`;
+}
+
+export function buildSimulatorEmergentPrompt(config: SlatWallSimulatorPromptConfig): string {
+  const master = buildSimulatorMasterPrompt(config);
+
+  return `${master}
+
+STATE C — DATA BLENDING OPERATION (NOT IMAGE GENERATION)
+
+THIS IS NOT A "CREATE AN IMAGE" TASK. This is a DATA INTERLEAVING task.
+Do NOT generate a separate "${config.emergentSubject}" image. Do NOT draw "${config.emergentSubject}" as a solid object.
+Instead, BLEND the data from Side A and Side B by interleaving their column content.
+
+MANDATORY INTERLEAVE PROCEDURE (FOLLOW THESE STEPS EXACTLY):
+
+Step 1: Use the IDENTICAL ${config.slatCount}-column grid from the Master System Prompt (same pixel coordinates, same dividers, same column widths).
+
+Step 2: Fill ODD columns (1, 3, 5, 7, 9...) with the EXACT striated horizontal-line-art patterns that would appear in Side A ("${config.sideASubject}").
+- These columns show the "${config.sideASubject}" content — rendered as variable-density horizontal lines, NOT solid shapes.
+- The tonal density in each odd column must match what Side A would show at that column position.
+
+Step 3: Fill EVEN columns (2, 4, 6, 8, 10...) with the EXACT striated horizontal-line-art patterns that would appear in Side B ("${config.sideBSubject}").
+- These columns show the "${config.sideBSubject}" content — rendered as variable-density horizontal lines, NOT solid shapes.
+- The tonal density in each even column must match what Side B would show at that column position.
+
+Step 4: The sum total of these interleaved alternating striated columns ("${config.sideASubject}" data + "${config.sideBSubject}" data) must result in the highly simplified silhouette of "${config.emergentSubject}".
+- "${config.emergentSubject}" should look like an optical artifact or holographic blip formed by the combined patterns, NOT a solid object.
+- Dark areas of "${config.emergentSubject}" = tight horizontal lines on BOTH the odd (A) and even (B) columns in that region.
+- Light areas of "${config.emergentSubject}" = widely spaced horizontal lines on BOTH the odd (A) and even (B) columns in that region.
+
+SUBJECT INTERPRETATION:
+${config.emergentInterpretationGuidance}
+
+WHAT THE RESULT MUST LOOK LIKE:
+- You can see alternating vertical strips of "${config.sideASubject}" and "${config.sideBSubject}" patterns
+- When you step back and view the full image, the combined tonal pattern forms the silhouette of "${config.emergentSubject}"
+- "${config.emergentSubject}" is NOT a drawn object — it is an EMERGENT PERCEPTION from the interleaved data
+- It must look like an actual physical optical result of combining two printed slat faces
+
+EXPLICITLY FORBIDDEN FOR STATE C:
+- Do NOT generate "${config.emergentSubject}" as a standalone solid silhouette, graphic, or poster
+- Do NOT draw "${config.emergentSubject}" as an object and then place a grid on top
+- Do NOT render it as a transparent overlay or ghosted layer
+- Do NOT use solid black fills for any part of "${config.emergentSubject}"
+- The ONLY way "${config.emergentSubject}" may be visible is through the combined tonal sum of interleaved A/B column data
+
+${SIMULATOR_NEGATIVE_RULES}
+
+RB Studio | ${config.projectCode} | Emergent — ${config.emergentSubject}`;
+}
+
+// ─── COMBO LOOKUP ─────────────────────────────────────────────
+
+export function findImageCombo(
+  sideA: string,
+  sideB: string,
+  emergent: string,
+): SlatWallImageCombo | null {
+  // Exact match
+  const exact = SLAT_WALL_IMAGE_COMBOS.find(
+    (c) =>
+      c.sideA.toLowerCase() === sideA.toLowerCase() &&
+      c.sideB.toLowerCase() === sideB.toLowerCase() &&
+      c.emergent.toLowerCase() === emergent.toLowerCase(),
+  );
+  if (exact) return exact;
+
+  // Match by emergent subject
+  const byEmergent = SLAT_WALL_IMAGE_COMBOS.find(
+    (c) => c.emergent.toLowerCase() === emergent.toLowerCase(),
+  );
+  if (byEmergent) return byEmergent;
+
+  return null;
+}
+
+export function buildDefaultGuidance(subject: string, role: "sideA" | "sideB" | "emergent"): string {
+  if (role === "emergent") {
+    return `Interpret the ${subject} as a bold recognizable silhouette with simplified massing. Avoid fine detail and internal texture. Favor strong shape, large black/cream grouping, and immediate recognizability so the ${subject} remains legible through alternating slat interleaving.`;
+  }
+  return `Interpret the ${subject} as bold simplified masses with strong silhouette and broad value zones. Avoid fine detail, small texture, or photographic rendering. Favor large-scale forms that remain legible across the slat wall.`;
+}

@@ -35,10 +35,17 @@ export default async function SlatWallDetailPage({ params }: SlatWallDetailPageP
   }
 
   const { project, config, artworks, slats } = detail;
-  const simulatorImages = Object.entries(savedImages).map(([state, data]) => ({
+  // Flatten scenario-grouped images: pick most recent per state across all scenarios
+  const flatImages: Record<string, string> = {};
+  for (const states of Object.values(savedImages)) {
+    for (const [state, data] of Object.entries(states)) {
+      if (!flatImages[state]) flatImages[state] = data.imageUrl;
+    }
+  }
+  const simulatorImages = Object.entries(flatImages).map(([state, imageUrl]) => ({
     state,
     label: state === "A" ? "Side A" : state === "B" ? "Side B" : "Transition",
-    imageUrl: data.imageUrl,
+    imageUrl,
   }));
   const wallWidth = config
     ? config.totalSlatCount * (config.slatWidth + config.slatSpacing)

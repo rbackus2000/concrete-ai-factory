@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { SCENARIO_LIST } from "@/lib/engines/print-generator/scenarios";
+import { SLAT_WALL_IMAGE_COMBOS } from "@/lib/engines/slat-wall-prompt-engine";
 import { Textarea } from "@/components/ui/textarea";
 import {
   slatWallProjectEditorSchema,
@@ -160,26 +160,24 @@ export function SlatWallProjectForm({ mode, projectId, defaultValues }: SlatWall
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">Select a scenario to auto-fill Side A, Side B, and emergent image configurations.</p>
-          <div className="grid grid-cols-5 gap-3">
-            {SCENARIO_LIST.map((s) => (
+          <div className="grid grid-cols-3 gap-3">
+            {SLAT_WALL_IMAGE_COMBOS.map((combo) => (
               <button
-                key={s.id}
+                key={combo.id}
                 type="button"
                 onClick={() => {
-                  const descTemplate = (subject: string) =>
-                    `A unified full-wall composite image spanning the entire rotating vertical slat installation, rendered as a premium large-scale architectural artwork. The image should read clearly and continuously across the full width and height of the wall when all slats align in this viewing position. The subject of the image is: ${subject}. The composition should feel bold, clean, cohesive, and visually strong at architectural scale, with tonal continuity across all slats and no disconnected panel artwork.`;
-
-                  form.setValue("positionAName", s.sideALabel, { shouldValidate: true });
-                  form.setValue("positionBName", s.sideBLabel, { shouldValidate: true });
-                  form.setValue("positionADescription", descTemplate(s.sideALabel));
-                  form.setValue("positionBDescription", descTemplate(s.sideBLabel));
+                  form.setValue("positionAName", combo.sideA, { shouldValidate: true });
+                  form.setValue("positionBName", combo.sideB, { shouldValidate: true });
+                  form.setValue("positionADescription", combo.sideAGuidance);
+                  form.setValue("positionBDescription", combo.sideBGuidance);
                 }}
                 className="rounded-2xl border border-border/70 p-4 text-left transition hover:border-primary hover:bg-primary/5"
               >
-                <p className="text-xs font-medium text-muted-foreground">{s.sideALabel}</p>
+                <p className="text-xs font-medium text-muted-foreground">{combo.sideA}</p>
                 <p className="text-xs text-muted-foreground">+</p>
-                <p className="text-xs font-medium text-muted-foreground">{s.sideBLabel}</p>
-                <p className="mt-2 text-sm font-bold" style={{ color: s.color }}>{s.emergentLabel}</p>
+                <p className="text-xs font-medium text-muted-foreground">{combo.sideB}</p>
+                <p className="mt-2 text-sm font-bold text-primary">{combo.emergent}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground/70">{combo.description}</p>
               </button>
             ))}
           </div>

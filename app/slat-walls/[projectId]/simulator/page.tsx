@@ -28,9 +28,13 @@ export default async function SimulatorPage({ params }: SimulatorPageProps) {
     ((config.totalSlatCount * (config.slatWidth + config.slatSpacing)) / 12).toFixed(1),
   );
 
-  const initialImages: Record<string, string> = {};
-  for (const [state, data] of Object.entries(savedImages)) {
-    initialImages[state] = data.imageUrl;
+  // Build per-scenario image map: { scenarioId: { A: url, B: url, C: url } }
+  const initialImages: Record<string, Record<string, string>> = {};
+  for (const [scenarioId, states] of Object.entries(savedImages)) {
+    initialImages[scenarioId] = {};
+    for (const [state, data] of Object.entries(states)) {
+      initialImages[scenarioId][state] = data.imageUrl;
+    }
   }
 
   return (

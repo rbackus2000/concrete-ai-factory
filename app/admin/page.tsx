@@ -41,6 +41,11 @@ const adminSections = [
     href: "/admin/equipment",
     description: "Procurement tracker for studio build-out — equipment, tools, and infrastructure by phase.",
   },
+  {
+    title: "Product Agent",
+    href: "/admin/product-agent",
+    description: "AI-powered product creation — describe a product and generate the complete SKU, build packets, materials, and QC specs.",
+  },
 ] as const;
 
 export default function AdminPage() {

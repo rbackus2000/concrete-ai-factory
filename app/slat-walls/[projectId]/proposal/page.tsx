@@ -21,9 +21,12 @@ export default async function ProjectProposalPage({ params }: Props) {
 
   const { project, config } = detail;
 
+  // Flatten scenario-grouped images: pick most recent per state across all scenarios
   const aiImages: Record<string, string> = {};
-  for (const [state, data] of Object.entries(savedImages)) {
-    aiImages[state] = data.imageUrl;
+  for (const states of Object.values(savedImages)) {
+    for (const [state, data] of Object.entries(states)) {
+      if (!aiImages[state]) aiImages[state] = data.imageUrl;
+    }
   }
 
   return (

@@ -5,62 +5,71 @@ import { starterSeedBundle } from "../lib/data/starter-data";
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.generatedImageAsset.deleteMany();
-  await prisma.generatedOutput.deleteMany();
+  // Only delete seed-created outputs — NEVER delete user-generated outputs or image assets
+  await prisma.generatedImageAsset.deleteMany({
+    where: { generatedOutput: { generatedBy: "seed-script" } },
+  });
+  await prisma.generatedOutput.deleteMany({
+    where: { generatedBy: "seed-script" },
+  });
+  // Safe to delete-and-recreate: no FK references from generated outputs
   await prisma.buildPacketTemplate.deleteMany();
   await prisma.qcTemplate.deleteMany();
   await prisma.rulesMaster.deleteMany();
   await prisma.materialsMaster.deleteMany();
-  await prisma.promptTemplate.deleteMany();
-  await prisma.sku.deleteMany();
+
+  // Upsert SKUs by code — preserves IDs so GeneratedOutput FK references survive
+  const skuData = starterSeedBundle.skus.map((sku) => ({
+    code: sku.code,
+    slug: sku.slug,
+    name: sku.name,
+    category: sku.category,
+    status: sku.status,
+    type: sku.type,
+    finish: sku.finish,
+    description: sku.summary,
+    targetWeightMinLbs: sku.targetWeight.min,
+    targetWeightMaxLbs: sku.targetWeight.max,
+    outerLength: sku.outerLength,
+    outerWidth: sku.outerWidth,
+    outerHeight: sku.outerHeight,
+    innerLength: sku.innerLength,
+    innerWidth: sku.innerWidth,
+    innerDepth: sku.innerDepth,
+    wallThickness: sku.wallThickness,
+    bottomThickness: sku.bottomThickness,
+    topLipThickness: sku.topLipThickness,
+    hollowCoreDepth: sku.hollowCoreDepth,
+    domeRiseMin: sku.domeRiseMin,
+    domeRiseMax: sku.domeRiseMax,
+    longRibCount: sku.longRibCount,
+    crossRibCount: sku.crossRibCount,
+    ribWidth: sku.ribWidth,
+    ribHeight: sku.ribHeight,
+    drainDiameter: sku.drainDiameter,
+    drainType: sku.drainType || null,
+    basinSlopeDeg: sku.basinSlopeDeg || null,
+    slopeDirection: sku.slopeDirection || null,
+    mountType: sku.mountType || null,
+    hasOverflow: sku.hasOverflow ?? false,
+    overflowHoleDiameter: sku.overflowHoleDiameter || null,
+    overflowPosition: sku.overflowPosition || null,
+    bracketSpecJson: sku.bracketSpec ?? Prisma.JsonNull,
+    reinforcementDiameter: sku.reinforcementDiameter,
+    reinforcementThickness: sku.reinforcementThickness,
+    draftAngle: sku.draftAngle,
+    cornerRadius: sku.cornerRadius,
+    fiberPercent: sku.fiberPercent,
+    datumSystemJson: sku.datumSystem,
+    calculatorDefaults: sku.calculatorDefaults,
+  }));
 
   const skuRecords = await Promise.all(
-    starterSeedBundle.skus.map((sku) =>
-      prisma.sku.create({
-        data: {
-          code: sku.code,
-          slug: sku.slug,
-          name: sku.name,
-          category: sku.category,
-          status: sku.status,
-          type: sku.type,
-          finish: sku.finish,
-          description: sku.summary,
-          targetWeightMinLbs: sku.targetWeight.min,
-          targetWeightMaxLbs: sku.targetWeight.max,
-          outerLength: sku.outerLength,
-          outerWidth: sku.outerWidth,
-          outerHeight: sku.outerHeight,
-          innerLength: sku.innerLength,
-          innerWidth: sku.innerWidth,
-          innerDepth: sku.innerDepth,
-          wallThickness: sku.wallThickness,
-          bottomThickness: sku.bottomThickness,
-          topLipThickness: sku.topLipThickness,
-          hollowCoreDepth: sku.hollowCoreDepth,
-          domeRiseMin: sku.domeRiseMin,
-          domeRiseMax: sku.domeRiseMax,
-          longRibCount: sku.longRibCount,
-          crossRibCount: sku.crossRibCount,
-          ribWidth: sku.ribWidth,
-          ribHeight: sku.ribHeight,
-          drainDiameter: sku.drainDiameter,
-          drainType: sku.drainType || null,
-          basinSlopeDeg: sku.basinSlopeDeg || null,
-          slopeDirection: sku.slopeDirection || null,
-          mountType: sku.mountType || null,
-          hasOverflow: sku.hasOverflow ?? false,
-          overflowHoleDiameter: sku.overflowHoleDiameter || null,
-          overflowPosition: sku.overflowPosition || null,
-          bracketSpecJson: sku.bracketSpec ?? Prisma.JsonNull,
-          reinforcementDiameter: sku.reinforcementDiameter,
-          reinforcementThickness: sku.reinforcementThickness,
-          draftAngle: sku.draftAngle,
-          cornerRadius: sku.cornerRadius,
-          fiberPercent: sku.fiberPercent,
-          datumSystemJson: sku.datumSystem,
-          calculatorDefaults: sku.calculatorDefaults,
-        },
+    starterSeedBundle.skus.map((sku, i) =>
+      prisma.sku.upsert({
+        where: { code: sku.code },
+        update: skuData[i]!,
+        create: skuData[i]!,
       }),
     ),
   );
@@ -71,6 +80,9 @@ async function main() {
   if (!primarySku) {
     throw new Error("Seed bundle must include at least one SKU.");
   }
+
+  // Delete + recreate prompt templates — safe because GeneratedOutput FK uses onDelete: SetNull
+  await prisma.promptTemplate.deleteMany();
 
   const promptTemplates = await Promise.all(
     starterSeedBundle.promptTemplates.map((template) =>

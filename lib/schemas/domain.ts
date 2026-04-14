@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const skuCategoryValues = ["VESSEL_SINK", "COUNTERTOP", "FURNITURE", "PANEL"] as const;
+export const skuCategoryValues = ["VESSEL_SINK", "FURNITURE", "PANEL"] as const;
 export const categoryScopeValues = ["GLOBAL", "SKU_CATEGORY", "SKU_OVERRIDE"] as const;
 export const recordStatusValues = ["DRAFT", "ACTIVE", "ARCHIVED"] as const;
 export const outputStatusValues = [

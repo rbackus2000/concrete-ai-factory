@@ -35,6 +35,11 @@ export const navigationItems = [
     icon: "calculator",
   },
   {
+    label: "Jacob",
+    href: "/chat",
+    icon: "jacob",
+  },
+  {
     label: "Admin",
     href: "/admin",
     icon: "admin",

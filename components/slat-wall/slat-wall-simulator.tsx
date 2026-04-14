@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 
 import { generateSimulatorImage } from "@/app/actions/slat-wall-simulator-actions";
+import { SLAT_WALL_IMAGE_COMBOS } from "@/lib/engines/slat-wall-prompt-engine";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -26,49 +27,46 @@ type SlatWallSimulatorProps = {
   slatWidth: number;
   wallWidthFt: number;
   projectCode: string;
-  initialAiImages?: Record<string, string>;
+  initialAiImages?: Record<string, Record<string, string>>;
 };
 
 // ─── SCENARIOS ────────────────────────────────────────────────────────────────
 
-const SCENARIOS: Scenario[] = [
-  {
-    id: "skull",
-    label: "Skull",
-    sideA: "Ocean Waves",
-    sideB: "Solar Disc",
-    emergent: "Skull",
-    color: "#c8a96e",
-    densityA: (y) => {
-      if (y < 0.1) return 0.05;
-      if (y < 0.85) return 0.3 - y * 0.2;
-      return 0.05;
+// Canvas density functions for each of the 9 curated combos.
+// These drive the canvas preview — AI images come from the prompt engine.
+const DENSITY_MAP: Record<string, { densityA: DensityFn; densityB: DensityFn; densityC: DensityFn; color: string }> = {
+  bear: {
+    color: "#a96e6e",
+    densityA: (y, x) => {
+      if (y > 0.85) return 0.9;
+      const buildings = [0.08, 0.2, 0.32, 0.44, 0.56, 0.68, 0.8, 0.92];
+      const heights = [0.45, 0.28, 0.55, 0.22, 0.38, 0.18, 0.42, 0.5];
+      let d = 0;
+      buildings.forEach((bx, i) => { if (Math.abs(x - bx) < 0.06 && y > heights[i]) d = Math.max(d, 0.9); });
+      if (y > 0.65) d = Math.max(d, (y - 0.65) * 2.5);
+      return Math.min(0.9, d);
     },
-    densityB: (y, x) => {
-      const dy = y - 0.5, dx = x - 0.5;
-      const dist = Math.sqrt(dx * dx * 4 + dy * dy);
-      if (dist < 0.35) return 0.95 - dist * 0.5;
-      if (dist < 0.55) return 0.15;
-      return 0.08;
+    densityB: (y) => {
+      if (y < 0.15) return 0.95;
+      if (y < 0.4) return 0.9 - (y - 0.15) * 0.8;
+      if (y < 0.6) return 0.5 - (y - 0.4) * 1.5;
+      if (y < 0.8) return Math.max(0.05, 0.2 - (y - 0.6));
+      return 0.02;
     },
     densityC: (y, x) => {
-      const dy = y - 0.45, dx = x - 0.5;
-      const cranium = Math.max(0, 0.9 - Math.sqrt(dx * dx * 3 + dy * dy) * 3.5);
-      const leftEye = Math.sqrt(Math.pow(x - 0.33, 2) * 6 + Math.pow(y - 0.46, 2) * 8);
-      const rightEye = Math.sqrt(Math.pow(x - 0.67, 2) * 6 + Math.pow(y - 0.46, 2) * 8);
-      const eyeVoid = leftEye < 0.12 || rightEye < 0.12 ? -0.8 : 0;
-      const nose = Math.sqrt(Math.pow(x - 0.5, 2) * 10 + Math.pow(y - 0.56, 2) * 12);
-      const noseVoid = nose < 0.08 ? -0.6 : 0;
-      const jaw = Math.max(0, 0.5 - Math.sqrt(Math.pow(dx * 1.2, 2) + Math.pow(y - 0.65, 2) * 4));
-      return Math.max(0, cranium + jaw + eyeVoid + noseVoid);
+      const dy = y - 0.44, dx = x - 0.5;
+      const head = Math.max(0, 0.85 - Math.sqrt(dx * dx * 2 + dy * dy) * 3);
+      const leftEar = Math.max(0, 0.7 - Math.sqrt(Math.pow(x - 0.35, 2) * 10 + Math.pow(y - 0.2, 2) * 8));
+      const rightEar = Math.max(0, 0.7 - Math.sqrt(Math.pow(x - 0.65, 2) * 10 + Math.pow(y - 0.2, 2) * 8));
+      const leftEye = Math.sqrt(Math.pow(x - 0.36, 2) * 6 + Math.pow(y - 0.44, 2) * 8);
+      const rightEye = Math.sqrt(Math.pow(x - 0.64, 2) * 6 + Math.pow(y - 0.44, 2) * 8);
+      const eyeVoid = leftEye < 0.12 || rightEye < 0.12 ? -0.85 : 0;
+      const muzzle = Math.max(0, 0.5 - Math.sqrt(Math.pow(x - 0.5, 2) * 5 + Math.pow(y - 0.58, 2) * 6));
+      const noseVoid = Math.sqrt(Math.pow(x - 0.5, 2) * 14 + Math.pow(y - 0.55, 2) * 16) < 0.06 ? -0.4 : 0;
+      return Math.max(0, head + leftEar + rightEar + eyeVoid + muzzle + noseVoid);
     },
   },
-  {
-    id: "wolf",
-    label: "Wolf",
-    sideA: "Mountain Peak",
-    sideB: "Solar Eclipse",
-    emergent: "Wolf",
+  wolf: {
     color: "#9eb8d4",
     densityA: (y, x) => {
       const dx = x - 0.5;
@@ -96,12 +94,7 @@ const SCENARIOS: Scenario[] = [
       return Math.max(0, head + leftEar + rightEar + eyeVoid + noseVoid);
     },
   },
-  {
-    id: "eagle",
-    label: "Eagle",
-    sideA: "Desert Dunes",
-    sideB: "Crescent Moon",
-    emergent: "Eagle",
+  eagle: {
     color: "#d4a96e",
     densityA: (y, x) => {
       const leftDune = Math.max(0, 0.8 - Math.sqrt(Math.pow(x - 0.3, 2) * 3 + Math.pow(y - 0.35, 2) * 4));
@@ -127,143 +120,201 @@ const SCENARIOS: Scenario[] = [
       return Math.max(0, head + eyeVoid + beak);
     },
   },
-  {
-    id: "bear",
-    label: "Bear",
-    sideA: "City Skyline",
-    sideB: "Storm Clouds",
-    emergent: "Bear",
-    color: "#a96e6e",
-    densityA: (y, x) => {
-      if (y > 0.85) return 0.9;
-      const buildings = [0.08, 0.2, 0.32, 0.44, 0.56, 0.68, 0.8, 0.92];
-      const heights = [0.45, 0.28, 0.55, 0.22, 0.38, 0.18, 0.42, 0.5];
-      let d = 0;
-      buildings.forEach((bx, i) => {
-        if (Math.abs(x - bx) < 0.06 && y > heights[i]) d = Math.max(d, 0.9);
-      });
-      if (y > 0.65) d = Math.max(d, (y - 0.65) * 2.5);
-      return Math.min(0.9, d);
+  skull: {
+    color: "#c8a96e",
+    densityA: (y) => {
+      if (y < 0.1) return 0.05;
+      if (y < 0.85) return 0.3 - y * 0.2;
+      return 0.05;
     },
-    densityB: (y) => {
-      if (y < 0.15) return 0.95;
-      if (y < 0.4) return 0.9 - (y - 0.15) * 0.8;
-      if (y < 0.6) return 0.5 - (y - 0.4) * 1.5;
-      if (y < 0.8) return Math.max(0.05, 0.2 - (y - 0.6));
-      return 0.02;
+    densityB: (y, x) => {
+      const dy = y - 0.5, dx = x - 0.5;
+      const dist = Math.sqrt(dx * dx * 4 + dy * dy);
+      if (dist < 0.35) return 0.95 - dist * 0.5;
+      if (dist < 0.55) return 0.15;
+      return 0.08;
     },
     densityC: (y, x) => {
-      const dy = y - 0.44, dx = x - 0.5;
-      const head = Math.max(0, 0.85 - Math.sqrt(dx * dx * 2 + dy * dy) * 3);
-      const leftEar = Math.max(0, 0.7 - Math.sqrt(Math.pow(x - 0.35, 2) * 10 + Math.pow(y - 0.2, 2) * 8));
-      const rightEar = Math.max(0, 0.7 - Math.sqrt(Math.pow(x - 0.65, 2) * 10 + Math.pow(y - 0.2, 2) * 8));
-      const leftEye = Math.sqrt(Math.pow(x - 0.36, 2) * 6 + Math.pow(y - 0.44, 2) * 8);
-      const rightEye = Math.sqrt(Math.pow(x - 0.64, 2) * 6 + Math.pow(y - 0.44, 2) * 8);
-      const eyeVoid = leftEye < 0.12 || rightEye < 0.12 ? -0.85 : 0;
-      const muzzle = Math.max(0, 0.5 - Math.sqrt(Math.pow(x - 0.5, 2) * 5 + Math.pow(y - 0.58, 2) * 6));
-      const noseVoid = Math.sqrt(Math.pow(x - 0.5, 2) * 14 + Math.pow(y - 0.55, 2) * 16) < 0.06 ? -0.4 : 0;
-      return Math.max(0, head + leftEar + rightEar + eyeVoid + muzzle + noseVoid);
+      const dy = y - 0.45, dx = x - 0.5;
+      const cranium = Math.max(0, 0.9 - Math.sqrt(dx * dx * 3 + dy * dy) * 3.5);
+      const leftEye = Math.sqrt(Math.pow(x - 0.33, 2) * 6 + Math.pow(y - 0.46, 2) * 8);
+      const rightEye = Math.sqrt(Math.pow(x - 0.67, 2) * 6 + Math.pow(y - 0.46, 2) * 8);
+      const eyeVoid = leftEye < 0.12 || rightEye < 0.12 ? -0.8 : 0;
+      const nose = Math.sqrt(Math.pow(x - 0.5, 2) * 10 + Math.pow(y - 0.56, 2) * 12);
+      const noseVoid = nose < 0.08 ? -0.6 : 0;
+      const jaw = Math.max(0, 0.5 - Math.sqrt(Math.pow(dx * 1.2, 2) + Math.pow(y - 0.65, 2) * 4));
+      return Math.max(0, cranium + jaw + eyeVoid + noseVoid);
     },
   },
-  {
-    id: "buddha",
-    label: "Buddha",
-    sideA: "Storm Sky",
-    sideB: "Rising Sun",
-    emergent: "Buddha Face",
-    color: "#d4a96e",
-    // Storm Sky: smooth gradient, darkest at top (y=0), pure white at bottom (y=1)
+  "human-face": {
+    color: "#b8a0d4",
     densityA: (y) => {
-      if (y > 0.92) return 0.0;  // bottom — clear air
+      if (y > 0.92) return 0.0;
       if (y > 0.80) return 0.08;
       if (y > 0.68) return 0.25;
       if (y > 0.54) return 0.45;
       if (y > 0.42) return 0.6;
       if (y > 0.30) return 0.75;
       if (y > 0.18) return 0.85;
-      if (y > 0.08) return 0.95; // storm core — near solid
-      return 0.9; // top edge — storm continues
+      if (y > 0.08) return 0.95;
+      return 0.9;
     },
-    // Rising Sun: disc centered at x=0.5, y=0.62 (canvas coords). Dense ground at bottom.
     densityB: (y, x) => {
       const dx = x - 0.5;
       const discCenterY = 0.62;
       const dy = y - discCenterY;
       const discR = 0.27;
       const dist = Math.sqrt(dx * dx * 3.5 + dy * dy * 3.5);
-      // Top sky — near white
       if (y < 0.07) return 0.0;
       if (y < 0.16) return 0.03;
       if (y < 0.28) return 0.06;
-      // Glow zone above disc
       if (y < 0.38 && dist > discR) return 0.1;
-      // Sun disc
-      if (dist < discR) {
-        const edge = discR - dist;
-        return Math.min(0.95, 0.7 + edge * 1.5);
-      }
-      // Outer field beside disc
+      if (dist < discR) return Math.min(0.95, 0.7 + (discR - dist) * 1.5);
       if (y > 0.35 && y < 0.85 && Math.abs(dx) > 0.27) return 0.06;
-      // Horizon and ground
       if (y > 0.88) return 0.85;
-      if (y > 0.80) return 0.9; // horizon — darkest ground
+      if (y > 0.80) return 0.9;
       return 0.08;
     },
-    // Buddha Face: serene, symmetrical, wide oval, half-closed eyes, ushnisha at top
     densityC: (y, x) => {
       const dx = x - 0.5;
       const absDx = Math.abs(dx);
-
-      // --- Ushnisha crown (top, textured) ---
-      const ushnisha = y < 0.12
-        ? Math.max(0, 0.7 - absDx * 3) * (1 - y * 4)
-        : 0;
-
-      // --- Cranium dome (broad forehead) ---
-      const cranium = y > 0.12 && y < 0.26
-        ? Math.max(0, 0.8 - Math.sqrt(dx * dx * 3 + Math.pow(y - 0.19, 2) * 2) * 2.5)
-        : 0;
-
-      // --- Face mass (wide oval, densest zone) ---
-      const faceMass = y > 0.26 && y < 0.52
-        ? Math.max(0, 0.92 - Math.sqrt(dx * dx * 2.2 + Math.pow(y - 0.38, 2) * 1.5) * 2.2)
-        : 0;
-
-      // --- Half-closed eyes (horizontal slits, NOT round) ---
-      // Left eye: narrow horizontal band at y=0.44, x=0.28-0.40
-      const leftEyeY = Math.abs(y - 0.44) < 0.02;
-      const leftEyeX = x > 0.28 && x < 0.40;
-      const leftEye = leftEyeY && leftEyeX ? -0.55 : 0;
-      // Right eye: mirror
-      const rightEyeY = Math.abs(y - 0.44) < 0.02;
-      const rightEyeX = x > 0.60 && x < 0.72;
-      const rightEye = rightEyeY && rightEyeX ? -0.55 : 0;
-
-      // --- Nose (subtle center lightening) ---
-      const nose = absDx < 0.04 && y > 0.48 && y < 0.58
-        ? -0.15
-        : 0;
-
-      // --- Lips (thin horizontal lighter band — serene smile) ---
-      const lips = Math.abs(y - 0.66) < 0.012 && absDx < 0.12
-        ? -0.35
-        : 0;
-
-      // --- Jaw and chin (soft rounded, wide) ---
-      const jaw = y > 0.68 && y < 0.82
-        ? Math.max(0, 0.6 - Math.sqrt(Math.pow(dx * 1.1, 2) + Math.pow(y - 0.74, 2) * 2.5) * 2.5)
-        : 0;
-
-      // --- Long earlobes (extending down at sides) ---
-      const leftEar = Math.max(0, 0.4 - Math.sqrt(Math.pow(x - 0.19, 2) * 15 + Math.pow(y - 0.6, 2) * 2));
-      const rightEar = Math.max(0, 0.4 - Math.sqrt(Math.pow(x - 0.81, 2) * 15 + Math.pow(y - 0.6, 2) * 2));
-
-      return Math.max(0, Math.min(1,
-        ushnisha + cranium + faceMass + leftEye + rightEye + nose + lips + jaw + leftEar + rightEar
-      ));
+      const forehead = y > 0.12 && y < 0.30 ? Math.max(0, 0.8 - Math.sqrt(dx * dx * 3 + Math.pow(y - 0.21, 2) * 2) * 2.5) : 0;
+      const faceMass = y > 0.30 && y < 0.58 ? Math.max(0, 0.9 - Math.sqrt(dx * dx * 2.2 + Math.pow(y - 0.42, 2) * 1.5) * 2.2) : 0;
+      const leftEye = Math.abs(y - 0.40) < 0.02 && x > 0.30 && x < 0.42 ? -0.6 : 0;
+      const rightEye = Math.abs(y - 0.40) < 0.02 && x > 0.58 && x < 0.70 ? -0.6 : 0;
+      const nose = absDx < 0.04 && y > 0.44 && y < 0.54 ? -0.15 : 0;
+      const lips = Math.abs(y - 0.60) < 0.012 && absDx < 0.12 ? -0.35 : 0;
+      const jaw = y > 0.58 && y < 0.75 ? Math.max(0, 0.6 - Math.sqrt(Math.pow(dx * 1.1, 2) + Math.pow(y - 0.66, 2) * 2.5) * 2.5) : 0;
+      return Math.max(0, Math.min(1, forehead + faceMass + leftEye + rightEye + nose + lips + jaw));
     },
   },
-];
+  raven: {
+    color: "#6a7d8e",
+    densityA: (y, x) => {
+      // Pine forest — vertical tree silhouettes
+      const treeLine = 0.25 + Math.sin(x * 12) * 0.08 + Math.sin(x * 5) * 0.05;
+      if (y > treeLine) return Math.min(0.92, 0.5 + (y - treeLine) * 1.5);
+      if (y > treeLine - 0.06) return 0.15;
+      return 0.02;
+    },
+    densityB: (y) => {
+      // Night sky — dark bands
+      if (y < 0.1) return 0.92;
+      if (y < 0.3) return 0.85 - (y - 0.1) * 1.5;
+      if (y < 0.5) return 0.55 - (y - 0.3) * 1.2;
+      if (y < 0.7) return 0.3 - (y - 0.5) * 0.8;
+      if (y < 0.85) return 0.15;
+      return 0.08;
+    },
+    densityC: (y, x) => {
+      // Raven profile — beak pointing right
+      const dy = y - 0.42, dx = x - 0.45;
+      const body = Math.max(0, 0.85 - Math.sqrt(dx * dx * 1.8 + dy * dy * 2.5) * 2.8);
+      const beak = x > 0.6 && x < 0.78 && Math.abs(y - 0.40) < (0.04 - (x - 0.6) * 0.15) ? 0.85 : 0;
+      const head = Math.max(0, 0.8 - Math.sqrt(Math.pow(x - 0.55, 2) * 5 + Math.pow(y - 0.35, 2) * 5) * 2.5);
+      const eye = Math.sqrt(Math.pow(x - 0.57, 2) * 12 + Math.pow(y - 0.36, 2) * 14) < 0.06 ? -0.7 : 0;
+      return Math.max(0, body + head + beak + eye);
+    },
+  },
+  lion: {
+    color: "#d4a060",
+    densityA: (y, x) => {
+      // Savannah tree line — flat horizon with scattered trees
+      const treeLine = 0.52 + Math.sin(x * 8) * 0.04 + Math.sin(x * 3) * 0.06;
+      if (y > treeLine + 0.12) return 0.15;
+      if (y > treeLine) return Math.min(0.88, 0.4 + (y - treeLine) * 4);
+      if (y > treeLine - 0.08) return Math.max(0, 0.6 - Math.abs(y - treeLine + 0.04) * 8);
+      return 0.03;
+    },
+    densityB: (y) => {
+      // Desert storm — heavy horizontal bands
+      if (y < 0.12) return 0.88;
+      if (y < 0.35) return 0.8 - (y - 0.12) * 1.2;
+      if (y < 0.55) return 0.5;
+      if (y < 0.75) return 0.35 - (y - 0.55) * 0.8;
+      return 0.15;
+    },
+    densityC: (y, x) => {
+      // Lion head — frontal with mane
+      const dx = x - 0.5, dy = y - 0.42;
+      const mane = Math.max(0, 0.8 - Math.sqrt(dx * dx * 1.2 + dy * dy * 1.5) * 2.2);
+      const face = Math.max(0, 0.9 - Math.sqrt(dx * dx * 3 + Math.pow(y - 0.44, 2) * 3) * 3);
+      const leftEye = Math.sqrt(Math.pow(x - 0.38, 2) * 8 + Math.pow(y - 0.42, 2) * 10) < 0.08 ? -0.8 : 0;
+      const rightEye = Math.sqrt(Math.pow(x - 0.62, 2) * 8 + Math.pow(y - 0.42, 2) * 10) < 0.08 ? -0.8 : 0;
+      const nose = Math.sqrt(Math.pow(x - 0.5, 2) * 14 + Math.pow(y - 0.52, 2) * 16) < 0.05 ? -0.5 : 0;
+      return Math.max(0, mane + face + leftEye + rightEye + nose);
+    },
+  },
+  whale: {
+    color: "#6a9eb8",
+    densityA: (y) => {
+      // Ocean wave horizon — flowing bands
+      if (y < 0.15) return 0.04;
+      if (y < 0.35) return 0.08 + (y - 0.15) * 0.5;
+      if (y < 0.55) return 0.18 + Math.sin(y * 20) * 0.08;
+      if (y < 0.75) return 0.4 + (y - 0.55) * 1.5;
+      return Math.min(0.9, 0.7 + (y - 0.75) * 0.8);
+    },
+    densityB: (y, x) => {
+      // Moonlit clouds — soft masses
+      const moonDist = Math.sqrt(Math.pow(x - 0.65, 2) * 3 + Math.pow(y - 0.25, 2) * 4);
+      const moon = moonDist < 0.15 ? 0.9 - moonDist * 3 : 0;
+      const clouds = Math.max(0, 0.5 * Math.sin(y * 6 + x * 2) * Math.max(0, 0.8 - Math.abs(y - 0.55) * 2));
+      return Math.max(0, Math.min(0.9, moon + clouds + (y > 0.7 ? (y - 0.7) * 1.5 : 0)));
+    },
+    densityC: (y, x) => {
+      // Whale side silhouette
+      const dx = x - 0.5, dy = y - 0.48;
+      const body = Math.max(0, 0.85 - Math.sqrt(dx * dx * 0.8 + dy * dy * 6) * 2.2);
+      const tail = x < 0.15 ? Math.max(0, 0.6 - Math.sqrt(Math.pow(x - 0.1, 2) * 4 + Math.pow(y - 0.38, 2) * 3) * 3) : 0;
+      const tailFluke = x < 0.08 ? Math.max(0, 0.5 * (1 - Math.abs(y - 0.35) * 6)) : 0;
+      const head = x > 0.7 ? Math.max(0, 0.7 - Math.sqrt(Math.pow(x - 0.78, 2) * 3 + dy * dy * 4) * 2.5) : 0;
+      return Math.max(0, body + tail + tailFluke + head);
+    },
+  },
+  tree: {
+    color: "#6e9e6e",
+    densityA: (y, x) => {
+      // Mountain ridgeline — angular peaks
+      const dx = x - 0.5;
+      const ridge = 0.3 + Math.abs(dx) * 0.6 + Math.sin(x * 8) * 0.04;
+      if (y > ridge) return Math.min(0.9, 0.3 + (y - ridge) * 2);
+      if (y > ridge - 0.05) return 0.15;
+      return 0.02;
+    },
+    densityB: (y) => {
+      // Rain bands — horizontal atmospheric movement
+      const base = y * 0.6;
+      const bands = Math.sin(y * 15) * 0.12;
+      return Math.max(0.02, Math.min(0.85, base + bands));
+    },
+    densityC: (y, x) => {
+      // Solitary tree — trunk + canopy
+      const dx = x - 0.5;
+      const trunk = Math.abs(dx) < 0.04 && y > 0.55 && y < 0.85 ? 0.9 : 0;
+      const canopy = Math.max(0, 0.85 - Math.sqrt(dx * dx * 2.5 + Math.pow(y - 0.35, 2) * 3) * 2.5);
+      const canopyMask = y < 0.58 ? canopy : 0;
+      const roots = y > 0.82 ? Math.max(0, 0.3 - Math.abs(dx) * 1.5) : 0;
+      return Math.max(0, trunk + canopyMask + roots);
+    },
+  },
+};
+
+// Build scenario list from the curated combos + density map
+const SCENARIOS: Scenario[] = SLAT_WALL_IMAGE_COMBOS.map((combo) => {
+  const density = DENSITY_MAP[combo.id];
+  return {
+    id: combo.id,
+    label: combo.emergent,
+    sideA: combo.sideA,
+    sideB: combo.sideB,
+    emergent: combo.emergent,
+    color: density?.color ?? "#888",
+    densityA: density?.densityA ?? (() => 0.3),
+    densityB: density?.densityB ?? (() => 0.3),
+    densityC: density?.densityC ?? (() => 0.3),
+  };
+});
 
 // ─── SLAT WALL CANVAS ──────────────────────────────────────────────────────────
 
@@ -373,27 +424,34 @@ export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt
   const animRef = useRef<number>(0);
   const [isPending, startTransition] = useTransition();
 
-  // AI-generated images — initialize from saved DB images
-  const [aiImages, setAiImages] = useState<Record<string, string>>(initialAiImages ?? {});
+  // AI-generated images — keyed by scenarioId, each containing state→url map
+  const [aiImagesByScenario, setAiImagesByScenario] = useState<Record<string, Record<string, string>>>(initialAiImages ?? {});
+  const aiImages = aiImagesByScenario[activeScenario.id] ?? {};
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
-  const hasAnyAiImages = Object.keys(aiImages).length > 0;
+  const hasAnyAiImages = Object.values(aiImagesByScenario).some((m) => Object.keys(m).length > 0);
+  const hasCurrentScenarioImages = Object.keys(aiImages).length > 0;
   const [viewMode, setViewMode] = useState<"canvas" | "ai">(hasAnyAiImages ? "ai" : "canvas");
 
   const generateAI = useCallback(
     (state: "A" | "B" | "C") => {
       if (aiLoading[state]) return;
+      const scenarioId = activeScenario.id;
       setAiLoading((prev) => ({ ...prev, [state]: true }));
       startTransition(async () => {
         try {
           const result = await generateSimulatorImage({
             projectId,
+            scenarioId,
             state,
             sideA: activeScenario.sideA,
             sideB: activeScenario.sideB,
             emergent: activeScenario.emergent,
           });
           if (result.imageUrl) {
-            setAiImages((prev) => ({ ...prev, [state]: result.imageUrl! }));
+            setAiImagesByScenario((prev) => ({
+              ...prev,
+              [scenarioId]: { ...prev[scenarioId], [state]: result.imageUrl! },
+            }));
           }
           setViewMode("ai");
         } catch (error) {
@@ -477,8 +535,8 @@ export function SlatWallSimulator({ projectId, slatCount, slatWidth, wallWidthFt
             onClick={() => {
               setActiveScenario(s);
               setActiveState("A");
-              setAiImages({});
-              setViewMode("canvas");
+              const scenarioHasImages = Object.keys(aiImagesByScenario[s.id] ?? {}).length > 0;
+              setViewMode(scenarioHasImages ? "ai" : "canvas");
             }}
             type="button"
             style={{

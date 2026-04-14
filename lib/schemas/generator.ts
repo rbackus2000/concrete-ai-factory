@@ -27,7 +27,6 @@ export const imageScenePresetOptionsByCategory: Record<
   readonly ImageScenePreset[]
 > = {
   VESSEL_SINK: ["lifestyle", "catalog", "detail"],
-  COUNTERTOP: [],
   FURNITURE: ["lifestyle", "catalog", "detail"],
   PANEL: ["installed", "sample", "repeat_pattern"],
 };

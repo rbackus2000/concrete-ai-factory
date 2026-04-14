@@ -109,7 +109,7 @@ export async function getSlatWallDetail(projectId: string) {
 export async function getSlatWallSimulatorImages(projectId: string) {
   const outputs = await prisma.generatedOutput.findMany({
     where: {
-      generatedBy: "slat-wall-simulator",
+      generatedBy: { in: ["slat-wall-generator", "slat-wall-simulator"] },
       outputPayload: { path: ["slatWallProjectId"], equals: projectId },
     },
     include: {
@@ -122,16 +122,21 @@ export async function getSlatWallSimulatorImages(projectId: string) {
     orderBy: { createdAt: "desc" },
   });
 
-  const images: Record<string, { imageUrl: string; outputId: string }> = {};
+  // Key: "scenarioId:state" → most recent image per scenario+state
+  const images: Record<string, Record<string, { imageUrl: string; outputId: string }>> = {};
 
   for (const output of outputs) {
     const payload = output.outputPayload as Record<string, unknown> | null;
-    const stateType = String(payload?.["slatWallOutputType"] ?? "");
-    const state = stateType.replace("SIMULATOR_", "");
-    const imageUrl = output.imageAssets[0]?.imageUrl;
+    const rawType = String(payload?.["slatWallOutputType"] ?? "");
+    const state = rawType.replace("IMAGE_RENDER_", "").replace("SIMULATOR_", "");
+    const scenarioId = String(payload?.["slatWallScenarioId"] ?? "default");
+    const imageUrl = output.imageAssets[0]?.imageUrl ?? (payload?.["imageUrl"] as string | undefined);
 
-    if (["A", "B", "C"].includes(state) && imageUrl && !images[state]) {
-      images[state] = { imageUrl, outputId: output.id };
+    if (["A", "B", "C"].includes(state) && imageUrl) {
+      if (!images[scenarioId]) images[scenarioId] = {};
+      if (!images[scenarioId][state]) {
+        images[scenarioId][state] = { imageUrl, outputId: output.id };
+      }
     }
   }
 
