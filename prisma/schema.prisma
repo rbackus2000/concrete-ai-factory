@@ -56,12 +56,32 @@ enum AuditEntityType {
   MATERIALS_MASTER
   GENERATED_OUTPUT
   SLAT_WALL_PROJECT
+  FINISH
+  CLIENT
+  JOB
 }
 
 enum SlatWallProjectStatus {
   DRAFT
   ACTIVE
   ARCHIVED
+}
+
+enum JobStatus {
+  QUOTED
+  IN_PRODUCTION
+  QC
+  READY
+  SHIPPED
+  DELIVERED
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
 }
 
 enum SlatPosition {
@@ -170,6 +190,7 @@ model Sku {
   datumSystemJson           Json?
   calculatorDefaults        Json?
   generatedOutputs          GeneratedOutput[]
+  jobs                      Job[]
   promptTemplateOverrides   PromptTemplate[]      @relation("PromptTemplateOverrideSku")
   rulesOverrides            RulesMaster[]         @relation("RulesMasterOverrideSku")
   materialsOverrides        MaterialsMaster[]     @relation("MaterialsMasterOverrideSku")
@@ -393,6 +414,8 @@ model SlatWallProject {
   name            String
   status          SlatWallProjectStatus  @default(DRAFT)
   clientName      String?
+  clientId        String?
+  client          Client?                @relation(fields: [clientId], references: [id], onDelete: SetNull)
   location        String?
   designer        String?
   engineer        String?
@@ -405,9 +428,11 @@ model SlatWallProject {
   config          SlatWallConfig?
   artworks        SlatWallArtwork[]
   slats           SlatRecord[]
+  proposals       SlatWallProposal[]
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 
+  @@index([clientId])
   @@map("slat_wall_projects")
 }
 
@@ -489,8 +514,10 @@ model SlatRecord {
 }
 
 model SlatWallProposal {
-  id              String   @id @default(cuid())
-  proposalNumber  String   @unique
+  id              String          @id @default(cuid())
+  proposalNumber  String          @unique
+  projectId       String?
+  project         SlatWallProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   clientName      String
   projectName     String
   clientEmail     String?
@@ -498,21 +525,83 @@ model SlatWallProposal {
   scenarioId      String
   wallSize        String
   slatCount       Int
-  slatWidthIn     Decimal? @db.Decimal(6, 2)
-  slatHeightFt    Decimal? @db.Decimal(6, 2)
+  slatWidthIn     Decimal?        @db.Decimal(6, 2)
+  slatHeightFt    Decimal?        @db.Decimal(6, 2)
   printMethod     String
-  includeInstall  Boolean  @default(true)
+  includeInstall  Boolean         @default(true)
   clientPrice     Int
   breakdown       Json
   pdfUrl          String?
-  status          String   @default("draft")
+  status          ProposalStatus  @default(DRAFT)
   validUntil      DateTime?
   sentAt          DateTime?
   viewedAt        DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
+  @@index([projectId])
   @@map("slat_wall_proposals")
+}
+
+// ── FINISH MASTER ─────────────────────────────────────────────
+
+model Finish {
+  id                String       @id @default(cuid())
+  code              String       @unique
+  name              String
+  colorFamily       String?
+  textureType       String?
+  sealerType        String?
+  pigmentFormula    String?      @db.Text
+  referenceImageUrl String?
+  notes             String?      @db.Text
+  status            RecordStatus @default(DRAFT)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("finishes")
+}
+
+// ── CLIENT MANAGEMENT ─────────────────────────────────────────
+
+model Client {
+  id               String            @id @default(cuid())
+  name             String
+  company          String?
+  email            String?
+  phone            String?
+  address          String?           @db.Text
+  notes            String?           @db.Text
+  slatWallProjects SlatWallProject[]
+  jobs             Job[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@map("clients")
+}
+
+// ── JOB TRACKING ──────────────────────────────────────────────
+
+model Job {
+  id                  String    @id @default(cuid())
+  jobNumber           String    @unique
+  skuId               String
+  clientId            String?
+  quantity            Int       @default(1)
+  status              JobStatus @default(QUOTED)
+  dueDate             DateTime?
+  notes               String?   @db.Text
+  retailPriceTotal    Decimal?  @db.Decimal(10, 2)
+  wholesalePriceTotal Decimal?  @db.Decimal(10, 2)
+  sku                 Sku       @relation(fields: [skuId], references: [id])
+  client              Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status])
+  @@index([skuId])
+  @@index([clientId])
+  @@map("jobs")
 }
 
 // ── EQUIPMENT PROCUREMENT TRACKER ──────────────────────────────

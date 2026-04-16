@@ -52,6 +52,21 @@ export const qcCategoryValues = [
   "POST_DEMOLD",
   "ALIGNMENT",
 ] as const;
+export const jobStatusValues = [
+  "QUOTED",
+  "IN_PRODUCTION",
+  "QC",
+  "READY",
+  "SHIPPED",
+  "DELIVERED",
+] as const;
+export const proposalStatusValues = [
+  "DRAFT",
+  "SENT",
+  "VIEWED",
+  "ACCEPTED",
+  "REJECTED",
+] as const;
 
 export const skuCategorySchema = z.enum(skuCategoryValues);
 export const categoryScopeSchema = z.enum(categoryScopeValues);
@@ -62,6 +77,8 @@ export const outputTypeSchema = z.enum(outputTypeValues);
 export const materialCategorySchema = z.enum(materialCategoryValues);
 export const ruleCategorySchema = z.enum(ruleCategoryValues);
 export const qcCategorySchema = z.enum(qcCategoryValues);
+export const jobStatusSchema = z.enum(jobStatusValues);
+export const proposalStatusSchema = z.enum(proposalStatusValues);
 
 export type SkuCategory = z.infer<typeof skuCategorySchema>;
 export type CategoryScope = z.infer<typeof categoryScopeSchema>;
@@ -72,3 +89,5 @@ export type OutputType = z.infer<typeof outputTypeSchema>;
 export type MaterialCategory = z.infer<typeof materialCategorySchema>;
 export type RuleCategory = z.infer<typeof ruleCategorySchema>;
 export type QcCategory = z.infer<typeof qcCategorySchema>;
+export type JobStatus = z.infer<typeof jobStatusSchema>;
+export type ProposalStatus = z.infer<typeof proposalStatusSchema>;

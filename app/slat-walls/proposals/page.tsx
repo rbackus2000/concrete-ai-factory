@@ -60,7 +60,7 @@ export default async function ProposalsPage() {
                       <TableCell>{p.wallSize}</TableCell>
                       <TableCell className="font-medium">${p.clientPrice.toLocaleString()}</TableCell>
                       <TableCell>
-                        <Badge variant={p.status === "draft" ? "secondary" : "default"}>{p.status}</Badge>
+                        <Badge variant={p.status === "DRAFT" ? "secondary" : "default"}>{p.status}</Badge>
                       </TableCell>
                       <TableCell>
                         {p.validUntil ? (

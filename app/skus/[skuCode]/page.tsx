@@ -74,6 +74,8 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
             draftAngle: sku.draftAngle,
             cornerRadius: sku.cornerRadius,
             fiberPercent: sku.fiberPercent,
+            retailPrice: sku.retailPrice ?? 0,
+            wholesalePrice: sku.wholesalePrice ?? 0,
             datumSystemJson: JSON.stringify(sku.datumSystem, null, 2),
             calculatorDefaultsJson: JSON.stringify(sku.calculatorDefaults, null, 2),
           }}

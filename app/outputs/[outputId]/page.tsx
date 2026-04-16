@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/app-shell/page-header";
 import { OutputExportActions } from "@/components/outputs/output-export-actions";
+import OutputReviewActions from "@/components/outputs/output-review-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -44,7 +45,10 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
         description="Saved output payloads are rendered in an export-friendly layout so markdown or PDF export can be layered in later."
       />
 
-      <OutputExportActions canPrint={detail.outputType === "BUILD_PACKET"} outputId={detail.id} />
+      <div className="flex items-center gap-4">
+        <OutputExportActions canPrint={detail.outputType === "BUILD_PACKET"} outputId={detail.id} />
+        <OutputReviewActions outputId={detail.id} currentStatus={detail.status} />
+      </div>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>

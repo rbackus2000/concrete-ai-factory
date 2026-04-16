@@ -32,6 +32,16 @@ const adminSections = [
     description: "Manage reusable material, sealer, insert, pigment, and packaging records.",
   },
   {
+    title: "Finishes",
+    href: "/admin/finishes",
+    description: "Manage concrete finish presets — color families, textures, sealers, and pigment formulas.",
+  },
+  {
+    title: "Clients",
+    href: "/admin/clients",
+    description: "Manage client contacts, companies, and project associations.",
+  },
+  {
     title: "Audit Logs",
     href: "/admin/audit-logs",
     description: "Review write activity and export access events by actor, entity, and action.",

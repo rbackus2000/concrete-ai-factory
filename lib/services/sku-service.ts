@@ -13,7 +13,7 @@ import {
   skuEditorSchema,
   type SkuEditorValues,
 } from "../schemas/sku";
-import { buildScopedWhere, decimalToNumber, mapSkuRecord, parseStringArray } from "./service-helpers";
+import { buildScopedWhere, decimalToNumber, mapSkuRecord, mapSkuRecordWithPricing, parseStringArray } from "./service-helpers";
 import { createSku, updateSku } from "./sku-write";
 
 function mapMaterialRecord(material: {
@@ -175,7 +175,7 @@ export async function getSkuDetail(code: string) {
 
   const mappedSku = {
     id: sku.id,
-    ...mapSkuRecord(sku),
+    ...mapSkuRecordWithPricing(sku),
   };
   const materials = materialRows.map(mapMaterialRecord);
   const rules = resolveRulesForSku({
@@ -264,6 +264,8 @@ export async function updateSkuFromEditor(
     draftAngle: parsed.draftAngle,
     cornerRadius: parsed.cornerRadius,
     fiberPercent: parsed.fiberPercent,
+    retailPrice: parsed.retailPrice || null,
+    wholesalePrice: parsed.wholesalePrice || null,
     datumSystemJson: parseDatumSystemJsonInput(parsed.datumSystemJson),
     calculatorDefaults: parseCalculatorDefaultsJsonInput(parsed.calculatorDefaultsJson),
   });
@@ -301,6 +303,8 @@ export async function updateSkuFromEditor(
       draftAngle: decimalToNumber(existing.draftAngle),
       cornerRadius: decimalToNumber(existing.cornerRadius),
       fiberPercent: decimalToNumber(existing.fiberPercent),
+      retailPrice: decimalToNumber(existing.retailPrice),
+      wholesalePrice: decimalToNumber(existing.wholesalePrice),
       datumSystemJson: existing.datumSystemJson,
       calculatorDefaults: existing.calculatorDefaults,
     },
@@ -336,6 +340,8 @@ export async function updateSkuFromEditor(
       draftAngle: parsed.draftAngle,
       cornerRadius: parsed.cornerRadius,
       fiberPercent: parsed.fiberPercent,
+      retailPrice: parsed.retailPrice || null,
+      wholesalePrice: parsed.wholesalePrice || null,
       datumSystemJson: parseDatumSystemJsonInput(parsed.datumSystemJson),
       calculatorDefaults: parseCalculatorDefaultsJsonInput(parsed.calculatorDefaultsJson),
     },

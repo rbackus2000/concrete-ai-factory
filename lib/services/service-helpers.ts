@@ -184,3 +184,12 @@ export function mapSkuRecord(sku: PrismaSku): Sku {
     calculatorDefaults: parseCalculatorDefaults(sku.calculatorDefaults),
   };
 }
+
+/** Map a Prisma SKU to domain Sku type with pricing fields for display pages. */
+export function mapSkuRecordWithPricing(sku: PrismaSku) {
+  return {
+    ...mapSkuRecord(sku),
+    retailPrice: decimalToNumber(sku.retailPrice) ?? null,
+    wholesalePrice: decimalToNumber(sku.wholesalePrice) ?? null,
+  };
+}

@@ -10,6 +10,7 @@ export const calculatorRunSchema = z.object({
   sealerCostPerGallon: z.coerce.number().min(0, "Sealer cost cannot be negative."),
   laborCostPerUnit: z.coerce.number().min(0, "Labor cost cannot be negative."),
   overheadCostPerUnit: z.coerce.number().min(0, "Overhead cost cannot be negative."),
+  marginPercent: z.coerce.number().min(0).max(99).default(0),
 });
 
 export type CalculatorRunValues = z.infer<typeof calculatorRunSchema>;

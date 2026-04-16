@@ -147,6 +147,7 @@ export async function runCalculatorFlow(values: CalculatorRunValues) {
       sealerCostPerGallon: parsed.sealerCostPerGallon,
       laborCostPerUnit: parsed.laborCostPerUnit,
       overheadCostPerUnit: parsed.overheadCostPerUnit,
+      marginPercent: parsed.marginPercent ?? 0,
     },
   });
 

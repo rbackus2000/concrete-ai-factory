@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 import {
   Bot,
   Box,
+  Briefcase,
   Calculator,
   Columns3,
   History,
+  Image,
   LayoutDashboard,
   Settings2,
   Sparkles,
@@ -24,7 +26,9 @@ const iconMap = {
   generator: Sparkles,
   outputs: History,
   packet: SquareStack,
+  jobs: Briefcase,
   calculator: Calculator,
+  gallery: Image,
   jacob: Bot,
   admin: Settings2,
 };

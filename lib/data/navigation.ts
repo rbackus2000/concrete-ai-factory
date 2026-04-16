@@ -30,9 +30,19 @@ export const navigationItems = [
     icon: "packet",
   },
   {
+    label: "Jobs",
+    href: "/jobs",
+    icon: "jobs",
+  },
+  {
     label: "Calculator",
     href: "/calculator",
     icon: "calculator",
+  },
+  {
+    label: "Gallery",
+    href: "/gallery",
+    icon: "gallery",
   },
   {
     label: "Jacob",

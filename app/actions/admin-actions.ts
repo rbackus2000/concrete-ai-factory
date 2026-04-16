@@ -22,6 +22,10 @@ import type {
   QcTemplateAdminValues,
   RulesMasterAdminValues,
 } from "@/lib/schemas/admin";
+import { createFinish, updateFinish } from "@/lib/services/finish-service";
+import { createClient, updateClient } from "@/lib/services/client-service";
+import type { FinishAdminValues } from "@/lib/schemas/finish";
+import type { ClientAdminValues } from "@/lib/schemas/client";
 
 export async function createPromptTemplateAction(values: PromptTemplateAdminValues) {
   const actor = await requireAdminSession();
@@ -128,5 +132,39 @@ export async function updateMaterialsMasterAction(id: string, values: MaterialsM
   revalidatePath("/admin/materials-master");
   revalidatePath(`/admin/materials-master/${id}`);
 
+  return result;
+}
+
+export async function createFinishAction(values: FinishAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await createFinish(values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/finishes");
+  return result;
+}
+
+export async function updateFinishAction(id: string, values: FinishAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await updateFinish(id, values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/finishes");
+  revalidatePath(`/admin/finishes/${id}`);
+  return result;
+}
+
+export async function createClientAction(values: ClientAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await createClient(values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/clients");
+  return result;
+}
+
+export async function updateClientAction(id: string, values: ClientAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await updateClient(id, values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/clients");
+  revalidatePath(`/admin/clients/${id}`);
   return result;
 }

@@ -51,6 +51,8 @@ function buildEditorValuesFromSku(
     draftAngle: sku.draftAngle,
     cornerRadius: sku.cornerRadius,
     fiberPercent: sku.fiberPercent,
+    retailPrice: 0,
+    wholesalePrice: 0,
     datumSystemJson: JSON.stringify(sku.datumSystem, null, 2),
     calculatorDefaultsJson: JSON.stringify(sku.calculatorDefaults, null, 2),
   };

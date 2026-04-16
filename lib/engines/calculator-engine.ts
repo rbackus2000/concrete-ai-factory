@@ -28,6 +28,7 @@ export type CalculatorOverrides = Pick<
   | "sealerCostPerGallon"
   | "laborCostPerUnit"
   | "overheadCostPerUnit"
+  | "marginPercent"
 >;
 
 function round(value: number, decimals = 2) {
@@ -140,6 +141,7 @@ export function buildCalculatorDefaultsForSku({
     sealerCostPerGallon: sealerMaterial?.unitCost ?? 0,
     laborCostPerUnit: 0,
     overheadCostPerUnit: 0,
+    marginPercent: 0,
   };
 }
 
@@ -191,6 +193,10 @@ export function runCalculatorEngine({
   const overheadCost = round(overrides.overheadCostPerUnit * unitsToProduce, 2);
   const totalCost = round(materialCost + packagingCost + sealerCost + laborCost + overheadCost, 2);
   const costPerUnit = unitsToProduce > 0 ? round(totalCost / unitsToProduce, 2) : 0;
+  const marginPercent = overrides.marginPercent ?? 0;
+  const clientPrice = marginPercent > 0 && marginPercent < 100
+    ? round(costPerUnit / (1 - marginPercent / 100), 2)
+    : costPerUnit;
 
   return {
     inputs: {
@@ -202,6 +208,7 @@ export function runCalculatorEngine({
       sealerCostPerGallon: overrides.sealerCostPerGallon,
       laborCostPerUnit: overrides.laborCostPerUnit,
       overheadCostPerUnit: overrides.overheadCostPerUnit,
+      marginPercent,
     },
     metrics: {
       batchSize,
@@ -218,6 +225,7 @@ export function runCalculatorEngine({
       overheadCost,
       totalCost,
       costPerUnit,
+      clientPrice,
     },
     cards: [
       {
@@ -239,12 +247,13 @@ export function runCalculatorEngine({
         ],
       },
       {
-        title: "Cost Placeholders",
+        title: "Production Cost Summary",
         items: [
           { label: "Material cost", value: `$${materialCost.toFixed(2)}` },
           { label: "Packaging + inserts", value: `$${round(packagingCost, 2).toFixed(2)}` },
           { label: "Sealer cost", value: `$${sealerCost.toFixed(2)}` },
           { label: "Cost / unit", value: `$${costPerUnit.toFixed(2)}` },
+          ...(marginPercent > 0 ? [{ label: `Client price (${marginPercent}% margin)`, value: `$${clientPrice.toFixed(2)}` }] : []),
         ],
       },
     ],

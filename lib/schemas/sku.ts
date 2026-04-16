@@ -131,6 +131,8 @@ export const skuEditorSchema = z.object({
   draftAngle: z.coerce.number().nonnegative(),
   cornerRadius: z.coerce.number().nonnegative(),
   fiberPercent: z.coerce.number().min(0).max(1),
+  retailPrice: z.coerce.number().nonnegative().optional().default(0),
+  wholesalePrice: z.coerce.number().nonnegative().optional().default(0),
   datumSystemJson: z.string().refine((value) => {
     const parsed = parseJsonString(value);
     return !!datumSystemEntrySchema.array().safeParse(parsed).success;
