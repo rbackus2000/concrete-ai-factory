@@ -11,6 +11,7 @@ import {
   History,
   Image,
   LayoutDashboard,
+  Printer,
   Settings2,
   Sparkles,
   SquareStack,
@@ -29,6 +30,7 @@ const iconMap = {
   jobs: Briefcase,
   calculator: Calculator,
   gallery: Image,
+  "mold-generator": Printer,
   jacob: Bot,
   admin: Settings2,
 };

@@ -11,6 +11,7 @@ enum SkuCategory {
   VESSEL_SINK
   FURNITURE
   PANEL
+  WALL_TILE
 }
 
 enum CategoryScope {
@@ -602,6 +603,31 @@ model Job {
   @@index([skuId])
   @@index([clientId])
   @@map("jobs")
+}
+
+// ── CHAT SESSIONS ─────────────────────────────────────────────
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String        @default("New Chat")
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  role      String
+  content   String      @db.Text
+  toolCalls Json?
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+  @@map("chat_messages")
 }
 
 // ── EQUIPMENT PROCUREMENT TRACKER ──────────────────────────────

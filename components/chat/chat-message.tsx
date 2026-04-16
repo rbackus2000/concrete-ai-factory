@@ -114,11 +114,51 @@ function MessageContent({ content }: { content: string }) {
   return <>{elements}</>;
 }
 
+function isImageUrl(url: string) {
+  return /\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(url) || url.startsWith("/generated-images/");
+}
+
 function formatInline(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  // Split on bold, code, markdown links, markdown images, and bare /generated-images/ URLs
+  const parts = text.split(/(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|`[^`]+`|\/generated-images\/[^\s),]+)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
     if (part.startsWith("`") && part.endsWith("`")) return <code key={i} className="rounded bg-zinc-100 px-1 py-0.5 text-xs text-primary">{part.slice(1, -1)}</code>;
+
+    // Markdown image: ![alt](url)
+    const imgMatch = part.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imgMatch) {
+      return (
+        <span key={i} className="block my-3">
+          <img src={imgMatch[2]} alt={imgMatch[1] || "Generated image"} className="max-w-full rounded-lg border border-border" />
+        </span>
+      );
+    }
+
+    // Markdown link: [text](url)
+    const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (linkMatch) {
+      const linkText = linkMatch[1]!;
+      const url = linkMatch[2]!;
+      if (isImageUrl(url)) {
+        return (
+          <span key={i} className="block my-3">
+            <img src={url} alt={linkText} className="max-w-full rounded-lg border border-border" />
+          </span>
+        );
+      }
+      return <a key={i} href={url} className="text-primary underline underline-offset-2 hover:text-primary/80" target={url.startsWith("/") ? undefined : "_blank"}>{linkText}</a>;
+    }
+
+    // Bare /generated-images/ URL — render inline as image
+    if (part.startsWith("/generated-images/") && isImageUrl(part)) {
+      return (
+        <span key={i} className="block my-3">
+          <img src={part} alt="Generated product image" className="max-w-full rounded-lg border border-border" />
+        </span>
+      );
+    }
+
     return part;
   });
 }

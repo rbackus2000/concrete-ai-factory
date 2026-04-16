@@ -19,7 +19,7 @@ export const AGENT_TOOLS: AgentTool[] = [
       properties: {
         category: {
           type: "string",
-          enum: ["VESSEL_SINK", "FURNITURE", "PANEL"],
+          enum: ["VESSEL_SINK", "FURNITURE", "PANEL", "WALL_TILE"],
           description: "Optional filter by SKU category.",
         },
         status: {
@@ -60,7 +60,7 @@ export const AGENT_TOOLS: AgentTool[] = [
         },
         sku_category: {
           type: "string",
-          enum: ["VESSEL_SINK", "FURNITURE", "PANEL"],
+          enum: ["VESSEL_SINK", "FURNITURE", "PANEL", "WALL_TILE"],
           description: "Optional filter by SKU category scope.",
         },
       },
@@ -194,11 +194,112 @@ export const AGENT_TOOLS: AgentTool[] = [
       properties: {
         sku_category: {
           type: "string",
-          enum: ["VESSEL_SINK", "FURNITURE", "PANEL"],
+          enum: ["VESSEL_SINK", "FURNITURE", "PANEL", "WALL_TILE"],
           description: "Optional filter by SKU category scope.",
         },
       },
       required: [],
+    },
+  },
+  // ── DESIGN & GENERATION TOOLS ─────────────────────────────────
+  {
+    name: "design_new_product",
+    description:
+      "Generate a structured design brief for a new GFRC product from a natural language description. Claude will research current trends and create a detailed design with dimensions, features, finish, mount type, drain type, and an image generation prompt. Returns the brief for user review before creation. Use this when the user wants to design a new sink, furniture piece, or wall tile.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        description: {
+          type: "string",
+          description:
+            "Natural language description of the product to design. Be specific about form, style, size, use case, and any unique features. Example: 'A wide shallow ramp sink with a linear slot drain, designed for a commercial restroom, dark charcoal finish'",
+        },
+      },
+      required: ["description"],
+    },
+  },
+  {
+    name: "generate_concept_image",
+    description:
+      "Generate a photorealistic AI product image using Google Gemini from an image prompt. Use this after design_new_product to visualize the concept, or create custom product renders. The image is persisted to the database as a GeneratedOutput + GeneratedImageAsset. Returns the image URL.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        image_prompt: {
+          type: "string",
+          description:
+            "Detailed image generation prompt describing the product, materials, lighting, camera angle, and setting. Should specify GFRC concrete, the finish, and 'hyperrealistic commercial product photography'.",
+        },
+        product_name: {
+          type: "string",
+          description: "Name of the product for labeling the generated output.",
+        },
+      },
+      required: ["image_prompt", "product_name"],
+    },
+  },
+  {
+    name: "create_product_from_design",
+    description:
+      "Create a complete product in the database from an approved design brief. This generates the full product bundle: SKU record with all 40+ geometry fields, build packet sections, scoped materials, and QC checklists. The SKU is created in DRAFT status. Use this ONLY after the user has reviewed and approved the design brief from design_new_product.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        product_name: { type: "string", description: "Product name from the approved design brief." },
+        category: { type: "string", enum: ["VESSEL_SINK", "FURNITURE", "PANEL", "WALL_TILE"], description: "Product category." },
+        style_description: { type: "string", description: "2-3 sentence design description." },
+        key_features: {
+          type: "array",
+          items: { type: "string" },
+          description: "List of key design features.",
+        },
+        outer_length: { type: "number", description: "Outer length in inches." },
+        outer_width: { type: "number", description: "Outer width in inches." },
+        outer_height: { type: "number", description: "Outer height in inches." },
+        inner_depth: { type: "number", description: "Inner basin/cavity depth in inches." },
+        drain_type: { type: "string", enum: ["Round", "Slot", "Grid", ""], description: "Drain type." },
+        mount_type: { type: "string", description: "Mount type (WALL_MOUNT_STUD, VESSEL_TOP_MOUNT, FREESTANDING, WALL_MOUNT_THINSET)." },
+        finish: { type: "string", description: "Finish name from the approved brief." },
+        image_prompt: { type: "string", description: "Image generation prompt from the approved brief." },
+        concept_image_url: { type: "string", description: "URL of a previously generated concept image, if any." },
+      },
+      required: ["product_name", "category", "style_description", "key_features", "outer_length", "outer_width", "outer_height", "inner_depth", "drain_type", "mount_type", "finish", "image_prompt"],
+    },
+  },
+  {
+    name: "generate_sku_output",
+    description:
+      "Generate an output (image prompt, build packet, blueprint, etc.) for an existing SKU using the full generation pipeline. This resolves scoped templates, rules, and materials, then produces the output. Use this to generate image prompts, build packets, or other outputs for a SKU.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        sku_code: { type: "string", description: "SKU code (e.g., 'S1-EROSION')." },
+        output_type: {
+          type: "string",
+          enum: ["IMAGE_PROMPT", "BUILD_PACKET", "BLUEPRINT_PROMPT", "ALIGNMENT_PROMPT", "MOLD_BREAKDOWN_PROMPT", "DETAIL_SHEET_PROMPT"],
+          description: "Type of output to generate.",
+        },
+        scene_preset: {
+          type: "string",
+          description: "Scene preset for image prompts (e.g., 'lifestyle', 'catalog', 'detail', 'installed', 'sample').",
+        },
+      },
+      required: ["sku_code", "output_type"],
+    },
+  },
+  {
+    name: "calculate_mold_print_specs",
+    description:
+      "Calculate 3D print mold specifications for a SKU: mold dimensions in mm, section splitting plan for Ender-5 Max (400x400x400mm build volume), slicing settings (layer height, infill, supports), and estimated print time. Use this when the user asks about mold printing, STL generation, or 3D print planning for a product.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        sku_code: {
+          type: "string",
+          description: "SKU code to calculate mold specs for (e.g., 'S1-EROSION').",
+        },
+      },
+      required: ["sku_code"],
     },
   },
 ];

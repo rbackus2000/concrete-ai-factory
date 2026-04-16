@@ -45,6 +45,11 @@ export const navigationItems = [
     icon: "gallery",
   },
   {
+    label: "Mold Generator",
+    href: "/tools/mold-generator",
+    icon: "mold-generator",
+  },
+  {
     label: "Jacob",
     href: "/chat",
     icon: "jacob",

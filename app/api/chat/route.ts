@@ -2,6 +2,7 @@
  * /api/chat — Streaming chat endpoint for the Jacob agent.
  * Calls Anthropic Claude API with tools, executes tool calls against Prisma,
  * and streams the final response back to the client via SSE.
+ * Supports multi-round tool execution (Claude can call tools multiple times).
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -30,11 +31,105 @@ type AnthropicStreamEvent = {
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
+const MAX_TOOL_ROUNDS = 5;
 
 function getApiKey() {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY environment variable is required.");
   return key;
+}
+
+async function callClaudeStreaming(messages: ChatMessage[]): Promise<Response> {
+  return fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": getApiKey(),
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 4096,
+      stream: true,
+      system: JACOB_SYSTEM_PROMPT,
+      tools: AGENT_TOOLS,
+      messages,
+    }),
+  });
+}
+
+/**
+ * Reads a streaming Claude response. Returns any tool_use blocks found.
+ * Text deltas are forwarded to the SSE controller in real time.
+ */
+async function readClaudeStream(
+  response: Response,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+): Promise<{ toolUseBlocks: ContentBlock[]; textBlocks: ContentBlock[] }> {
+  const reader = response.body?.getReader();
+  if (!reader) return { toolUseBlocks: [], textBlocks: [] };
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const toolUseBlocks: ContentBlock[] = [];
+  const textBlocks: ContentBlock[] = [];
+  let currentToolBlockId = "";
+  let currentToolBlockName = "";
+  let toolInputJsonBuffer = "";
+  let fullText = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const data = line.slice(6).trim();
+      if (data === "[DONE]") continue;
+
+      let event: AnthropicStreamEvent;
+      try { event = JSON.parse(data); } catch { continue; }
+
+      // Text content
+      if (event.type === "content_block_start" && event.content_block?.type === "text") {
+        // text block starting
+      }
+      if (event.type === "content_block_delta" && event.delta?.type === "text_delta" && event.delta.text) {
+        fullText += event.delta.text;
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", text: event.delta.text })}\n\n`));
+      }
+
+      // Tool use
+      if (event.type === "content_block_start" && event.content_block?.type === "tool_use") {
+        currentToolBlockId = event.content_block.id ?? "";
+        currentToolBlockName = event.content_block.name ?? "";
+        toolInputJsonBuffer = "";
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "tool_start", name: currentToolBlockName })}\n\n`));
+      }
+      if (event.type === "content_block_delta" && event.delta?.type === "input_json_delta" && event.delta.partial_json) {
+        toolInputJsonBuffer += event.delta.partial_json;
+      }
+      if (event.type === "content_block_stop" && currentToolBlockId) {
+        let parsedInput: Record<string, unknown> = {};
+        try { parsedInput = toolInputJsonBuffer ? JSON.parse(toolInputJsonBuffer) : {}; } catch { /* empty */ }
+        toolUseBlocks.push({ type: "tool_use", id: currentToolBlockId, name: currentToolBlockName, input: parsedInput });
+        currentToolBlockId = "";
+        currentToolBlockName = "";
+        toolInputJsonBuffer = "";
+      }
+    }
+  }
+
+  if (fullText) {
+    textBlocks.push({ type: "text", text: fullText });
+  }
+
+  return { toolUseBlocks, textBlocks };
 }
 
 function streamClaude(messages: ChatMessage[]): ReadableStream<Uint8Array> {
@@ -43,157 +138,54 @@ function streamClaude(messages: ChatMessage[]): ReadableStream<Uint8Array> {
   return new ReadableStream({
     async start(controller) {
       try {
-        const response = await fetch(ANTHROPIC_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": getApiKey(),
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: MODEL,
-            max_tokens: 4096,
-            stream: true,
-            system: JACOB_SYSTEM_PROMPT,
-            tools: AGENT_TOOLS,
-            messages,
-          }),
-        });
+        let currentMessages = [...messages];
+        let round = 0;
 
-        if (!response.ok) {
-          const errorBody = await response.text();
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: errorBody })}\n\n`));
-          controller.close();
-          return;
-        }
+        while (round < MAX_TOOL_ROUNDS) {
+          round++;
 
-        const reader = response.body?.getReader();
-        if (!reader) { controller.close(); return; }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-        const currentToolUseBlocks: ContentBlock[] = [];
-        let toolInputJsonBuffer = "";
-        let currentToolBlockId = "";
-        let currentToolBlockName = "";
-        let hasToolUse = false;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") continue;
-
-            let event: AnthropicStreamEvent;
-            try { event = JSON.parse(data); } catch { continue; }
-
-            if (event.type === "content_block_start" && event.content_block?.type === "tool_use") {
-              hasToolUse = true;
-              currentToolBlockId = event.content_block.id ?? "";
-              currentToolBlockName = event.content_block.name ?? "";
-              toolInputJsonBuffer = "";
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "tool_start", name: currentToolBlockName })}\n\n`));
-            }
-
-            if (event.type === "content_block_delta") {
-              if (event.delta?.type === "text_delta" && event.delta.text) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", text: event.delta.text })}\n\n`));
-              }
-              if (event.delta?.type === "input_json_delta" && event.delta.partial_json) {
-                toolInputJsonBuffer += event.delta.partial_json;
-              }
-            }
-
-            if (event.type === "content_block_stop" && hasToolUse && currentToolBlockId) {
-              let parsedInput: Record<string, unknown> = {};
-              try { parsedInput = toolInputJsonBuffer ? JSON.parse(toolInputJsonBuffer) : {}; } catch { parsedInput = {}; }
-              currentToolUseBlocks.push({ type: "tool_use", id: currentToolBlockId, name: currentToolBlockName, input: parsedInput });
-              currentToolBlockId = "";
-              currentToolBlockName = "";
-              toolInputJsonBuffer = "";
-            }
-
-            if (event.type === "message_stop" || event.type === "message_delta") {
-              const stopReason = event.type === "message_delta" ? event.delta?.stop_reason : undefined;
-
-              if ((stopReason === "tool_use" || hasToolUse) && currentToolUseBlocks.length > 0) {
-                const toolResults: ContentBlock[] = [];
-
-                for (const block of currentToolUseBlocks) {
-                  if (block.type !== "tool_use") continue;
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "tool_executing", name: block.name })}\n\n`));
-                  const { result, error } = await executeAgentTool(block.name, block.input);
-                  const content = error ? JSON.stringify({ error }) : JSON.stringify(result);
-                  toolResults.push({ type: "tool_result", tool_use_id: block.id, content });
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "tool_done", name: block.name })}\n\n`));
-                }
-
-                const continuationMessages: ChatMessage[] = [
-                  ...messages,
-                  { role: "assistant", content: currentToolUseBlocks },
-                  { role: "user", content: toolResults },
-                ];
-
-                reader.cancel();
-
-                const continuationStream = await fetch(ANTHROPIC_API_URL, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "x-api-key": getApiKey(),
-                    "anthropic-version": "2023-06-01",
-                  },
-                  body: JSON.stringify({
-                    model: MODEL, max_tokens: 4096, stream: true,
-                    system: JACOB_SYSTEM_PROMPT, tools: AGENT_TOOLS,
-                    messages: continuationMessages,
-                  }),
-                });
-
-                if (!continuationStream.ok) {
-                  const errorBody = await continuationStream.text();
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: errorBody })}\n\n`));
-                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-                  controller.close();
-                  return;
-                }
-
-                const contReader = continuationStream.body?.getReader();
-                if (!contReader) { controller.enqueue(encoder.encode("data: [DONE]\n\n")); controller.close(); return; }
-
-                let contBuffer = "";
-                while (true) {
-                  const { done: contDone, value: contValue } = await contReader.read();
-                  if (contDone) break;
-                  contBuffer += decoder.decode(contValue, { stream: true });
-                  const contLines = contBuffer.split("\n");
-                  contBuffer = contLines.pop() ?? "";
-
-                  for (const contLine of contLines) {
-                    if (!contLine.startsWith("data: ")) continue;
-                    const contData = contLine.slice(6).trim();
-                    if (contData === "[DONE]") continue;
-                    let contEvent: AnthropicStreamEvent;
-                    try { contEvent = JSON.parse(contData); } catch { continue; }
-                    if (contEvent.type === "content_block_delta" && contEvent.delta?.type === "text_delta" && contEvent.delta.text) {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", text: contEvent.delta.text })}\n\n`));
-                    }
-                  }
-                }
-
-                controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-                controller.close();
-                return;
-              }
-            }
+          const response = await callClaudeStreaming(currentMessages);
+          if (!response.ok) {
+            const errorBody = await response.text();
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: errorBody })}\n\n`));
+            break;
           }
+
+          const { toolUseBlocks, textBlocks } = await readClaudeStream(response, controller, encoder);
+
+          // No tool calls — we're done
+          if (toolUseBlocks.length === 0) break;
+
+          // Execute tool calls
+          const toolResults: ContentBlock[] = [];
+          for (const block of toolUseBlocks) {
+            if (block.type !== "tool_use") continue;
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "tool_executing", name: block.name })}\n\n`));
+
+            // Send keepalive pings during long tool executions
+            const keepalive = setInterval(() => {
+              controller.enqueue(encoder.encode(`: keepalive\n\n`));
+            }, 10000);
+
+            try {
+              const { result, error } = await executeAgentTool(block.name, block.input);
+              const content = error ? JSON.stringify({ error }) : JSON.stringify(result);
+              toolResults.push({ type: "tool_result", tool_use_id: block.id, content });
+            } finally {
+              clearInterval(keepalive);
+            }
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "tool_done", name: block.name })}\n\n`));
+          }
+
+          // Build continuation messages with assistant's response + tool results
+          const assistantContent: ContentBlock[] = [...textBlocks, ...toolUseBlocks];
+          currentMessages = [
+            ...currentMessages,
+            { role: "assistant", content: assistantContent },
+            { role: "user", content: toolResults },
+          ];
         }
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
@@ -201,6 +193,7 @@ function streamClaude(messages: ChatMessage[]): ReadableStream<Uint8Array> {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Stream failed.";
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: message })}\n\n`));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       }
     },

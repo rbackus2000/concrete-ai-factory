@@ -6,7 +6,7 @@ export type GeneratedSkuData = {
   code: string;
   name: string;
   slug: string;
-  category: "VESSEL_SINK" | "FURNITURE" | "PANEL";
+  category: "VESSEL_SINK" | "FURNITURE" | "PANEL" | "WALL_TILE";
   type: string;
   finish: string;
   summary: string;
@@ -150,7 +150,7 @@ SKU CODE CONVENTIONS:
 - Countertops: C{N}-{NAME} (e.g. C1-SLAB)
 - Panels: P{N}-{NAME} (e.g. P1-RIDGE, P2-DUNE)
 
-CATEGORIES: VESSEL_SINK, FURNITURE, PANEL
+CATEGORIES: VESSEL_SINK, FURNITURE, PANEL, WALL_TILE
 
 MOUNT TYPES:
 - WALL_MOUNT_STUD — sinks/countertops with bracket channels cast in underside

@@ -28,6 +28,10 @@ const drawingSectionKeyMap: Record<SkuCategory, Partial<Record<TechnicalDrawingT
     dimensions: "dimensions",
     mold_assembly: "mold-prep",
   },
+  WALL_TILE: {
+    dimensions: "dimensions",
+    mold_assembly: "mold-prep",
+  },
 };
 
 const DRAWING_STYLE_PREFIX =
@@ -300,6 +304,10 @@ const promptBuilders: Record<SkuCategory, Partial<Record<TechnicalDrawingType, (
     mold_assembly: buildFurnitureMoldAssemblyPrompt,
   },
   PANEL: {
+    dimensions: buildPanelDimensionsPrompt,
+    mold_assembly: buildPanelMoldAssemblyPrompt,
+  },
+  WALL_TILE: {
     dimensions: buildPanelDimensionsPrompt,
     mold_assembly: buildPanelMoldAssemblyPrompt,
   },

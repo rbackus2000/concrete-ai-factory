@@ -29,6 +29,7 @@ export const imageScenePresetOptionsByCategory: Record<
   VESSEL_SINK: ["lifestyle", "catalog", "detail"],
   FURNITURE: ["lifestyle", "catalog", "detail"],
   PANEL: ["installed", "sample", "repeat_pattern"],
+  WALL_TILE: ["installed", "sample", "repeat_pattern"],
 };
 
 export function getImageScenePresetsForCategory(category?: string | null) {

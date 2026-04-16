@@ -231,113 +231,138 @@ export async function saveProductBundle(
   conceptImageUrl: string | null,
   actor: ActionActor,
 ): Promise<{ skuId: string; skuCode: string }> {
-  const { sku, buildPacketSections, materials, qcChecklists } = bundle;
+  const { sku: rawSku, buildPacketSections, materials, qcChecklists } = bundle;
+
+  // Normalize targetWeight — Claude sometimes returns flat fields instead of nested object
+  const skuAny = rawSku as Record<string, unknown>;
+  const targetWeightMin = rawSku.targetWeight?.min
+    ?? (skuAny.targetWeightMin as number)
+    ?? (skuAny.targetWeightMinLbs as number)
+    ?? 20;
+  const targetWeightMax = rawSku.targetWeight?.max
+    ?? (skuAny.targetWeightMax as number)
+    ?? (skuAny.targetWeightMaxLbs as number)
+    ?? 40;
+  const sku = rawSku;
 
   const skuRecord = await prisma.sku.create({
     data: {
       code: sku.code,
-      slug: sku.slug,
+      slug: sku.slug ?? sku.code.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       name: sku.name,
       category: sku.category,
       status: "DRAFT",
       type: sku.type,
       finish: sku.finish,
-      description: sku.summary,
-      targetWeightMinLbs: sku.targetWeight.min,
-      targetWeightMaxLbs: sku.targetWeight.max,
-      outerLength: sku.outerLength,
-      outerWidth: sku.outerWidth,
-      outerHeight: sku.outerHeight,
-      innerLength: sku.innerLength,
-      innerWidth: sku.innerWidth,
-      innerDepth: sku.innerDepth,
-      wallThickness: sku.wallThickness,
-      bottomThickness: sku.bottomThickness,
-      topLipThickness: sku.topLipThickness,
-      hollowCoreDepth: sku.hollowCoreDepth,
-      domeRiseMin: sku.domeRiseMin,
-      domeRiseMax: sku.domeRiseMax,
-      longRibCount: sku.longRibCount,
-      crossRibCount: sku.crossRibCount,
-      ribWidth: sku.ribWidth,
-      ribHeight: sku.ribHeight,
-      drainDiameter: sku.drainDiameter,
+      description: sku.summary ?? (skuAny.description as string) ?? "",
+      targetWeightMinLbs: targetWeightMin,
+      targetWeightMaxLbs: targetWeightMax,
+      outerLength: sku.outerLength ?? 0,
+      outerWidth: sku.outerWidth ?? 0,
+      outerHeight: sku.outerHeight ?? 0,
+      innerLength: sku.innerLength ?? 0,
+      innerWidth: sku.innerWidth ?? 0,
+      innerDepth: sku.innerDepth ?? 0,
+      wallThickness: sku.wallThickness ?? 0.6,
+      bottomThickness: sku.bottomThickness ?? 0.75,
+      topLipThickness: sku.topLipThickness ?? 1,
+      hollowCoreDepth: sku.hollowCoreDepth ?? 0,
+      domeRiseMin: sku.domeRiseMin ?? 0,
+      domeRiseMax: sku.domeRiseMax ?? 0,
+      longRibCount: sku.longRibCount ?? 0,
+      crossRibCount: sku.crossRibCount ?? 0,
+      ribWidth: sku.ribWidth ?? 0,
+      ribHeight: sku.ribHeight ?? 0,
+      drainDiameter: sku.drainDiameter ?? 0,
       drainType: sku.drainType || null,
-      basinSlopeDeg: sku.basinSlopeDeg || null,
+      basinSlopeDeg: sku.basinSlopeDeg ?? null,
       slopeDirection: sku.slopeDirection || null,
       mountType: sku.mountType || null,
       hasOverflow: sku.hasOverflow ?? false,
-      overflowHoleDiameter: sku.overflowHoleDiameter || null,
+      overflowHoleDiameter: sku.overflowHoleDiameter ?? null,
       overflowPosition: sku.overflowPosition || null,
-      bracketSpecJson: sku.bracketSpec ?? undefined,
-      reinforcementDiameter: sku.reinforcementDiameter,
-      reinforcementThickness: sku.reinforcementThickness,
-      draftAngle: sku.draftAngle,
-      cornerRadius: sku.cornerRadius,
-      fiberPercent: sku.fiberPercent,
-      datumSystemJson: sku.datumSystem,
-      calculatorDefaults: sku.calculatorDefaults,
+      bracketSpecJson: (skuAny.bracketSpec as object) ?? undefined,
+      reinforcementDiameter: sku.reinforcementDiameter ?? 0,
+      reinforcementThickness: sku.reinforcementThickness ?? 0,
+      draftAngle: sku.draftAngle ?? 3,
+      cornerRadius: sku.cornerRadius ?? 0.25,
+      fiberPercent: sku.fiberPercent ?? 0.025,
+      datumSystemJson: (skuAny.datumSystem as object[]) ?? [],
+      calculatorDefaults: (skuAny.calculatorDefaults as object) ?? {},
     },
   });
 
-  // Build Packet Sections
+  // Build Packet Sections — normalize field names (Claude returns varying shapes)
   const packetKey = `${sku.code.toLowerCase()}-build-packet`;
-  await Promise.all(
-    buildPacketSections.map((section) =>
-      prisma.buildPacketTemplate.create({
-        data: {
-          packetKey,
-          sectionKey: section.sectionKey,
-          name: section.name,
-          sectionOrder: section.sectionOrder,
-          categoryScope: "SKU_OVERRIDE",
-          skuOverrideId: skuRecord.id,
-          outputType: "BUILD_PACKET",
-          status: "ACTIVE",
-          content: section.content,
-        },
+  if (Array.isArray(buildPacketSections)) {
+    await Promise.all(
+      buildPacketSections.map((rawSection, idx) => {
+        const s = rawSection as Record<string, unknown>;
+        return prisma.buildPacketTemplate.create({
+          data: {
+            packetKey,
+            sectionKey: (s.sectionKey ?? s.key ?? s.section_key ?? `section-${idx + 1}`) as string,
+            name: (s.name ?? s.title ?? s.sectionName ?? `Section ${idx + 1}`) as string,
+            sectionOrder: (s.sectionOrder ?? s.order ?? s.section_order ?? idx + 1) as number,
+            categoryScope: "SKU_OVERRIDE",
+            skuOverrideId: skuRecord.id,
+            outputType: "BUILD_PACKET",
+            status: "ACTIVE",
+            content: (s.content ?? s.text ?? s.body ?? "") as string,
+          },
+        });
       }),
-    ),
-  );
+    );
+  }
 
-  // Materials
-  await Promise.all(
-    materials.map((mat) =>
-      prisma.materialsMaster.create({
-        data: {
-          code: mat.code,
-          name: mat.name,
-          category: mat.category as "GFRC" | "FACE_COAT" | "BACKING_MIX" | "PIGMENT" | "REINFORCEMENT" | "INSERT" | "SEALER" | "PACKAGING" | "HARDWARE",
-          categoryScope: "SKU_OVERRIDE",
-          skuOverrideId: skuRecord.id,
-          status: "ACTIVE",
-          unit: mat.unit,
-          quantity: mat.quantity,
-          unitCost: mat.unitCost,
-          notes: mat.notes,
-        },
+  // Materials — normalize field names
+  if (Array.isArray(materials)) {
+    const validCategories = ["GFRC", "FACE_COAT", "BACKING_MIX", "PIGMENT", "REINFORCEMENT", "INSERT", "SEALER", "PACKAGING", "HARDWARE"];
+    await Promise.all(
+      materials.map((rawMat) => {
+        const m = rawMat as Record<string, unknown>;
+        const cat = String(m.category ?? "GFRC").toUpperCase();
+        return prisma.materialsMaster.create({
+          data: {
+            code: (m.code ?? m.materialCode ?? `MAT-${sku.code}`) as string,
+            name: (m.name ?? m.materialName ?? "Material") as string,
+            category: (validCategories.includes(cat) ? cat : "GFRC") as "GFRC",
+            categoryScope: "SKU_OVERRIDE",
+            skuOverrideId: skuRecord.id,
+            status: "ACTIVE",
+            unit: (m.unit ?? "lbs") as string,
+            quantity: Number(m.quantity ?? 0),
+            unitCost: Number(m.unitCost ?? m.unit_cost ?? 0),
+            notes: (m.notes ?? "") as string,
+          },
+        });
       }),
-    ),
-  );
+    );
+  }
 
-  // QC Checklists
-  await Promise.all(
-    qcChecklists.map((qc) =>
-      prisma.qcTemplate.create({
-        data: {
-          templateKey: qc.templateKey,
-          name: qc.name,
-          category: qc.category,
-          categoryScope: "SKU_OVERRIDE",
-          skuOverrideId: skuRecord.id,
-          status: "ACTIVE",
-          checklistJson: qc.checklist,
-          acceptanceCriteriaJson: qc.acceptanceCriteria,
-          rejectionCriteriaJson: qc.rejectionCriteria,
-        },
+  // QC Checklists — normalize field names
+  if (Array.isArray(qcChecklists)) {
+    const validQcCats = ["SETUP", "PRE_DEMOLD", "POST_DEMOLD", "ALIGNMENT"];
+    await Promise.all(
+      qcChecklists.map((rawQc) => {
+        const q = rawQc as Record<string, unknown>;
+        const cat = String(q.category ?? "SETUP").toUpperCase();
+        return prisma.qcTemplate.create({
+          data: {
+            templateKey: (q.templateKey ?? q.template_key ?? q.key ?? `qc-${sku.code.toLowerCase()}`) as string,
+            name: (q.name ?? q.title ?? "QC Checklist") as string,
+            category: (validQcCats.includes(cat) ? cat : "SETUP") as "SETUP",
+            categoryScope: "SKU_OVERRIDE",
+            skuOverrideId: skuRecord.id,
+            status: "ACTIVE",
+            checklistJson: (q.checklist ?? q.checklistItems ?? []) as string[],
+            acceptanceCriteriaJson: (q.acceptanceCriteria ?? q.acceptance ?? []) as string[],
+            rejectionCriteriaJson: (q.rejectionCriteria ?? q.rejection ?? []) as string[],
+          },
+        });
       }),
-    ),
-  );
+    );
+  }
 
   // Audit log
   await prisma.auditLog.create({

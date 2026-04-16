@@ -4,7 +4,19 @@
  */
 
 import { prisma } from "../db";
-import { decimalToNumber } from "./service-helpers";
+import { decimalToNumber, mapSkuRecord } from "./service-helpers";
+import {
+  generateDesignBrief,
+  generateConceptImage,
+  generateProductBundle,
+  saveProductBundle,
+} from "./product-agent-service";
+import { generateOutput } from "./generator-service";
+import {
+  calculateSectionPlan,
+  generateSlicingSpec,
+  type MoldDimensions,
+} from "../engines/mold-print-engine";
 
 type ToolInput = Record<string, unknown>;
 
@@ -273,6 +285,193 @@ async function searchBuildPacketTemplates(input: ToolInput) {
   }));
 }
 
+// ── DESIGN & GENERATION HANDLERS ──────────────────────────────
+
+async function designNewProduct(input: ToolInput) {
+  const description = input.description as string;
+  if (!description) return { error: "description is required." };
+
+  const { brief, usage } = await generateDesignBrief(description);
+  return {
+    designBrief: brief,
+    tokenUsage: usage,
+    nextStep: "Review the design brief with the user. If they approve, use create_product_from_design to save it. Use generate_concept_image to visualize it first.",
+  };
+}
+
+async function generateConceptImageHandler(input: ToolInput) {
+  const imagePrompt = input.image_prompt as string;
+  const productName = input.product_name as string;
+  if (!imagePrompt || !productName) return { error: "image_prompt and product_name are required." };
+
+  const result = await generateConceptImage(imagePrompt, productName);
+  return {
+    imageUrl: result.imageUrl,
+    outputId: result.outputId,
+    message: `Concept image generated and saved. View at ${result.imageUrl}`,
+  };
+}
+
+async function createProductFromDesign(input: ToolInput) {
+  const brief = {
+    productName: input.product_name as string,
+    category: input.category as string,
+    styleDescription: input.style_description as string,
+    keyFeatures: input.key_features as string[],
+    suggestedDimensions: {
+      outerLength: input.outer_length as number,
+      outerWidth: input.outer_width as number,
+      outerHeight: input.outer_height as number,
+      innerDepth: input.inner_depth as number,
+    },
+    drainType: input.drain_type as string,
+    mountType: input.mount_type as string,
+    finish: input.finish as string,
+    imagePrompt: input.image_prompt as string,
+  };
+
+  let bundle: Record<string, unknown>;
+  let usage;
+  try {
+    console.log("[Jacob] Generating product bundle for:", brief.productName);
+    const result = await generateProductBundle(brief);
+    bundle = result.bundle as unknown as Record<string, unknown>;
+    usage = result.usage;
+
+    // Normalize: Claude sometimes returns SKU fields flat instead of nested under "sku"
+    const skuObj = bundle.sku as Record<string, unknown> | undefined;
+    if (!skuObj?.code && typeof bundle.code === "string") {
+      console.log("[Jacob] Normalizing flat bundle structure to nested sku format");
+      const { buildPacket, buildPacketSections, materials, qcChecklists, imagePrompts, ...skuFields } = bundle;
+      bundle = {
+        sku: skuFields,
+        buildPacketSections: buildPacketSections ?? buildPacket ?? [],
+        materials: materials ?? [],
+        qcChecklists: qcChecklists ?? [],
+        imagePrompts: imagePrompts ?? [],
+      };
+    }
+
+    const normalizedSku = bundle.sku as Record<string, unknown> | undefined;
+    console.log("[Jacob] Bundle generated:", normalizedSku?.code, "—", normalizedSku?.name);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error("[Jacob] generateProductBundle failed:", msg);
+    return {
+      error: `Product bundle generation failed: ${msg}. This may be a timeout or API issue. Try again or create the SKU manually at /skus/new.`,
+    };
+  }
+
+  const sku = bundle.sku as Record<string, unknown> | undefined;
+  if (!sku?.code) {
+    console.error("[Jacob] Bundle missing sku.code. Bundle keys:", Object.keys(bundle));
+    return {
+      error: "The AI generated an incomplete product bundle (missing SKU code). Try again — sometimes the AI response doesn't match the expected format.",
+    };
+  }
+
+  try {
+    const actor = { id: "agent-jacob", username: "jacob", displayName: "Jacob (AI Agent)", role: "ADMIN" as const };
+    const conceptImageUrl = (input.concept_image_url as string) ?? null;
+    const typedBundle = bundle as unknown as import("../engines/product-agent-engine").ProductBundle;
+    const { skuId, skuCode } = await saveProductBundle(typedBundle, conceptImageUrl, actor);
+
+    const sections = Array.isArray(bundle.buildPacketSections) ? bundle.buildPacketSections : [];
+    const mats = Array.isArray(bundle.materials) ? bundle.materials : [];
+    const qcs = Array.isArray(bundle.qcChecklists) ? bundle.qcChecklists : [];
+
+    return {
+      skuCode,
+      skuId,
+      productName: sku.name,
+      status: "DRAFT",
+      buildPacketSections: sections.length,
+      materials: mats.length,
+      qcChecklists: qcs.length,
+      tokenUsage: usage,
+      message: `Created ${skuCode} (${sku.name}) in DRAFT status with ${sections.length} build packet sections, ${mats.length} materials, and ${qcs.length} QC checklists. View at /skus/${skuCode}`,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error("[Jacob] saveProductBundle failed:", msg);
+    return {
+      error: `Product was generated but failed to save to database: ${msg}. The SKU code would have been ${sku.code}. Try again or create manually.`,
+    };
+  }
+}
+
+async function generateSkuOutput(input: ToolInput) {
+  const skuCode = input.sku_code as string;
+  const outputType = input.output_type as string;
+  if (!skuCode || !outputType) return { error: "sku_code and output_type are required." };
+
+  const result = await generateOutput({
+    skuCode,
+    outputType: outputType as "IMAGE_PROMPT" | "BUILD_PACKET" | "BLUEPRINT_PROMPT" | "ALIGNMENT_PROMPT" | "MOLD_BREAKDOWN_PROMPT" | "DETAIL_SHEET_PROMPT",
+    scenePreset: (input.scene_preset as "lifestyle" | "catalog" | "detail" | "installed" | "sample" | "repeat_pattern") ?? undefined,
+    requestedOutput: "Generate standard output for this SKU.",
+    creativeDirection: "Follow the established design language for this product category.",
+  });
+
+  return {
+    outputId: result.id,
+    title: result.title,
+    outputType: result.outputType,
+    status: result.status,
+    text: typeof result.text === "string" ? result.text.slice(0, 2000) + (result.text.length > 2000 ? "..." : "") : null,
+    imageUrl: result.imageUrl ?? null,
+    message: `Generated ${result.outputType} for ${skuCode}. View at /outputs/${result.id}`,
+  };
+}
+
+async function calculateMoldPrintSpecs(input: ToolInput) {
+  const skuCode = input.sku_code as string;
+  if (!skuCode) return { error: "sku_code is required." };
+
+  const sku = await prisma.sku.findUnique({ where: { code: skuCode } });
+  if (!sku) return { error: `SKU "${skuCode}" not found.` };
+
+  const mapped = mapSkuRecord(sku);
+  const dims: MoldDimensions = {
+    outerLength: mapped.outerLength,
+    outerWidth: mapped.outerWidth,
+    outerHeight: mapped.outerHeight,
+    category: mapped.category as "VESSEL_SINK" | "FURNITURE" | "PANEL" | "WALL_TILE",
+  };
+
+  const sectionPlan = calculateSectionPlan(dims);
+  const slicingSpec = generateSlicingSpec(dims, sectionPlan);
+
+  return {
+    skuCode,
+    productName: mapped.name,
+    moldDimensions: sectionPlan.moldDimensionsMm,
+    buildVolume: { x: 400, y: 400, z: 400 },
+    sectionPlan: {
+      totalSections: sectionPlan.totalSections,
+      fitsInOnePrint: sectionPlan.fitsInOnePrint,
+      sections: sectionPlan.sections.map((s) => ({
+        sectionNumber: s.sectionNumber,
+        dimensions: `${s.lengthMm} x ${s.widthMm} x ${s.heightMm} mm`,
+        orientation: s.orientation,
+        printTimeHours: Math.round(s.printTimeMins / 60 * 10) / 10,
+      })),
+      bondingNotes: sectionPlan.bondingNotes,
+    },
+    slicingSpec: {
+      layerHeight: `${slicingSpec.layerHeightMm} mm`,
+      wallCount: slicingSpec.wallCount,
+      infill: `${slicingSpec.infillPercent}%`,
+      supports: slicingSpec.supportsEnabled ? slicingSpec.supportType : "None",
+      orientation: slicingSpec.orientation,
+      adhesion: slicingSpec.adhesionType,
+      estimatedPrintTimeHours: slicingSpec.estimatedPrintTimeHours,
+      postPrintNotes: slicingSpec.postPrintNotes,
+    },
+    viewMoldGenerator: `/tools/mold-generator (select ${skuCode} to see 3D preview and download STL)`,
+  };
+}
+
 const TOOL_HANDLERS: Record<string, (input: ToolInput) => Promise<unknown>> = {
   list_skus: listSkus,
   get_sku_details: getSkuDetails,
@@ -285,6 +484,11 @@ const TOOL_HANDLERS: Record<string, (input: ToolInput) => Promise<unknown>> = {
   list_slat_wall_projects: listSlatWallProjects,
   get_equipment_status: getEquipmentStatus,
   search_build_packet_templates: searchBuildPacketTemplates,
+  design_new_product: designNewProduct,
+  generate_concept_image: generateConceptImageHandler,
+  create_product_from_design: createProductFromDesign,
+  generate_sku_output: generateSkuOutput,
+  calculate_mold_print_specs: calculateMoldPrintSpecs,
 };
 
 export async function executeAgentTool(
