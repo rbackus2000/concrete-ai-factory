@@ -51,13 +51,13 @@ export function AppSidebarClient({
     <aside className="flex flex-col border-r border-zinc-800 bg-zinc-900 px-4 py-5 text-zinc-300">
       <div className="sticky top-5 flex flex-1 flex-col">
         {/* Brand */}
-        <div className="mb-8 flex flex-col items-center pt-2">
+        <Link href="/dashboard" className="mb-8 flex flex-col items-center pt-2">
           <img
             alt="RB Architecture Concrete Studio"
             className="h-auto w-full"
             src="/rb-studio-logo-white.png"
           />
-        </div>
+        </Link>
 
         {/* Nav */}
         <nav className="flex-1 space-y-1">
