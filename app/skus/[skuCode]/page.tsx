@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { SkuEditForm } from "@/components/forms/sku-edit-form";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSkuDetail } from "@/lib/services/sku-service";
 
@@ -27,11 +28,16 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="SKU Detail"
-        title={`${sku.code} overview`}
-        description="Edit the SKU definition directly against Prisma, then review the scoped materials, rules, and QC records supporting production."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          eyebrow="SKU Detail"
+          title={`${sku.code} overview`}
+          description="Edit the SKU definition directly against Prisma, then review the scoped materials, rules, and QC records supporting production."
+        />
+        <Link href={`/calculator?sku=${sku.code}`}>
+          <Button variant="outline">Open in Calculator</Button>
+        </Link>
+      </div>
 
       <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <SkuEditForm

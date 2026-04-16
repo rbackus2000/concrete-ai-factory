@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StateCard } from "@/components/ui/state-card";
 import {
@@ -21,11 +22,14 @@ export default async function SkusPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow="SKU Library"
-        title="SKU master list"
-        description="Prisma-backed SKU records ready for richer CRUD, approvals, costing, and production planning."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          eyebrow="SKU Library"
+          title="SKU master list"
+          description="Prisma-backed SKU records ready for richer CRUD, approvals, costing, and production planning."
+        />
+        <Link href="/skus/new"><Button>Create SKU</Button></Link>
+      </div>
 
       {skus.length > 0 ? (
         <Card>

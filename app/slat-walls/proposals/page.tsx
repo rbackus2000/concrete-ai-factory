@@ -54,7 +54,7 @@ export default async function ProposalsPage() {
                   const isExpired = p.validUntil && new Date(p.validUntil) < new Date();
                   return (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.proposalNumber}</TableCell>
+                      <TableCell className="font-medium"><Link className="text-primary hover:underline" href={`/slat-walls/proposals/${p.id}`}>{p.proposalNumber}</Link></TableCell>
                       <TableCell>{p.clientName}</TableCell>
                       <TableCell>{p.projectName}</TableCell>
                       <TableCell>{p.wallSize}</TableCell>

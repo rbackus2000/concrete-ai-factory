@@ -5,8 +5,13 @@ import { getCalculatorWorkspace } from "@/lib/services/calculator-service";
 
 export const dynamic = "force-dynamic";
 
-export default async function CalculatorPage() {
-  const calculator = await getCalculatorWorkspace();
+type CalculatorPageProps = {
+  searchParams: Promise<{ sku?: string }>;
+};
+
+export default async function CalculatorPage({ searchParams }: CalculatorPageProps) {
+  const { sku: skuCode } = await searchParams;
+  const calculator = await getCalculatorWorkspace(skuCode);
 
   if (!calculator) {
     return (

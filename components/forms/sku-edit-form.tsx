@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { updateSkuAction } from "@/app/actions/sku-actions";
+import { createSkuAction, updateSkuAction } from "@/app/actions/sku-actions";
 import { ActionNotice } from "@/components/forms/action-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,8 @@ import {
 } from "@/lib/schemas/sku";
 
 type SkuEditFormProps = {
-  skuCode: string;
+  mode?: "create" | "edit";
+  skuCode?: string;
   defaultValues: SkuEditorValues;
 };
 
@@ -64,7 +65,7 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-sm text-red-600">{message}</p>;
 }
 
-export function SkuEditForm({ skuCode, defaultValues }: SkuEditFormProps) {
+export function SkuEditForm({ mode = "edit", skuCode, defaultValues }: SkuEditFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverNotice, setServerNotice] = useState<{
@@ -77,12 +78,24 @@ export function SkuEditForm({ skuCode, defaultValues }: SkuEditFormProps) {
     defaultValues,
   });
 
+  const [newCode, setNewCode] = useState("");
+
   const onSubmit = (values: SkuEditorValues) => {
     setServerNotice(null);
 
     startTransition(async () => {
       try {
-        const result = await updateSkuAction(skuCode, values);
+        if (mode === "create") {
+          if (!newCode.trim()) {
+            setServerNotice({ tone: "error", message: "SKU code is required." });
+            return;
+          }
+          const result = await createSkuAction(newCode.trim(), values);
+          setServerNotice({ tone: "success", message: `Created SKU ${result.sku.code}.` });
+          router.push(`/skus/${result.sku.code}` as never);
+          return;
+        }
+        const result = await updateSkuAction(skuCode!, values);
         form.reset({
           ...values,
           name: result.sku.name,
@@ -136,11 +149,17 @@ export function SkuEditForm({ skuCode, defaultValues }: SkuEditFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Edit SKU Definition</CardTitle>
+        <CardTitle>{mode === "create" ? "Create New SKU" : "Edit SKU Definition"}</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
           <section className="grid gap-4 md:grid-cols-2">
+            {mode === "create" && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="skuCode">SKU Code</Label>
+                <Input id="skuCode" value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="e.g., S9-WAVE" />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input id="name" {...form.register("name")} />
@@ -188,6 +207,14 @@ export function SkuEditForm({ skuCode, defaultValues }: SkuEditFormProps) {
               <Input id="targetWeightMax" step="0.01" type="number" {...form.register("targetWeightMax")} />
               <FieldError message={form.formState.errors.targetWeightMax?.message} />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="retailPrice">Retail Price ($)</Label>
+              <Input id="retailPrice" step="0.01" type="number" {...form.register("retailPrice")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="wholesalePrice">Wholesale Price ($)</Label>
+              <Input id="wholesalePrice" step="0.01" type="number" {...form.register("wholesalePrice")} />
+            </div>
           </section>
 
           <div className="space-y-2">
@@ -230,10 +257,10 @@ export function SkuEditForm({ skuCode, defaultValues }: SkuEditFormProps) {
 
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
-              SKU code is locked to the route key: {skuCode}
+              {mode === "create" ? "Enter a unique SKU code above." : `SKU code is locked to the route key: ${skuCode}`}
             </p>
             <Button disabled={isPending} type="submit">
-              {isPending ? "Saving..." : "Save SKU"}
+              {isPending ? "Saving..." : mode === "create" ? "Create SKU" : "Save SKU"}
             </Button>
           </div>
 

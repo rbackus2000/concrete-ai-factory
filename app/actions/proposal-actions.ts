@@ -62,6 +62,48 @@ export async function saveProposalAction(data: {
   });
 }
 
+export async function updateProposalStatusAction(proposalId: string, nextStatus: string) {
+  const now = new Date();
+  const updateData: Record<string, unknown> = { status: nextStatus };
+  if (nextStatus === "SENT") updateData.sentAt = now;
+  if (nextStatus === "VIEWED") updateData.viewedAt = now;
+
+  await prisma.slatWallProposal.update({
+    where: { id: proposalId },
+    data: updateData,
+  });
+
+  return { success: true };
+}
+
+export async function getProposalDetail(id: string) {
+  const p = await prisma.slatWallProposal.findUnique({ where: { id } });
+  if (!p) return null;
+
+  return {
+    id: p.id,
+    proposalNumber: p.proposalNumber,
+    clientName: p.clientName,
+    projectName: p.projectName,
+    clientEmail: p.clientEmail,
+    siteAddress: p.siteAddress,
+    scenarioId: p.scenarioId,
+    wallSize: p.wallSize,
+    slatCount: p.slatCount,
+    slatWidthIn: decimalToNumber(p.slatWidthIn),
+    slatHeightFt: decimalToNumber(p.slatHeightFt),
+    printMethod: p.printMethod,
+    includeInstall: p.includeInstall,
+    clientPrice: p.clientPrice,
+    breakdown: p.breakdown as Record<string, unknown>,
+    status: p.status,
+    validUntil: p.validUntil?.toISOString() ?? null,
+    sentAt: p.sentAt?.toISOString() ?? null,
+    viewedAt: p.viewedAt?.toISOString() ?? null,
+    createdAt: p.createdAt.toISOString(),
+  };
+}
+
 export async function listProposals() {
   const rows = await prisma.slatWallProposal.findMany({
     orderBy: { createdAt: "desc" },
