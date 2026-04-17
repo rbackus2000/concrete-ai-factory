@@ -89,7 +89,7 @@ function estimatePrintTimeMins(
     const effectiveLayers = Math.ceil(heightMm / effectiveLayerH);
     const infillLength = (fullArea * (infill / 100)) / nozzleWidth;
     const layerTimeSec = (perimeterMm * wallCount + infillLength) / printSpeedMmS;
-    return Math.round((effectiveLayers * layerTimeSec * 0.55) / 60);
+    return Math.round((effectiveLayers * layerTimeSec * 0.33) / 60);
   }
 
   // Shell molds (sinks, furniture): base plate is solid, upper layers are just walls
@@ -107,7 +107,7 @@ function estimatePrintTimeMins(
   const shellLayerTimeSec = (perimeterMm * wallCount + shellInfillLength) / printSpeedMmS;
 
   const rawSec = baseLayers * baseLayerTimeSec + shellLayers * shellLayerTimeSec;
-  return Math.round((rawSec * 0.65) / 60);
+  return Math.round((rawSec * 0.39) / 60);
 }
 
 function estimateFilamentGrams(
