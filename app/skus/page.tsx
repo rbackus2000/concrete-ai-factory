@@ -46,6 +46,7 @@ export default async function SkusPage() {
                   <TableHead>Finish</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Target Weight</TableHead>
+                  <TableHead>Batch Qty</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -63,6 +64,13 @@ export default async function SkusPage() {
                       <Badge variant="secondary">{sku.status}</Badge>
                     </TableCell>
                     <TableCell>{sku.targetWeight.min}-{sku.targetWeight.max} lbs</TableCell>
+                    <TableCell>
+                      {sku.calculatorDefaults.unitsToProduce > 1 ? (
+                        <Badge variant="outline">{sku.calculatorDefaults.unitsToProduce} units</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">1</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

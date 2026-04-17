@@ -111,6 +111,22 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
                   {sku.targetWeight.min}-{sku.targetWeight.max} lbs
                 </p>
               </div>
+              {sku.calculatorDefaults.unitsToProduce > 1 && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Batch Production</p>
+                  <p className="mt-0.5 text-sm font-semibold">
+                    {sku.calculatorDefaults.unitsToProduce} units per batch
+                  </p>
+                </div>
+              )}
+              {sku.laborHoursPerUnit > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Labor Per Unit</p>
+                  <p className="mt-1 font-medium">
+                    {sku.laborHoursPerUnit}h @ ${detail.laborRate ? Number(detail.laborRate.hourlyRate) : 0}/hr = ${(sku.laborHoursPerUnit * Number(detail.laborRate?.hourlyRate ?? 0)).toFixed(0)}
+                  </p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Outer Dimensions</p>
                 <p className="mt-1 font-medium">
