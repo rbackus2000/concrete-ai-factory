@@ -53,6 +53,8 @@ function buildEditorValuesFromSku(
     fiberPercent: sku.fiberPercent,
     retailPrice: 0,
     wholesalePrice: 0,
+    laborRateId: "",
+    laborHoursPerUnit: 0,
     datumSystemJson: JSON.stringify(sku.datumSystem, null, 2),
     calculatorDefaultsJson: JSON.stringify(sku.calculatorDefaults, null, 2),
   };

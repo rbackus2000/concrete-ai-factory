@@ -82,10 +82,13 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
             fiberPercent: sku.fiberPercent,
             retailPrice: sku.retailPrice ?? 0,
             wholesalePrice: sku.wholesalePrice ?? 0,
+            laborRateId: sku.laborRateId ?? "",
+            laborHoursPerUnit: sku.laborHoursPerUnit ?? 0,
             datumSystemJson: JSON.stringify(sku.datumSystem, null, 2),
             calculatorDefaultsJson: JSON.stringify(sku.calculatorDefaults, null, 2),
           }}
           skuCode={sku.code}
+          laborRateOptions={detail.laborRateOptions}
         />
 
         <div className="space-y-4">

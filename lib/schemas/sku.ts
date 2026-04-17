@@ -133,6 +133,8 @@ export const skuEditorSchema = z.object({
   fiberPercent: z.coerce.number().min(0).max(1),
   retailPrice: z.coerce.number().nonnegative().optional().default(0),
   wholesalePrice: z.coerce.number().nonnegative().optional().default(0),
+  laborRateId: z.string().optional().default(""),
+  laborHoursPerUnit: z.coerce.number().nonnegative().optional().default(0),
   datumSystemJson: z.string().refine((value) => {
     const parsed = parseJsonString(value);
     return !!datumSystemEntrySchema.array().safeParse(parsed).success;

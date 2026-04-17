@@ -26,6 +26,7 @@ type SkuEditFormProps = {
   mode?: "create" | "edit";
   skuCode?: string;
   defaultValues: SkuEditorValues;
+  laborRateOptions?: Array<{ id: string; label: string }>;
 };
 
 const geometryFields: Array<{
@@ -65,7 +66,7 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-sm text-red-600">{message}</p>;
 }
 
-export function SkuEditForm({ mode = "edit", skuCode, defaultValues }: SkuEditFormProps) {
+export function SkuEditForm({ mode = "edit", skuCode, defaultValues, laborRateOptions = [] }: SkuEditFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverNotice, setServerNotice] = useState<{
@@ -214,6 +215,19 @@ export function SkuEditForm({ mode = "edit", skuCode, defaultValues }: SkuEditFo
             <div className="space-y-2">
               <Label htmlFor="wholesalePrice">Wholesale Price ($)</Label>
               <Input id="wholesalePrice" step="0.01" type="number" {...form.register("wholesalePrice")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="laborRateId">Labor Rate</Label>
+              <Select id="laborRateId" {...form.register("laborRateId")}>
+                <option value="">None</option>
+                {laborRateOptions.map((r) => (
+                  <option key={r.id} value={r.id}>{r.label}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="laborHoursPerUnit">Labor Hours / Unit</Label>
+              <Input id="laborHoursPerUnit" step="0.25" type="number" {...form.register("laborHoursPerUnit")} />
             </div>
           </section>
 

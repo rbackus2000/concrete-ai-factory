@@ -51,6 +51,8 @@ export async function createSkuAction(code: string, values: SkuEditorValues) {
     fiberPercent: parsed.fiberPercent,
     retailPrice: parsed.retailPrice || null,
     wholesalePrice: parsed.wholesalePrice || null,
+    laborRate: parsed.laborRateId?.trim() ? { connect: { id: parsed.laborRateId } } : undefined,
+    laborHoursPerUnit: parsed.laborHoursPerUnit || null,
     datumSystemJson: datumSystemJson as never,
     calculatorDefaults: calculatorDefaults as never,
   }, actor);

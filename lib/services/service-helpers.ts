@@ -191,5 +191,7 @@ export function mapSkuRecordWithPricing(sku: PrismaSku) {
     ...mapSkuRecord(sku),
     retailPrice: decimalToNumber(sku.retailPrice) ?? null,
     wholesalePrice: decimalToNumber(sku.wholesalePrice) ?? null,
+    laborRateId: sku.laborRateId ?? null,
+    laborHoursPerUnit: decimalToNumber(sku.laborHoursPerUnit) ?? 0,
   };
 }

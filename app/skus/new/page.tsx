@@ -1,7 +1,15 @@
 import { PageHeader } from "@/components/app-shell/page-header";
 import { SkuEditForm } from "@/components/forms/sku-edit-form";
+import { prisma } from "@/lib/db";
 
-export default function NewSkuPage() {
+export const dynamic = "force-dynamic";
+
+export default async function NewSkuPage() {
+  const laborRateOptions = (await prisma.laborRate.findMany({
+    where: { status: "ACTIVE" },
+    select: { id: true, name: true, hourlyRate: true },
+    orderBy: { hourlyRate: "asc" },
+  })).map((r) => ({ id: r.id, label: `${r.name} — $${r.hourlyRate}/hr` }));
   return (
     <div className="space-y-8">
       <PageHeader
@@ -52,6 +60,8 @@ export default function NewSkuPage() {
           fiberPercent: 0,
           retailPrice: 0,
           wholesalePrice: 0,
+          laborRateId: "",
+          laborHoursPerUnit: 0,
           datumSystemJson: "[]",
           calculatorDefaultsJson: JSON.stringify({
             batchSizeLbs: 50,
@@ -68,6 +78,7 @@ export default function NewSkuPage() {
             pigmentGrams: 500,
           }, null, 2),
         }}
+        laborRateOptions={laborRateOptions}
       />
     </div>
   );

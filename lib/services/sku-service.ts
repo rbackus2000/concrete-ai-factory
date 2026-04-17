@@ -130,6 +130,9 @@ export async function getSkuByCode(code: string) {
 export async function getSkuDetail(code: string) {
   const sku = await prisma.sku.findUnique({
     where: { code },
+    include: {
+      laborRate: { select: { id: true, code: true, name: true, hourlyRate: true } },
+    },
   });
 
   if (!sku) {
@@ -188,8 +191,19 @@ export async function getSkuDetail(code: string) {
     rules,
   });
 
+  const laborRateOptions = await prisma.laborRate.findMany({
+    where: { status: "ACTIVE" },
+    select: { id: true, code: true, name: true, hourlyRate: true },
+    orderBy: { hourlyRate: "asc" },
+  });
+
   return {
     sku: mappedSku,
+    laborRate: sku.laborRate,
+    laborRateOptions: laborRateOptions.map((r) => ({
+      id: r.id,
+      label: `${r.name} — $${r.hourlyRate}/hr`,
+    })),
     materials,
     rules,
     qcTemplates: validation.templates,
@@ -266,6 +280,10 @@ export async function updateSkuFromEditor(
     fiberPercent: parsed.fiberPercent,
     retailPrice: parsed.retailPrice || null,
     wholesalePrice: parsed.wholesalePrice || null,
+    laborRate: parsed.laborRateId?.trim()
+      ? { connect: { id: parsed.laborRateId } }
+      : { disconnect: true },
+    laborHoursPerUnit: parsed.laborHoursPerUnit || null,
     datumSystemJson: parseDatumSystemJsonInput(parsed.datumSystemJson),
     calculatorDefaults: parseCalculatorDefaultsJsonInput(parsed.calculatorDefaultsJson),
   });
