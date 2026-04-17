@@ -63,6 +63,7 @@ enum AuditEntityType {
   SUPPLIER
   COLOR_COLLECTION
   PRODUCT_COLOR
+  LABOR_RATE
 }
 
 enum SlatWallProjectStatus {
@@ -194,6 +195,9 @@ model Sku {
   fiberPercent              Decimal?              @db.Decimal(5, 4)
   datumSystemJson           Json?
   calculatorDefaults        Json?
+  laborRateId               String?
+  laborHoursPerUnit         Decimal?              @db.Decimal(8, 2)
+  laborRate                 LaborRate?            @relation("SkuLaborRate", fields: [laborRateId], references: [id], onDelete: SetNull)
   generatedOutputs          GeneratedOutput[]
   jobs                      Job[]
   promptTemplateOverrides   PromptTemplate[]      @relation("PromptTemplateOverrideSku")
@@ -709,6 +713,23 @@ model EquipmentBudget {
   updatedAt       DateTime @updatedAt
 
   @@map("equipment_budgets")
+}
+
+// ── LABOR RATES ──────────────────────────────────────────────
+
+model LaborRate {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  name        String
+  description String?      @db.Text
+  hourlyRate  Decimal      @db.Decimal(10, 2)
+  isDefault   Boolean      @default(false)
+  status      RecordStatus @default(ACTIVE)
+  skus        Sku[]        @relation("SkuLaborRate")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("labor_rates")
 }
 
 // ── COLOR SYSTEM ─────────────────────────────────────────────

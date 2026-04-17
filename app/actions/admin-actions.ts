@@ -32,6 +32,8 @@ import {
   updateProductColor,
 } from "@/lib/services/color-service";
 import { syncMaterialPrice, syncAllMaterialPrices } from "@/lib/services/price-sync-service";
+import { createLaborRate, updateLaborRate } from "@/lib/services/labor-rate-service";
+import type { LaborRateAdminValues } from "@/lib/schemas/labor-rate";
 import type { FinishAdminValues } from "@/lib/schemas/finish";
 import type { ClientAdminValues } from "@/lib/schemas/client";
 import type { SupplierAdminValues } from "@/lib/schemas/supplier";
@@ -248,4 +250,23 @@ export async function syncAllMaterialPricesAction() {
   const results = await syncAllMaterialPrices(actor);
   revalidatePath("/admin/materials-master");
   return results;
+}
+
+// ── Labor Rate Actions ───────────────────────────────────────
+
+export async function createLaborRateAction(values: LaborRateAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await createLaborRate(values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/labor-rates");
+  return result;
+}
+
+export async function updateLaborRateAction(id: string, values: LaborRateAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await updateLaborRate(id, values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/labor-rates");
+  revalidatePath(`/admin/labor-rates/${id}`);
+  return result;
 }

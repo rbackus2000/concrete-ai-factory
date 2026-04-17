@@ -123,13 +123,20 @@ export function buildCalculatorDefaultsForSku({
   sku,
   materials,
   defaults,
+  laborRate,
 }: {
-  sku: Sku & { id?: string };
+  sku: Sku & { id?: string; laborHoursPerUnit?: number; laborRateId?: string | null };
   materials: MaterialRecord[];
   defaults: CalculatorDefaults;
+  laborRate?: { hourlyRate: number } | null;
 }) {
   const resolvedMaterials = resolveMaterialsForSku({ sku, materials });
   const sealerMaterial = resolvedMaterials.find((material) => material.category === "SEALER");
+
+  // Auto-compute labor cost: hourlyRate x hoursPerUnit
+  const hoursPerUnit = sku.laborHoursPerUnit ?? 0;
+  const rate = laborRate?.hourlyRate ?? 0;
+  const laborCostPerUnit = round(rate * hoursPerUnit, 2);
 
   return {
     skuCode: sku.code,
@@ -139,7 +146,7 @@ export function buildCalculatorDefaultsForSku({
     sealerCoats: 2,
     materialCostMultiplier: 1,
     sealerCostPerGallon: sealerMaterial?.unitCost ?? 0,
-    laborCostPerUnit: 0,
+    laborCostPerUnit,
     overheadCostPerUnit: 0,
     marginPercent: 0,
   };

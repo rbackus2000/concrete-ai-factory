@@ -32,6 +32,11 @@ const adminSections = [
     description: "Manage reusable material, sealer, insert, pigment, and packaging records.",
   },
   {
+    title: "Labor Rates",
+    href: "/admin/labor-rates",
+    description: "Manage shop labor rates — production, finishing, design — for product costing and quotes.",
+  },
+  {
     title: "Suppliers",
     href: "/admin/suppliers",
     description: "Manage material suppliers, product URLs, and automated price tracking.",

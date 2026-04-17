@@ -27,6 +27,9 @@ function mapMaterialRecord(material: Awaited<
 async function getSkuAndMaterials(skuCode: string) {
   const sku = await prisma.sku.findUnique({
     where: { code: skuCode },
+    include: {
+      laborRate: { select: { hourlyRate: true } },
+    },
   });
 
   if (!sku) {
@@ -45,6 +48,7 @@ async function getSkuAndMaterials(skuCode: string) {
 
   return {
     sku,
+    laborRate: sku.laborRate ? { hourlyRate: decimalToNumber(sku.laborRate.hourlyRate) ?? 0 } : null,
     materials: materialRows.map(mapMaterialRecord),
   };
 }
@@ -75,6 +79,8 @@ export async function getCalculatorWorkspace(selectedSkuCode?: string) {
       const mappedSku = {
         id: detail.sku.id,
         ...mapSkuRecord(detail.sku),
+        laborHoursPerUnit: decimalToNumber(detail.sku.laborHoursPerUnit) ?? 0,
+        laborRateId: detail.sku.laborRateId,
       };
 
       return {
@@ -85,6 +91,7 @@ export async function getCalculatorWorkspace(selectedSkuCode?: string) {
           sku: mappedSku,
           materials: detail.materials,
           defaults: mappedSku.calculatorDefaults,
+          laborRate: detail.laborRate,
         }),
       };
     }),
@@ -99,11 +106,14 @@ export async function getCalculatorWorkspace(selectedSkuCode?: string) {
   const mappedSelectedSku = {
     id: selectedDetail.sku.id,
     ...mapSkuRecord(selectedDetail.sku),
+    laborHoursPerUnit: decimalToNumber(selectedDetail.sku.laborHoursPerUnit) ?? 0,
+    laborRateId: selectedDetail.sku.laborRateId,
   };
   const initialInputs = buildCalculatorDefaultsForSku({
     sku: mappedSelectedSku,
     materials: selectedDetail.materials,
     defaults: mappedSelectedSku.calculatorDefaults,
+    laborRate: selectedDetail.laborRate,
   });
   const initialResult = runCalculatorEngine({
     sku: mappedSelectedSku,
