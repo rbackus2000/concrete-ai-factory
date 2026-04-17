@@ -34,6 +34,7 @@ export default async function MaterialsMasterDetailPage({
         mode="edit"
         recordId={id}
         skuOptions={editor.skuOptions}
+        supplierOptions={editor.supplierOptions}
       />
     </div>
   );

@@ -193,6 +193,9 @@ export const materialsMasterAdminSchema = z
     metadataJson: z
       .string()
       .refine((value) => value.trim() === "" || isValidJson(value), "Metadata must be valid JSON."),
+    supplierId: z.string().optional().default(""),
+    supplierProductUrl: z.string().optional().default(""),
+    supplierSku: z.string().optional().default(""),
   })
   .superRefine((value, ctx) => {
     if (value.categoryScope === "SKU_CATEGORY" && !value.skuCategory) {

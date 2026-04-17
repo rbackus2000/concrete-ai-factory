@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import {
   createMaterialsMasterAction,
   updateMaterialsMasterAction,
+  syncSingleMaterialPriceAction,
 } from "@/app/actions/admin-actions";
 import { ActionNotice } from "@/components/forms/action-notice";
 import { FieldError } from "@/components/forms/field-error";
@@ -36,6 +37,10 @@ type MaterialsMasterFormProps = {
     code: string;
     name: string;
   }>;
+  supplierOptions?: Array<{
+    id: string;
+    label: string;
+  }>;
   defaultValues: MaterialsMasterAdminValues;
 };
 
@@ -43,10 +48,12 @@ export function MaterialsMasterForm({
   mode,
   recordId,
   skuOptions,
+  supplierOptions = [],
   defaultValues,
 }: MaterialsMasterFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isSyncing, setIsSyncing] = useState(false);
   const [serverNotice, setServerNotice] = useState<{
     tone: "success" | "error";
     message: string;
@@ -84,6 +91,30 @@ export function MaterialsMasterForm({
       }
     });
   };
+
+  async function handleSyncPrice() {
+    if (!recordId) return;
+    setIsSyncing(true);
+    setServerNotice(null);
+    try {
+      const result = await syncSingleMaterialPriceAction(recordId);
+      if (result.success) {
+        setServerNotice({
+          tone: "success",
+          message: result.priceChanged
+            ? `Price updated: $${result.previousUnitCost?.toFixed(2)} → $${result.newUnitCost?.toFixed(2)} (${result.tiersFound} variants found)`
+            : `Price confirmed — no change (${result.tiersFound} variants found)`,
+        });
+        router.refresh();
+      } else {
+        setServerNotice({ tone: "error", message: result.error ?? "Sync failed." });
+      }
+    } catch (e) {
+      setServerNotice({ tone: "error", message: e instanceof Error ? e.message : "Sync failed." });
+    } finally {
+      setIsSyncing(false);
+    }
+  }
 
   return (
     <Card>
@@ -172,6 +203,54 @@ export function MaterialsMasterForm({
               <Input id="unitCost" step="0.01" type="number" {...form.register("unitCost")} />
               <FieldError message={form.formState.errors.unitCost?.message} />
             </div>
+          </section>
+
+          {/* Supplier Section */}
+          <section className="space-y-4 rounded-lg border border-border p-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Supplier & Price Tracking
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="supplierId">Supplier</Label>
+                <Select id="supplierId" {...form.register("supplierId")}>
+                  <option value="">None</option>
+                  {supplierOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="supplierSku">Supplier SKU / Part #</Label>
+                <Input id="supplierSku" {...form.register("supplierSku")} placeholder="e.g. KP-MM-56" />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="supplierProductUrl">Supplier Product URL</Label>
+                <Input
+                  id="supplierProductUrl"
+                  {...form.register("supplierProductUrl")}
+                  placeholder="https://www.kodiakpro.com/products/..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Shopify product URL — used for automatic price scraping
+                </p>
+              </div>
+            </div>
+            {mode === "edit" && form.getValues("supplierProductUrl") && (
+              <div className="flex items-center gap-4 border-t border-border pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSyncing}
+                  onClick={handleSyncPrice}
+                >
+                  {isSyncing ? "Syncing..." : "Sync Price Now"}
+                </Button>
+              </div>
+            )}
           </section>
 
           <div className="space-y-2">

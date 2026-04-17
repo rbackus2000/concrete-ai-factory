@@ -776,6 +776,12 @@ export async function listMaterialsMaster() {
           code: true,
         },
       },
+      supplier: {
+        select: {
+          code: true,
+          name: true,
+        },
+      },
     },
     orderBy: [{ category: "asc" }, { updatedAt: "desc" }],
   });
@@ -790,13 +796,20 @@ export async function listMaterialsMaster() {
     unitCost: row.unitCost?.toString() ?? "0",
     status: row.status,
     scopeLabel: mapScopeLabel(row),
+    supplierName: row.supplier?.name ?? null,
+    lastPricedAt: row.lastPricedAt?.toISOString() ?? null,
     updatedAt: row.updatedAt.toISOString(),
   }));
 }
 
 export async function getMaterialsMasterEditor(id?: string) {
-  const [skuOptions, record] = await Promise.all([
+  const [skuOptions, supplierOptions, record] = await Promise.all([
     getSkuOptions(),
+    prisma.supplier.findMany({
+      where: { status: "ACTIVE" },
+      select: { id: true, code: true, name: true },
+      orderBy: { name: "asc" },
+    }),
     id
       ? prisma.materialsMaster.findUnique({
           where: { id },
@@ -806,6 +819,10 @@ export async function getMaterialsMasterEditor(id?: string) {
 
   return {
     skuOptions,
+    supplierOptions: supplierOptions.map((s) => ({
+      id: s.id,
+      label: `${s.code} · ${s.name}`,
+    })),
     record: record
       ? {
           id: record.id,
@@ -822,6 +839,11 @@ export async function getMaterialsMasterEditor(id?: string) {
           specification: record.specification ?? "",
           notes: record.notes ?? "",
           metadataJson: JSON.stringify(record.metadata ?? {}, null, 2),
+          supplierId: record.supplierId ?? "",
+          supplierProductUrl: record.supplierProductUrl ?? "",
+          supplierSku: record.supplierSku ?? "",
+          lastPricedAt: record.lastPricedAt?.toISOString() ?? null,
+          pricingTiers: record.pricingTiers as unknown[] | null,
         }
       : null,
   };
@@ -847,6 +869,9 @@ export async function createMaterialsMaster(
       specification: parseOptionalString(parsed.specification),
       notes: parseOptionalString(parsed.notes),
       metadata: parseOptionalJson(parsed.metadataJson),
+      supplierId: parseOptionalString(parsed.supplierId ?? ""),
+      supplierProductUrl: parseOptionalString(parsed.supplierProductUrl ?? ""),
+      supplierSku: parseOptionalString(parsed.supplierSku ?? ""),
     },
   });
 
@@ -906,6 +931,9 @@ export async function updateMaterialsMaster(
       specification: parseOptionalString(parsed.specification),
       notes: parseOptionalString(parsed.notes),
       metadata: parseOptionalJson(parsed.metadataJson),
+      supplierId: parseOptionalString(parsed.supplierId ?? ""),
+      supplierProductUrl: parseOptionalString(parsed.supplierProductUrl ?? ""),
+      supplierSku: parseOptionalString(parsed.supplierSku ?? ""),
     },
   });
 

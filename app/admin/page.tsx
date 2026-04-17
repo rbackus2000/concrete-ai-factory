@@ -32,6 +32,16 @@ const adminSections = [
     description: "Manage reusable material, sealer, insert, pigment, and packaging records.",
   },
   {
+    title: "Suppliers",
+    href: "/admin/suppliers",
+    description: "Manage material suppliers, product URLs, and automated price tracking.",
+  },
+  {
+    title: "Color System",
+    href: "/admin/colors",
+    description: "RB Studio pigment color collections — 22 colors across 4 families.",
+  },
+  {
     title: "Finishes",
     href: "/admin/finishes",
     description: "Manage concrete finish presets — color families, textures, sealers, and pigment formulas.",

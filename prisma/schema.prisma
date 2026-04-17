@@ -60,6 +60,9 @@ enum AuditEntityType {
   FINISH
   CLIENT
   JOB
+  SUPPLIER
+  COLOR_COLLECTION
+  PRODUCT_COLOR
 }
 
 enum SlatWallProjectStatus {
@@ -127,6 +130,7 @@ enum MaterialCategory {
   SEALER
   PACKAGING
   HARDWARE
+  ADMIXTURE
 }
 
 enum RuleCategory {
@@ -255,28 +259,51 @@ model RulesMaster {
   @@map("rules_master")
 }
 
+model Supplier {
+  id           String           @id @default(cuid())
+  code         String           @unique
+  name         String
+  website      String?
+  contactEmail String?
+  contactPhone String?
+  notes        String?          @db.Text
+  status       RecordStatus     @default(ACTIVE)
+  materials    MaterialsMaster[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@map("suppliers")
+}
+
 model MaterialsMaster {
-  id            String           @id @default(cuid())
-  skuOverrideId String?
-  code          String
-  name          String
-  category      MaterialCategory
-  categoryScope CategoryScope    @default(GLOBAL)
-  skuCategory   SkuCategory?
-  status        RecordStatus     @default(ACTIVE)
-  unit          String
-  quantity      Decimal?         @db.Decimal(10, 2)
-  unitCost      Decimal?         @db.Decimal(10, 2)
-  specification String?          @db.Text
-  notes         String?          @db.Text
-  metadata      Json?
-  skuOverride   Sku?             @relation("MaterialsMasterOverrideSku", fields: [skuOverrideId], references: [id], onDelete: SetNull)
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id                 String           @id @default(cuid())
+  skuOverrideId      String?
+  code               String
+  name               String
+  category           MaterialCategory
+  categoryScope      CategoryScope    @default(GLOBAL)
+  skuCategory        SkuCategory?
+  status             RecordStatus     @default(ACTIVE)
+  unit               String
+  quantity           Decimal?         @db.Decimal(10, 2)
+  unitCost           Decimal?         @db.Decimal(10, 2)
+  specification      String?          @db.Text
+  notes              String?          @db.Text
+  metadata           Json?
+  supplierId         String?
+  supplierProductUrl String?
+  supplierSku        String?
+  lastPricedAt       DateTime?
+  pricingTiers       Json?
+  skuOverride        Sku?             @relation("MaterialsMasterOverrideSku", fields: [skuOverrideId], references: [id], onDelete: SetNull)
+  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   @@unique([code, categoryScope, skuCategory, skuOverrideId])
   @@index([categoryScope, skuCategory])
   @@index([skuOverrideId])
+  @@index([supplierId])
 
   @@map("materials_master")
 }
@@ -682,4 +709,39 @@ model EquipmentBudget {
   updatedAt       DateTime @updatedAt
 
   @@map("equipment_budgets")
+}
+
+// ── COLOR SYSTEM ─────────────────────────────────────────────
+
+model ColorCollection {
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  description String?        @db.Text
+  sortOrder   Int            @default(0)
+  status      RecordStatus   @default(ACTIVE)
+  colors      ProductColor[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("color_collections")
+}
+
+model ProductColor {
+  id               String          @id @default(cuid())
+  collectionId     String
+  code             String          @unique
+  name             String
+  hexApprox        String
+  pigmentFormula   String?         @db.Text
+  pigmentMaterials Json?
+  sortOrder        Int             @default(0)
+  status           RecordStatus    @default(ACTIVE)
+  notes            String?         @db.Text
+  collection       ColorCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([collectionId])
+  @@map("product_colors")
 }

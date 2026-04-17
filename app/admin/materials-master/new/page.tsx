@@ -29,9 +29,13 @@ export default async function NewMaterialsMasterPage() {
           specification: "",
           notes: "",
           metadataJson: "{}",
+          supplierId: "",
+          supplierProductUrl: "",
+          supplierSku: "",
         }}
         mode="create"
         skuOptions={editor.skuOptions}
+        supplierOptions={editor.supplierOptions}
       />
     </div>
   );

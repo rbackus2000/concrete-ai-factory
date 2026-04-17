@@ -38,6 +38,7 @@ export const materialCategoryValues = [
   "SEALER",
   "PACKAGING",
   "HARDWARE",
+  "ADMIXTURE",
 ] as const;
 export const ruleCategoryValues = [
   "DIMENSIONAL",

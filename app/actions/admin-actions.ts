@@ -24,8 +24,18 @@ import type {
 } from "@/lib/schemas/admin";
 import { createFinish, updateFinish } from "@/lib/services/finish-service";
 import { createClient, updateClient } from "@/lib/services/client-service";
+import { createSupplier, updateSupplier } from "@/lib/services/supplier-service";
+import {
+  createColorCollection,
+  updateColorCollection,
+  createProductColor,
+  updateProductColor,
+} from "@/lib/services/color-service";
+import { syncMaterialPrice, syncAllMaterialPrices } from "@/lib/services/price-sync-service";
 import type { FinishAdminValues } from "@/lib/schemas/finish";
 import type { ClientAdminValues } from "@/lib/schemas/client";
+import type { SupplierAdminValues } from "@/lib/schemas/supplier";
+import type { ColorCollectionAdminValues, ProductColorAdminValues } from "@/lib/schemas/color";
 
 export async function createPromptTemplateAction(values: PromptTemplateAdminValues) {
   const actor = await requireAdminSession();
@@ -167,4 +177,75 @@ export async function updateClientAction(id: string, values: ClientAdminValues) 
   revalidatePath("/admin/clients");
   revalidatePath(`/admin/clients/${id}`);
   return result;
+}
+
+// ── Supplier Actions ─────────────────────────────────────────
+
+export async function createSupplierAction(values: SupplierAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await createSupplier(values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/suppliers");
+  return result;
+}
+
+export async function updateSupplierAction(id: string, values: SupplierAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await updateSupplier(id, values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/suppliers");
+  revalidatePath(`/admin/suppliers/${id}`);
+  return result;
+}
+
+// ── Color Actions ────────────────────────────────────────────
+
+export async function createColorCollectionAction(values: ColorCollectionAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await createColorCollection(values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/colors");
+  return result;
+}
+
+export async function updateColorCollectionAction(id: string, values: ColorCollectionAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await updateColorCollection(id, values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/colors");
+  return result;
+}
+
+export async function createProductColorAction(values: ProductColorAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await createProductColor(values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/colors");
+  return result;
+}
+
+export async function updateProductColorAction(id: string, values: ProductColorAdminValues) {
+  const actor = await requireAdminSession();
+  const result = await updateProductColor(id, values, actor);
+  revalidatePath("/admin");
+  revalidatePath("/admin/colors");
+  revalidatePath(`/admin/colors/${id}`);
+  return result;
+}
+
+// ── Price Sync Actions ───────────────────────────────────────
+
+export async function syncSingleMaterialPriceAction(materialId: string) {
+  const actor = await requireAdminSession();
+  const result = await syncMaterialPrice(materialId, actor);
+  revalidatePath("/admin/materials-master");
+  revalidatePath(`/admin/materials-master/${materialId}`);
+  return result;
+}
+
+export async function syncAllMaterialPricesAction() {
+  const actor = await requireAdminSession();
+  const results = await syncAllMaterialPrices(actor);
+  revalidatePath("/admin/materials-master");
+  return results;
 }
