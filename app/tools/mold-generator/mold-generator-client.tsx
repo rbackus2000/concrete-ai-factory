@@ -82,7 +82,7 @@ export function MoldGeneratorClient({ sinks, tiles }: Props) {
 
       {/* Right Panel — 3D Preview */}
       <div className="sticky top-8">
-        <ThreePreview sku={selectedSku} />
+        <ThreePreview sku={selectedSku} sectionPlan={sectionPlan} />
       </div>
     </div>
   );

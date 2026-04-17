@@ -1,17 +1,20 @@
 "use client";
 
-import { useRef, useMemo, Suspense } from "react";
+import { useRef, useMemo, useState, Suspense } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { MoldGeneratorSku } from "@/lib/services/mold-generator-service";
+import type { SectionPlan } from "@/lib/engines/mold-print-engine";
 import { generateMoldGeometry } from "@/lib/mold-generator/geometries";
-import { downloadSTL } from "@/lib/mold-generator/stl-exporter";
+import { buildSolidMoldMesh } from "@/lib/mold-generator/csg-builder";
+import { downloadGeometrySTL } from "@/lib/mold-generator/stl-exporter";
 
 type Props = {
   sku: MoldGeneratorSku | null;
+  sectionPlan: SectionPlan | null;
 };
 
 function buildGeometryInput(sku: MoldGeneratorSku) {
@@ -40,6 +43,8 @@ function buildGeometryInput(sku: MoldGeneratorSku) {
     domeRiseMax: sku.domeRiseMax,
     type: sku.type,
     category: sku.category,
+    name: sku.name,
+    code: sku.code,
   };
 }
 
@@ -57,25 +62,63 @@ function MoldScene({ sku }: { sku: MoldGeneratorSku }) {
   );
 }
 
-export function ThreePreview({ sku }: Props) {
-  function handleDownloadSTL() {
-    if (!sku) return;
-    const group = generateMoldGeometry(buildGeometryInput(sku));
-    downloadSTL(group, `${sku.code}-mold.stl`);
+export function ThreePreview({ sku, sectionPlan }: Props) {
+  const [exporting, setExporting] = useState(false);
+
+  const isMultiSection = sectionPlan ? !sectionPlan.fitsInOnePrint : false;
+  const sectionCount = sectionPlan?.totalSections ?? 1;
+
+  function handleDownloadSTL(sectionIndex?: number) {
+    if (!sku || !sectionPlan) return;
+    setExporting(true);
+    try {
+      const solidGeo = buildSolidMoldMesh(sku, sectionPlan, sectionIndex);
+      const suffix = sectionIndex !== undefined ? `-section${sectionIndex + 1}` : "";
+      downloadGeometrySTL(solidGeo, `${sku.code}-mold${suffix}.stl`);
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
         <CardTitle>3D Mold Preview</CardTitle>
-        {sku && (
-          <button
-            type="button"
-            onClick={handleDownloadSTL}
-            className="rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            Download STL
-          </button>
+        {sku && sectionPlan && (
+          <div className="flex items-center gap-2">
+            {isMultiSection ? (
+              <>
+                {Array.from({ length: sectionCount }, (_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleDownloadSTL(i)}
+                    disabled={exporting}
+                    className="rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+                  >
+                    STL §{i + 1}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleDownloadSTL()}
+                  disabled={exporting}
+                  className="rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+                >
+                  Full STL
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleDownloadSTL()}
+                disabled={exporting}
+                className="rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+              >
+                {exporting ? "Building..." : "Download STL"}
+              </button>
+            )}
+          </div>
         )}
       </CardHeader>
       <CardContent className="p-0">

@@ -13,6 +13,12 @@
 const BUILD_VOLUME_MM = { x: 400, y: 400, z: 400 };
 const INCHES_TO_MM = 25.4;
 
+// PLA filament specs
+const PLA_DENSITY_G_PER_MM3 = 0.00124; // 1.24 g/cm³
+const FILAMENT_DIAMETER_MM = 1.75;
+const FILAMENT_CROSS_SECTION_MM2 = Math.PI * (FILAMENT_DIAMETER_MM / 2) ** 2; // ~2.405 mm²
+const SPOOL_WEIGHT_GRAMS = 1000; // Standard 1kg spool
+
 export type MoldDimensions = {
   outerLength: number; // inches
   outerWidth: number;  // inches
@@ -35,6 +41,7 @@ export type SectionDetail = {
   heightMm: number;
   orientation: string;
   printTimeMins: number;
+  filamentGrams: number;
 };
 
 export type SlicingSpec = {
@@ -51,6 +58,9 @@ export type SlicingSpec = {
   printTempC: number;
   bedTempC: number;
   printSpeedMmS: number;
+  totalFilamentGrams: number;
+  totalFilamentMeters: number;
+  spoolsNeeded: number;
 };
 
 function inchesToMm(inches: number): number {
@@ -100,6 +110,59 @@ function estimatePrintTimeMins(
   return Math.round((rawSec * 0.65) / 60);
 }
 
+function estimateFilamentGrams(
+  lengthMm: number,
+  widthMm: number,
+  heightMm: number,
+  layerHeight: number,
+  infill: number,
+  isSolid: boolean = false,
+): number {
+  const nozzleWidth = 0.4;
+  const wallCount = isSolid ? 4 : 3;
+  const perimeterMm = 2 * (lengthMm + widthMm);
+  const fullArea = lengthMm * widthMm;
+
+  let totalExtrusionMm = 0;
+
+  if (isSolid) {
+    const effectiveLayerH = 0.2;
+    const layers = Math.ceil(heightMm / effectiveLayerH);
+    const infillLength = (fullArea * (infill / 100)) / nozzleWidth;
+    totalExtrusionMm = layers * (perimeterMm * wallCount + infillLength);
+  } else {
+    const layers = Math.ceil(heightMm / layerHeight);
+    const baseLayers = Math.min(Math.ceil(8 / layerHeight), layers);
+    const shellLayers = layers - baseLayers;
+
+    const baseInfillLength = (fullArea * (infill / 100)) / nozzleWidth;
+    const baseExtrusion = perimeterMm * wallCount + baseInfillLength;
+
+    const moldWallMm = 12;
+    const innerLength = Math.max(0, lengthMm - 2 * moldWallMm);
+    const innerWidth = Math.max(0, widthMm - 2 * moldWallMm);
+    const shellRingArea = fullArea - innerLength * innerWidth;
+    const shellInfillLength = (shellRingArea * (infill / 100)) / nozzleWidth;
+    const shellExtrusion = perimeterMm * wallCount + shellInfillLength;
+
+    totalExtrusionMm = baseLayers * baseExtrusion + shellLayers * shellExtrusion;
+  }
+
+  // Volume deposited = extrusion travel × nozzle width × layer height
+  const effectiveLayerH = isSolid ? 0.2 : layerHeight;
+  const volumeMm3 = totalExtrusionMm * nozzleWidth * effectiveLayerH;
+  const weightGrams = volumeMm3 * PLA_DENSITY_G_PER_MM3;
+
+  // 10% overhead for brim, purge, supports, and waste
+  return Math.round(weightGrams * 1.1);
+}
+
+function filamentGramsToMeters(grams: number): number {
+  const volumeMm3 = grams / PLA_DENSITY_G_PER_MM3;
+  const lengthMm = volumeMm3 / FILAMENT_CROSS_SECTION_MM2;
+  return Math.round((lengthMm / 1000) * 10) / 10; // 1 decimal
+}
+
 export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
   const lengthMm = inchesToMm(dims.outerLength);
   const widthMm = inchesToMm(dims.outerWidth);
@@ -129,6 +192,7 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
 
     if (fitsL && fitsW) {
       const printTime = estimatePrintTimeMins(lengthMm, widthMm, heightMm, 0.1, 30, true);
+      const filament = estimateFilamentGrams(lengthMm, widthMm, heightMm, 0.1, 30, true);
       return {
         totalSections: 1,
         fitsInOnePrint: true,
@@ -139,6 +203,7 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
           heightMm: moldDimensionsMm.height,
           orientation: "Texture face UP",
           printTimeMins: printTime,
+          filamentGrams: filament,
         }],
         bondingNotes: "Single print — no bonding required.",
         moldDimensionsMm,
@@ -161,6 +226,7 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
           heightMm: moldDimensionsMm.height,
           orientation: "Texture face UP",
           printTimeMins: estimatePrintTimeMins(secL, secW, heightMm, 0.1, 30, true),
+          filamentGrams: estimateFilamentGrams(secL, secW, heightMm, 0.1, 30, true),
         });
       }
     }
@@ -180,6 +246,7 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
 
   if (fitsLength && fitsWidth && fitsHeight) {
     const printTime = estimatePrintTimeMins(lengthMm, widthMm, heightMm, 0.2, 15);
+    const filament = estimateFilamentGrams(lengthMm, widthMm, heightMm, 0.2, 15);
     return {
       totalSections: 1,
       fitsInOnePrint: true,
@@ -190,6 +257,7 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
         heightMm: moldDimensionsMm.height,
         orientation: "Basin opening UP",
         printTimeMins: printTime,
+        filamentGrams: filament,
       }],
       bondingNotes: "Single print — no bonding required.",
       moldDimensionsMm,
@@ -212,6 +280,7 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
         heightMm: moldDimensionsMm.height,
         orientation: "Cut face down, basin UP",
         printTimeMins: estimatePrintTimeMins(sectionLength, widthMm, heightMm, 0.2, 15),
+        filamentGrams: estimateFilamentGrams(sectionLength, widthMm, heightMm, 0.2, 15),
       });
     }
     bondingNotes = `Split along length axis into ${sectionsNeeded} sections. Bond with 2-part epoxy along seams. Fill, sand with 220 grit, seal with XTC-3D before silicone pour.`;
@@ -227,6 +296,7 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
         heightMm: moldDimensionsMm.height,
         orientation: "Cut face down, basin UP",
         printTimeMins: estimatePrintTimeMins(lengthMm, sectionWidth, heightMm, 0.2, 15),
+        filamentGrams: estimateFilamentGrams(lengthMm, sectionWidth, heightMm, 0.2, 15),
       });
     }
     bondingNotes = `Split along width axis into ${sectionsNeeded} sections. Bond with 2-part epoxy along seams. Fill, sand with 220 grit, seal with XTC-3D before silicone pour.`;
@@ -246,6 +316,7 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
           heightMm: moldDimensionsMm.height,
           orientation: "Cut face down, basin UP",
           printTimeMins: estimatePrintTimeMins(sectionLength, sectionWidth, heightMm, 0.2, 15),
+          filamentGrams: estimateFilamentGrams(sectionLength, sectionWidth, heightMm, 0.2, 15),
         });
       }
     }
@@ -264,6 +335,9 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
 export function generateSlicingSpec(dims: MoldDimensions, sectionPlan: SectionPlan): SlicingSpec {
   const isTile = dims.category === "WALL_TILE";
   const totalPrintTimeMins = sectionPlan.sections.reduce((sum, s) => sum + s.printTimeMins, 0);
+  const totalFilamentGrams = sectionPlan.sections.reduce((sum, s) => sum + s.filamentGrams, 0);
+  const totalFilamentMeters = filamentGramsToMeters(totalFilamentGrams);
+  const spoolsNeeded = Math.ceil((totalFilamentGrams / SPOOL_WEIGHT_GRAMS) * 10) / 10; // 1 decimal
 
   const isPanel = dims.category === "PANEL";
   if (isTile || isPanel) {
@@ -280,6 +354,9 @@ export function generateSlicingSpec(dims: MoldDimensions, sectionPlan: SectionPl
       printTempC: 210,
       bedTempC: 60,
       printSpeedMmS: 50,
+      totalFilamentGrams,
+      totalFilamentMeters,
+      spoolsNeeded,
       postPrintNotes: [
         "Print bulk at 0.2mm — switch to 0.1mm for final 2mm (surface texture detail)",
         "Sand texture peaks lightly with 220 grit only",
@@ -303,6 +380,9 @@ export function generateSlicingSpec(dims: MoldDimensions, sectionPlan: SectionPl
     printTempC: 210,
     bedTempC: 60,
     printSpeedMmS: 50,
+    totalFilamentGrams,
+    totalFilamentMeters,
+    spoolsNeeded,
     postPrintNotes: [
       "Remove supports carefully — do not damage mold cavity surfaces",
       "Sand all mold surfaces with 220 grit for smooth GFRC cast finish",

@@ -40,8 +40,9 @@ export function SectionPlanPanel({ plan }: Props) {
                 ~{Math.round(section.printTimeMins / 60 * 10) / 10}h print
               </span>
             </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {section.lengthMm} x {section.widthMm} x {section.heightMm} mm — {section.orientation}
+            <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+              <span>{section.lengthMm} x {section.widthMm} x {section.heightMm} mm — {section.orientation}</span>
+              <span className="font-medium text-foreground">{section.filamentGrams}g</span>
             </div>
           </div>
         ))}

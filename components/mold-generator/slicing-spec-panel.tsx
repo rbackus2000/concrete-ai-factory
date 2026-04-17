@@ -27,10 +27,20 @@ export function SlicingSpecPanel({ spec }: Props) {
           <SpecRow label="Speed" value={`${spec.printSpeedMmS} mm/s`} />
         </div>
 
-        <div className="border-t border-border pt-3">
+        <div className="border-t border-border pt-3 space-y-2">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Estimated Print Time</span>
             <span className="text-lg font-bold">{spec.estimatedPrintTimeHours}h</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Filament Required</span>
+            <span className="font-bold">{spec.totalFilamentGrams}g ({spec.totalFilamentMeters}m)</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Spools Needed</span>
+            <span className={`font-bold ${spec.spoolsNeeded > 1 ? "text-amber-500" : ""}`}>
+              {spec.spoolsNeeded < 1 ? "< 1" : spec.spoolsNeeded} × 1kg spool
+            </span>
           </div>
         </div>
 

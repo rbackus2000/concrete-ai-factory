@@ -27,6 +27,8 @@ type SkuGeometryInput = {
   domeRiseMax: number;
   type: string;
   category: string;
+  name: string;
+  code: string;
 };
 
 const IN_TO_MM = 25.4;
@@ -58,10 +60,24 @@ export function generateMoldGeometry(sku: SkuGeometryInput): THREE.Group {
   return generateRectangularMoldGeometry(sku);
 }
 
-function createWireframeMesh(geometry: THREE.BufferGeometry, color: number): THREE.LineSegments {
+/**
+ * Creates a wireframe display AND a hidden solid mesh from the same geometry.
+ * The wireframe is visible in the 3D preview; the solid mesh is invisible
+ * but gets picked up by the STL exporter for valid triangle data.
+ */
+function createWireframeMesh(geometry: THREE.BufferGeometry, color: number): THREE.Group {
+  const container = new THREE.Group();
+
+  // Hidden solid mesh — STL exporter collects triangles from this
+  const solidMat = new THREE.MeshBasicMaterial({ visible: false });
+  container.add(new THREE.Mesh(geometry, solidMat));
+
+  // Visible wireframe — what the user sees in the preview
   const edges = new THREE.EdgesGeometry(geometry);
-  const material = new THREE.LineBasicMaterial({ color });
-  return new THREE.LineSegments(edges, material);
+  const lineMat = new THREE.LineBasicMaterial({ color });
+  container.add(new THREE.LineSegments(edges, lineMat));
+
+  return container;
 }
 
 /**
@@ -79,10 +95,10 @@ function generateBasinInterior(
   iD: number,
 ): THREE.Group {
   const basinGroup = new THREE.Group();
-  const typeLower = sku.type.toLowerCase();
-  const isErosion = typeLower.includes("erosion") || typeLower.includes("carved");
-  const isRamp = typeLower.includes("ramp") || sku.slopeDirection.toLowerCase().includes("back");
-  const isFacet = typeLower.includes("facet");
+  const searchText = `${sku.name} ${sku.type} ${sku.code}`.toLowerCase();
+  const isErosion = searchText.includes("erosion") || searchText.includes("carved");
+  const isRamp = searchText.includes("ramp") || sku.slopeDirection.toLowerCase().includes("back");
+  const isFacet = searchText.includes("facet");
 
   const cavityTopY = moldHeight;
   const segX = 16; // resolution along length
