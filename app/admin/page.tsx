@@ -57,6 +57,11 @@ const adminSections = [
     description: "Manage client contacts, companies, and project associations.",
   },
   {
+    title: "Google Sheets",
+    href: "/admin/sheets",
+    description: "Push app data to Google Sheets — products, pricing, costing, orders, and capacity.",
+  },
+  {
     title: "Audit Logs",
     href: "/admin/audit-logs",
     description: "Review write activity and export access events by actor, entity, and action.",
