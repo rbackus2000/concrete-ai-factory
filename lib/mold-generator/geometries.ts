@@ -595,79 +595,91 @@ function generateTileMoldGeometry(sku: SkuGeometryInput): THREE.Group {
 }
 
 /**
- * Hexagonal tile mold — angular hex with varying depth facets and LED channel grooves
+ * Hexagonal tile mold — diamond-cut faceted top with chamfered edges for LED gaps.
+ *
+ * Each tile is a single hex with 6 triangular facet planes converging to an
+ * off-center peak (like a cut gemstone). The edges are chamfered inward so that
+ * when tiles are installed side-by-side, the chamfers form a V-groove channel
+ * where LED strips sit.
  */
 function generateHexTileMoldGeometry(sku: SkuGeometryInput): THREE.Group {
   const group = new THREE.Group();
 
-  // outerLength = point-to-point width, outerWidth = flat-to-flat height
   const pointToPoint = sku.outerLength * IN_TO_MM;
-  const tileT = sku.outerHeight * IN_TO_MM;
-  const hexR = pointToPoint / 2; // circumradius (center to vertex)
+  const tileT = sku.outerHeight * IN_TO_MM; // base thickness
+  const hexR = pointToPoint / 2;
+  const peakRise = (sku.ribHeight > 0 ? sku.ribHeight : 0.75) * IN_TO_MM;
+  const chamferInset = 6; // mm inward from edge
+  const chamferDrop = tileT * 0.35; // how far the edge drops below the top
 
-  // Create hex shape
-  const hexShape = new THREE.Shape();
+  // Hex vertices (flat-top)
+  const hexVerts: [number, number][] = [];
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i - Math.PI / 6; // flat-top orientation
-    const x = hexR * Math.cos(angle);
-    const z = hexR * Math.sin(angle);
+    const angle = (Math.PI / 3) * i - Math.PI / 6;
+    hexVerts.push([hexR * Math.cos(angle), hexR * Math.sin(angle)]);
+  }
+
+  // Base hex slab (the flat back/mounting surface)
+  const hexShape = new THREE.Shape();
+  hexVerts.forEach(([x, z], i) => {
     if (i === 0) hexShape.moveTo(x, z);
     else hexShape.lineTo(x, z);
-  }
-  hexShape.closePath();
-
-  // Extrude hex to create the base tile
-  const hexGeo = new THREE.ExtrudeGeometry(hexShape, {
-    depth: tileT,
-    bevelEnabled: false,
   });
-  hexGeo.rotateX(-Math.PI / 2);
-  group.add(createWireframeMesh(hexGeo, 0x888888));
+  hexShape.closePath();
+  const baseGeo = new THREE.ExtrudeGeometry(hexShape, { depth: tileT, bevelEnabled: false });
+  baseGeo.rotateX(-Math.PI / 2);
+  group.add(createWireframeMesh(baseGeo, 0x888888));
 
-  // Add varying depth facets on top — split hex into angular sub-regions
-  const facetDepth = (sku.ribHeight > 0 ? sku.ribHeight : 0.5) * IN_TO_MM;
-  const facetCount = 5; // angular facet planes at different depths
+  // Peak point — off-center for asymmetric faceting
+  const peakX = hexR * 0.15;
+  const peakZ = -hexR * 0.1;
+  const peakY = tileT + peakRise;
 
-  for (let i = 0; i < facetCount; i++) {
-    const angle1 = (Math.PI / 3) * i - Math.PI / 6;
-    const angle2 = (Math.PI / 3) * (i + 1) - Math.PI / 6;
-    const innerR = hexR * 0.3;
-    const depth = facetDepth * (0.4 + Math.sin(i * 1.7) * 0.6); // varying heights
+  // 6 triangular facet planes from each hex edge to the peak
+  for (let i = 0; i < 6; i++) {
+    const [x1, z1] = hexVerts[i];
+    const [x2, z2] = hexVerts[(i + 1) % 6];
 
-    const facetShape = new THREE.Shape();
-    facetShape.moveTo(0, 0);
-    facetShape.lineTo(hexR * 0.95 * Math.cos(angle1), hexR * 0.95 * Math.sin(angle1));
-    facetShape.lineTo(hexR * 0.95 * Math.cos(angle2), hexR * 0.95 * Math.sin(angle2));
-    facetShape.closePath();
-
-    const facetGeo = new THREE.ExtrudeGeometry(facetShape, {
-      depth: depth,
-      bevelEnabled: false,
-    });
-    facetGeo.rotateX(-Math.PI / 2);
-    facetGeo.translate(0, tileT, 0);
+    // Each facet is a triangle: vertex1 → vertex2 → peak
+    const verts = new Float32Array([
+      x1, tileT, z1,
+      x2, tileT, z2,
+      peakX, peakY, peakZ,
+    ]);
+    const indices = new Uint16Array([0, 1, 2]);
+    const facetGeo = new THREE.BufferGeometry();
+    facetGeo.setAttribute("position", new THREE.BufferAttribute(verts, 3));
+    facetGeo.setIndex(new THREE.BufferAttribute(indices, 1));
+    facetGeo.computeVertexNormals();
     group.add(createWireframeMesh(facetGeo, 0xffaa00));
   }
 
-  // LED channel grooves at hex edges — thin recessed lines
-  const channelWidth = 3; // mm
-  const channelDepth = facetDepth * 0.6;
+  // Peak indicator — small sphere at the apex
+  const peakSphere = new THREE.SphereGeometry(3, 8, 8);
+  peakSphere.translate(peakX, peakY, peakZ);
+  group.add(createWireframeMesh(peakSphere, 0xffaa00));
+
+  // Chamfered edges — angled planes along each hex edge showing where LED gap forms
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i - Math.PI / 6;
-    const nextAngle = (Math.PI / 3) * (i + 1) - Math.PI / 6;
-    const x1 = hexR * Math.cos(angle);
-    const z1 = hexR * Math.sin(angle);
-    const x2 = hexR * Math.cos(nextAngle);
-    const z2 = hexR * Math.sin(nextAngle);
-    const midX = (x1 + x2) / 2;
-    const midZ = (z1 + z2) / 2;
+    const [x1, z1] = hexVerts[i];
+    const [x2, z2] = hexVerts[(i + 1) % 6];
     const edgeLen = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
     const edgeAngle = Math.atan2(z2 - z1, x2 - x1);
 
-    const channelGeo = new THREE.BoxGeometry(edgeLen * 0.85, channelDepth, channelWidth);
-    channelGeo.rotateY(-edgeAngle);
-    channelGeo.translate(midX * 0.92, tileT / 2, midZ * 0.92);
-    group.add(createWireframeMesh(channelGeo, 0x22cc88)); // green = LED channels
+    // Chamfer strip along the edge — a thin box angled inward
+    const chamferGeo = new THREE.BoxGeometry(edgeLen, chamferDrop, chamferInset);
+    const midX = (x1 + x2) / 2;
+    const midZ = (z1 + z2) / 2;
+    // Position at edge, offset inward slightly
+    const normX = -(z2 - z1) / edgeLen; // inward normal
+    const normZ = (x2 - x1) / edgeLen;
+    chamferGeo.rotateY(-edgeAngle);
+    chamferGeo.translate(
+      midX + normX * chamferInset * 0.3,
+      tileT - chamferDrop / 2,
+      midZ + normZ * chamferInset * 0.3,
+    );
+    group.add(createWireframeMesh(chamferGeo, 0x22cc88)); // green = LED chamfer zone
   }
 
   return group;
