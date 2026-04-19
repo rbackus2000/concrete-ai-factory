@@ -549,9 +549,16 @@ function generateChannelVesselGeometry(sku: SkuGeometryInput): THREE.Group {
 }
 
 /**
- * Tile mold — flat slab with optional surface texture indicators
+ * Tile mold — flat slab, hex, or textured form
  */
 function generateTileMoldGeometry(sku: SkuGeometryInput): THREE.Group {
+  const searchText = `${sku.name} ${sku.type} ${sku.code}`.toLowerCase();
+  const isHex = searchText.includes("hex") || searchText.includes("tectonic");
+
+  if (isHex) {
+    return generateHexTileMoldGeometry(sku);
+  }
+
   const group = new THREE.Group();
   const tileW = sku.outerLength * IN_TO_MM;
   const tileH = sku.outerWidth * IN_TO_MM;
@@ -582,6 +589,85 @@ function generateTileMoldGeometry(sku: SkuGeometryInput): THREE.Group {
       channel.translate(-tileW / 2 + spacing * i, tileT + channelDepth / 2, 0);
       group.add(createWireframeMesh(channel, 0xffaa00));
     }
+  }
+
+  return group;
+}
+
+/**
+ * Hexagonal tile mold — angular hex with varying depth facets and LED channel grooves
+ */
+function generateHexTileMoldGeometry(sku: SkuGeometryInput): THREE.Group {
+  const group = new THREE.Group();
+
+  // outerLength = point-to-point width, outerWidth = flat-to-flat height
+  const pointToPoint = sku.outerLength * IN_TO_MM;
+  const tileT = sku.outerHeight * IN_TO_MM;
+  const hexR = pointToPoint / 2; // circumradius (center to vertex)
+
+  // Create hex shape
+  const hexShape = new THREE.Shape();
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 6; // flat-top orientation
+    const x = hexR * Math.cos(angle);
+    const z = hexR * Math.sin(angle);
+    if (i === 0) hexShape.moveTo(x, z);
+    else hexShape.lineTo(x, z);
+  }
+  hexShape.closePath();
+
+  // Extrude hex to create the base tile
+  const hexGeo = new THREE.ExtrudeGeometry(hexShape, {
+    depth: tileT,
+    bevelEnabled: false,
+  });
+  hexGeo.rotateX(-Math.PI / 2);
+  group.add(createWireframeMesh(hexGeo, 0x888888));
+
+  // Add varying depth facets on top — split hex into angular sub-regions
+  const facetDepth = (sku.ribHeight > 0 ? sku.ribHeight : 0.5) * IN_TO_MM;
+  const facetCount = 5; // angular facet planes at different depths
+
+  for (let i = 0; i < facetCount; i++) {
+    const angle1 = (Math.PI / 3) * i - Math.PI / 6;
+    const angle2 = (Math.PI / 3) * (i + 1) - Math.PI / 6;
+    const innerR = hexR * 0.3;
+    const depth = facetDepth * (0.4 + Math.sin(i * 1.7) * 0.6); // varying heights
+
+    const facetShape = new THREE.Shape();
+    facetShape.moveTo(0, 0);
+    facetShape.lineTo(hexR * 0.95 * Math.cos(angle1), hexR * 0.95 * Math.sin(angle1));
+    facetShape.lineTo(hexR * 0.95 * Math.cos(angle2), hexR * 0.95 * Math.sin(angle2));
+    facetShape.closePath();
+
+    const facetGeo = new THREE.ExtrudeGeometry(facetShape, {
+      depth: depth,
+      bevelEnabled: false,
+    });
+    facetGeo.rotateX(-Math.PI / 2);
+    facetGeo.translate(0, tileT, 0);
+    group.add(createWireframeMesh(facetGeo, 0xffaa00));
+  }
+
+  // LED channel grooves at hex edges — thin recessed lines
+  const channelWidth = 3; // mm
+  const channelDepth = facetDepth * 0.6;
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 6;
+    const nextAngle = (Math.PI / 3) * (i + 1) - Math.PI / 6;
+    const x1 = hexR * Math.cos(angle);
+    const z1 = hexR * Math.sin(angle);
+    const x2 = hexR * Math.cos(nextAngle);
+    const z2 = hexR * Math.sin(nextAngle);
+    const midX = (x1 + x2) / 2;
+    const midZ = (z1 + z2) / 2;
+    const edgeLen = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
+    const edgeAngle = Math.atan2(z2 - z1, x2 - x1);
+
+    const channelGeo = new THREE.BoxGeometry(edgeLen * 0.85, channelDepth, channelWidth);
+    channelGeo.rotateY(-edgeAngle);
+    channelGeo.translate(midX * 0.92, tileT / 2, midZ * 0.92);
+    group.add(createWireframeMesh(channelGeo, 0x22cc88)); // green = LED channels
   }
 
   return group;
