@@ -55,15 +55,16 @@ const editableFields: Array<{
   name: keyof CalculatorRunValues;
   label: string;
   step: string;
+  prefix?: string;
 }> = [
   { name: "unitsToProduce", label: "Units", step: "1" },
   { name: "wasteFactor", label: "Waste Factor", step: "0.01" },
   { name: "pigmentIntensityPercent", label: "Pigment Intensity", step: "0.0001" },
   { name: "sealerCoats", label: "Sealer Coats", step: "1" },
   { name: "materialCostMultiplier", label: "Material Multiplier", step: "0.01" },
-  { name: "sealerCostPerGallon", label: "Sealer Cost / Gal", step: "0.01" },
-  { name: "laborCostPerUnit", label: "Labor / Unit", step: "0.01" },
-  { name: "overheadCostPerUnit", label: "Overhead / Unit", step: "0.01" },
+  { name: "sealerCostPerGallon", label: "Sealer Cost / Gal", step: "0.01", prefix: "$" },
+  { name: "laborCostPerUnit", label: "Labor / Unit", step: "0.01", prefix: "$" },
+  { name: "overheadCostPerUnit", label: "Overhead / Unit", step: "0.01", prefix: "$" },
 ];
 
 export function CalculatorForm({ skus, initialResult }: CalculatorFormProps) {
@@ -134,12 +135,27 @@ export function CalculatorForm({ skus, initialResult }: CalculatorFormProps) {
               {editableFields.map((field) => (
                 <div key={field.name} className="space-y-2">
                   <Label htmlFor={field.name}>{field.label}</Label>
-                  <Input
-                    id={field.name}
-                    step={field.step}
-                    type="number"
-                    {...form.register(field.name)}
-                  />
+                  {field.prefix ? (
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        {field.prefix}
+                      </span>
+                      <Input
+                        className="pl-7"
+                        id={field.name}
+                        step={field.step}
+                        type="number"
+                        {...form.register(field.name)}
+                      />
+                    </div>
+                  ) : (
+                    <Input
+                      id={field.name}
+                      step={field.step}
+                      type="number"
+                      {...form.register(field.name)}
+                    />
+                  )}
                 </div>
               ))}
             </div>

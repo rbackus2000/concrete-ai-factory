@@ -24,17 +24,21 @@ export function buildSolidMoldMesh(
     return buildTileSolidGeometry(sku);
   }
 
+  const searchText = `${sku.name} ${sku.type} ${sku.code}`.toLowerCase();
   const isRound =
     sku.outerLength === sku.outerWidth &&
     sku.innerLength === sku.innerWidth &&
     sku.category === "VESSEL_SINK";
+  const isSphere = isRound && (searchText.includes("sphere") || searchText.includes("semi-spherical") || searchText.includes("hemisphere"));
   const isOval =
     !isRound &&
     sku.category === "VESSEL_SINK" &&
     sku.type.toLowerCase().match(/oval|bowl/);
 
   let moldGeo: THREE.BufferGeometry;
-  if (isRound) {
+  if (isSphere) {
+    moldGeo = buildSphereMoldCSG(sku);
+  } else if (isRound) {
     moldGeo = buildRoundMoldCSG(sku);
   } else if (isOval) {
     moldGeo = buildOvalMoldCSG(sku);
@@ -150,6 +154,71 @@ function buildRoundMoldCSG(sku: MoldGeneratorSku): THREE.BufferGeometry {
   }
 
   // Subtract drain
+  if (sku.drainDiameter > 0) {
+    const drainR = (sku.drainDiameter * IN_TO_MM) / 2;
+    const drainGeo = new THREE.CylinderGeometry(drainR, drainR, MOLD_BASE_THICKNESS + 4, 24);
+    drainGeo.translate(0, MOLD_BASE_THICKNESS / 2, 0);
+    const drainBrush = new Brush(drainGeo, dummyMat);
+    result = evaluator.evaluate(result, drainBrush, SUBTRACTION);
+  }
+
+  return result.geometry;
+}
+
+// ── Sphere Mold CSG ────────────────────────────────────────────
+// Uses full SphereGeometry (closed solid) clipped to hemisphere via
+// CSG INTERSECTION — same watertight-primitive pattern as the round/rect builders.
+
+function buildSphereMoldCSG(sku: MoldGeneratorSku): THREE.BufferGeometry {
+  const evaluator = new Evaluator();
+  const dummyMat = new THREE.MeshBasicMaterial();
+
+  const outerR = (sku.outerLength * IN_TO_MM) / 2;
+  const innerR = (sku.innerLength * IN_TO_MM) / 2;
+  const productH = sku.outerHeight * IN_TO_MM;
+  const totalH = productH + MOLD_BASE_THICKNESS;
+  const innerD = sku.innerDepth * IN_TO_MM;
+
+  // 1. Full sphere (closed solid) scaled to match product height
+  const outerSphere = new THREE.SphereGeometry(outerR, 48, 24);
+  const yScale = productH / outerR;
+  outerSphere.scale(1, yScale, 1);
+  // Position sphere center at the base plate top so the top hemisphere rises above it
+  outerSphere.translate(0, MOLD_BASE_THICKNESS, 0);
+
+  // 2. Clipping box — keeps only the top hemisphere (Y >= base plate top)
+  const clipBox = new THREE.BoxGeometry(outerR * 3, totalH, outerR * 3);
+  clipBox.translate(0, MOLD_BASE_THICKNESS + totalH / 2, 0);
+
+  // Intersect sphere with clip box to get upper hemisphere
+  const sphereBrush = new Brush(outerSphere, dummyMat);
+  const clipBrush = new Brush(clipBox, dummyMat);
+  let hemi = evaluator.evaluate(sphereBrush, clipBrush, INTERSECTION);
+
+  // 3. Base plate cylinder — same pattern as buildRoundMoldCSG
+  const baseGeo = new THREE.CylinderGeometry(outerR, outerR, MOLD_BASE_THICKNESS, 48);
+  baseGeo.translate(0, MOLD_BASE_THICKNESS / 2, 0);
+  const baseBrush = new Brush(baseGeo, dummyMat);
+  let result = evaluator.evaluate(hemi, baseBrush, ADDITION);
+
+  // 4. Subtract inner hemisphere basin (same sphere+clip approach)
+  if (innerR > 0 && innerD > 0) {
+    const innerSphere = new THREE.SphereGeometry(innerR, 48, 24);
+    const innerYScale = innerD / innerR;
+    innerSphere.scale(1, innerYScale, 1);
+    innerSphere.translate(0, totalH - innerD, 0);
+
+    // Clip to upper hemisphere + extend above to punch through the top
+    const innerClip = new THREE.BoxGeometry(innerR * 3, innerD + 2, innerR * 3);
+    innerClip.translate(0, totalH - innerD / 2 + 0.5, 0);
+
+    const innerSphereBrush = new Brush(innerSphere, dummyMat);
+    const innerClipBrush = new Brush(innerClip, dummyMat);
+    const innerHemi = evaluator.evaluate(innerSphereBrush, innerClipBrush, INTERSECTION);
+    result = evaluator.evaluate(result, innerHemi, SUBTRACTION);
+  }
+
+  // 5. Subtract drain — identical to buildRoundMoldCSG
   if (sku.drainDiameter > 0) {
     const drainR = (sku.drainDiameter * IN_TO_MM) / 2;
     const drainGeo = new THREE.CylinderGeometry(drainR, drainR, MOLD_BASE_THICKNESS + 4, 24);
@@ -459,13 +528,14 @@ function buildBasinFloorInsert(
   iD: number,
 ): THREE.BufferGeometry | null {
   const searchText = `${sku.name} ${sku.type} ${sku.code}`.toLowerCase();
-  const isErosion = searchText.includes("erosion") || searchText.includes("carved");
+  const isStrata = searchText.includes("strata") || searchText.includes("topographic");
+  const isErosion = !isStrata && (searchText.includes("erosion") || searchText.includes("carved"));
   const isRamp = searchText.includes("ramp") || sku.slopeDirection.toLowerCase().includes("back");
   const isFacet = searchText.includes("facet");
   const domeRise = ((sku.domeRiseMin + sku.domeRiseMax) / 2) * IN_TO_MM;
-  const hasDome = domeRise > 0 && !isErosion && !isRamp && !isFacet;
+  const hasDome = domeRise > 0 && !isErosion && !isRamp && !isFacet && !isStrata;
 
-  if (!isErosion && !isRamp && !isFacet && !hasDome) return null;
+  if (!isErosion && !isStrata && !isRamp && !isFacet && !hasDome) return null;
 
   const segX = 24;
   const segZ = 18;
@@ -478,7 +548,24 @@ function buildBasinFloorInsert(
   // Generate height values for the top surface
   const heights: number[] = [];
 
-  if (isErosion) {
+  if (isStrata) {
+    // Strata basin — concentric stepped contour rings with asymmetric deep pool
+    const ringCount = 6;
+    const poolOffsetX = fL * 0.12;
+    const poolOffsetZ = fW * 0.08;
+    const maxRise = iD * 0.7;
+    for (let zi = 0; zi <= segZ; zi++) {
+      for (let xi = 0; xi <= segX; xi++) {
+        const x = (xi / segX - 0.5) * fL;
+        const z = (zi / segZ - 0.5) * fW;
+        const dx = (x - poolOffsetX) / (fL / 2);
+        const dz = (z - poolOffsetZ) / (fW / 2);
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const step = Math.floor(Math.min(dist, 1.0) * ringCount) / ringCount;
+        heights.push(Math.max(1, step * maxRise));
+      }
+    }
+  } else if (isErosion) {
     for (let zi = 0; zi <= segZ; zi++) {
       for (let xi = 0; xi <= segX; xi++) {
         const x = (xi / segX - 0.5) * fL;

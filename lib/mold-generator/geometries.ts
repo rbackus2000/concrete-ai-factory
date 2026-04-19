@@ -43,11 +43,16 @@ export function generateMoldGeometry(sku: SkuGeometryInput): THREE.Group {
     return generateTileMoldGeometry(sku);
   }
 
+  const searchText = `${sku.name} ${sku.type} ${sku.code}`.toLowerCase();
   const isRound = sku.outerLength === sku.outerWidth && sku.innerLength === sku.innerWidth && sku.category === "VESSEL_SINK";
+  const isSphere = isRound && (searchText.includes("sphere") || searchText.includes("semi-spherical") || searchText.includes("hemisphere"));
   const isOval = !isRound && sku.category === "VESSEL_SINK" && sku.type.toLowerCase().match(/oval|bowl/);
   const hasHorizontalRidges = sku.longRibCount >= 6 && sku.crossRibCount === 0;
   const hasVerticalChannels = sku.crossRibCount >= 8 && sku.longRibCount === 0;
 
+  if (isSphere) {
+    return generateSphereVesselGeometry(sku);
+  }
   if (isRound && hasHorizontalRidges) {
     return generateRidgeVesselGeometry(sku);
   }
@@ -96,7 +101,8 @@ function generateBasinInterior(
 ): THREE.Group {
   const basinGroup = new THREE.Group();
   const searchText = `${sku.name} ${sku.type} ${sku.code}`.toLowerCase();
-  const isErosion = searchText.includes("erosion") || searchText.includes("carved");
+  const isStrata = searchText.includes("strata") || searchText.includes("topographic");
+  const isErosion = !isStrata && (searchText.includes("erosion") || searchText.includes("carved"));
   const isRamp = searchText.includes("ramp") || sku.slopeDirection.toLowerCase().includes("back");
   const isFacet = searchText.includes("facet");
 
@@ -106,7 +112,60 @@ function generateBasinInterior(
   const domeRise = ((sku.domeRiseMin + sku.domeRiseMax) / 2) * IN_TO_MM;
   const slopeRad = (sku.basinSlopeDeg * Math.PI) / 180;
 
-  if (isErosion) {
+  if (isStrata) {
+    // Strata basin — concentric stepped contour rings with asymmetric deep pool
+    // Creates a topographic map effect with sharp elevation steps
+    const ringCount = 6; // number of discrete elevation layers
+    const floorGeo = new THREE.PlaneGeometry(iL, iW, 32, 24);
+    const pos = floorGeo.attributes.position;
+    // Offset the deepest point from center for asymmetric pooling
+    const poolOffsetX = iL * 0.12;
+    const poolOffsetZ = iW * 0.08;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const z = pos.getY(i); // PlaneGeometry Y maps to our Z
+      // Distance from offset pool center, normalized to basin edge
+      const dx = (x - poolOffsetX) / (iL / 2);
+      const dz = (z - poolOffsetZ) / (iW / 2);
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      // Quantize distance into discrete steps (sharp contour rings)
+      const step = Math.floor(Math.min(dist, 1.0) * ringCount) / ringCount;
+      // Height rises from center (step=0) toward edges (step=1)
+      const height = step * iD * 0.7;
+      pos.setZ(i, height);
+    }
+    floorGeo.computeVertexNormals();
+    floorGeo.rotateX(-Math.PI / 2);
+    floorGeo.translate(0, cavityTopY - iD + domeRise * 0.5, 0);
+    basinGroup.add(createWireframeMesh(floorGeo, 0x4a9eff));
+
+    // Contour ring indicators — visible concentric outlines at each step
+    for (let ring = 1; ring < ringCount; ring++) {
+      const ringDist = ring / ringCount;
+      const ringY = cavityTopY - iD + domeRise * 0.5 + ringDist * iD * 0.7;
+      const ringPoints: THREE.Vector3[] = [];
+      const segments = 48;
+      for (let s = 0; s <= segments; s++) {
+        const angle = (s / segments) * Math.PI * 2;
+        const rx = (iL / 2) * ringDist * Math.cos(angle) + poolOffsetX;
+        const rz = (iW / 2) * ringDist * Math.sin(angle) + poolOffsetZ;
+        // Clamp to basin bounds
+        const clampedX = Math.max(-iL / 2, Math.min(iL / 2, rx));
+        const clampedZ = Math.max(-iW / 2, Math.min(iW / 2, rz));
+        ringPoints.push(new THREE.Vector3(clampedX, ringY, clampedZ));
+      }
+      const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
+      basinGroup.add(new THREE.Line(ringGeo, new THREE.LineBasicMaterial({ color: 0x4a9eff })));
+    }
+
+    // Basin walls + rim
+    addBasinWalls(basinGroup, iL, iW, iD, cavityTopY, 0x4a9eff);
+    const rimGeo = new THREE.PlaneGeometry(iL, iW, 1, 1);
+    rimGeo.rotateX(-Math.PI / 2);
+    rimGeo.translate(0, cavityTopY, 0);
+    basinGroup.add(createWireframeMesh(rimGeo, 0x4a9eff));
+
+  } else if (isErosion) {
     // Organic erosion basin — undulating floor with sine-wave displacement
     const floorGeo = new THREE.PlaneGeometry(iL, iW, segX, segZ);
     const pos = floorGeo.attributes.position;
@@ -403,6 +462,55 @@ function generateRectangularMoldGeometry(sku: SkuGeometryInput): THREE.Group {
     overflowCyl.rotateX(Math.PI / 2);
     overflowCyl.translate(0, overflowY, rearWallZ);
     group.add(createWireframeMesh(overflowCyl, 0x22cc88));
+  }
+
+  return group;
+}
+
+/**
+ * Semi-spherical vessel (S13-SPHERE) — hemisphere outer shell + hemisphere basin
+ */
+function generateSphereVesselGeometry(sku: SkuGeometryInput): THREE.Group {
+  const group = new THREE.Group();
+  const outerR = (sku.outerLength * IN_TO_MM) / 2;
+  const innerR = (sku.innerLength * IN_TO_MM) / 2;
+  const totalH = sku.outerHeight * IN_TO_MM + MOLD_BASE_THICKNESS;
+  const innerD = sku.innerDepth * IN_TO_MM;
+  const productH = sku.outerHeight * IN_TO_MM;
+
+  // Outer hemisphere shell — SphereGeometry with phiStart/phiLength for clean wireframe
+  // phiStart=0, phiLength=π/2 gives the top hemisphere
+  const outerHemi = new THREE.SphereGeometry(outerR, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  // SphereGeometry top hemisphere: Y ranges from 0 (equator) to outerR (pole)
+  // Scale Y to match actual product height (may not be a perfect hemisphere)
+  const outerYScale = productH / outerR;
+  outerHemi.scale(1, outerYScale, 1);
+  // Position: equator sits on top of the base plate
+  outerHemi.translate(0, MOLD_BASE_THICKNESS, 0);
+  group.add(createWireframeMesh(outerHemi, 0x888888));
+
+  // Inner hemisphere basin cavity
+  if (innerR > 0 && innerD > 0) {
+    const innerHemi = new THREE.SphereGeometry(innerR, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+    const innerYScale = innerD / innerR;
+    innerHemi.scale(1, innerYScale, 1);
+    // Position: equator at basin top (rim level)
+    innerHemi.translate(0, totalH - innerD, 0);
+    group.add(createWireframeMesh(innerHemi, 0x4a9eff));
+
+    // Rim circle at the basin opening
+    const rimRing = new THREE.RingGeometry(innerR - 2, innerR + 2, 32);
+    rimRing.rotateX(-Math.PI / 2);
+    rimRing.translate(0, totalH, 0);
+    group.add(createWireframeMesh(rimRing, 0x4a9eff));
+  }
+
+  // Drain hole
+  if (sku.drainDiameter > 0) {
+    const drainR = (sku.drainDiameter * IN_TO_MM) / 2;
+    const drain = new THREE.CylinderGeometry(drainR, drainR, MOLD_BASE_THICKNESS + 2, 16);
+    drain.translate(0, MOLD_BASE_THICKNESS / 2, 0);
+    group.add(createWireframeMesh(drain, 0xff4444));
   }
 
   return group;

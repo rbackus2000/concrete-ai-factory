@@ -90,6 +90,7 @@ function parseCalculatorDefaults(value: Prisma.JsonValue | null | undefined) {
     autoBatchSizeLbs: Number(record["autoBatchSizeLbs"] ?? 0),
     scaleFactor: Number(record["scaleFactor"] ?? 0),
     pigmentGrams: Number(record["pigmentGrams"] ?? 0),
+    overheadCostPerUnit: Number(record["overheadCostPerUnit"] ?? 0),
   };
 }
 

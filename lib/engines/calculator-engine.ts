@@ -16,7 +16,21 @@ export type MaterialRecord = {
   notes: string;
 };
 
-type CalculatorDefaults = Sku["calculatorDefaults"];
+type CalculatorDefaults = {
+  batchSizeLbs: number;
+  mixType: string;
+  waterLbs: number;
+  plasticizerGrams: number;
+  fiberPercent: number;
+  colorIntensityPercent: number;
+  unitsToProduce: number;
+  weightPerUnitLbs: number;
+  wasteFactor: number;
+  autoBatchSizeLbs: number;
+  scaleFactor: number;
+  pigmentGrams: number;
+  overheadCostPerUnit?: number;
+};
 
 export type CalculatorOverrides = Pick<
   CalculatorRunValues,
@@ -147,7 +161,7 @@ export function buildCalculatorDefaultsForSku({
     materialCostMultiplier: 1,
     sealerCostPerGallon: sealerMaterial?.unitCost ?? 0,
     laborCostPerUnit,
-    overheadCostPerUnit: 0,
+    overheadCostPerUnit: defaults.overheadCostPerUnit ?? 0,
     marginPercent: 0,
   };
 }
@@ -259,6 +273,8 @@ export function runCalculatorEngine({
           { label: "Material cost", value: `$${materialCost.toFixed(2)}` },
           { label: "Packaging + inserts", value: `$${round(packagingCost, 2).toFixed(2)}` },
           { label: "Sealer cost", value: `$${sealerCost.toFixed(2)}` },
+          { label: "Labor cost", value: `$${laborCost.toFixed(2)}` },
+          { label: "Overhead cost", value: `$${overheadCost.toFixed(2)}` },
           { label: "Cost / unit", value: `$${costPerUnit.toFixed(2)}` },
           ...(marginPercent > 0 ? [{ label: `Client price (${marginPercent}% margin)`, value: `$${clientPrice.toFixed(2)}` }] : []),
         ],

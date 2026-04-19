@@ -179,10 +179,9 @@ export function calculateSectionPlan(dims: MoldDimensions): SectionPlan {
     height: Math.round(heightMm),
   };
 
-  // 10mm tolerance: parts barely over 400mm can usually fit with minor bed adjustment
-  const TOLERANCE = 10;
-  const buildX = BUILD_VOLUME_MM.x + TOLERANCE;
-  const buildY = BUILD_VOLUME_MM.y + TOLERANCE;
+  // No tolerance — if it exceeds 400mm, it must be split
+  const buildX = BUILD_VOLUME_MM.x;
+  const buildY = BUILD_VOLUME_MM.y;
   const buildZ = BUILD_VOLUME_MM.z;
 
   // Tiles/panels: solid forms, use tile slicing settings

@@ -52,6 +52,7 @@ export type CalculatorDefaults = {
   autoBatchSizeLbs: number;
   scaleFactor: number;
   pigmentGrams: number;
+  overheadCostPerUnit?: number;
 };
 
 export type MaterialSeed = ScopedSeed & {
@@ -1626,6 +1627,62 @@ export const starterSkus: SeedSku[] = [
       scaleFactor: 2.6,
       pigmentGrams: 380,
       fiberPercent: 0.02,
+    },
+  },
+  // ── SPHERE (minimalist semi-spherical vessel) ──────────────────
+  {
+    code: "S13-SPHERE",
+    name: "Sphere Vessel Bowl",
+    slug: "s13-sphere",
+    category: "VESSEL_SINK" as const,
+    status: "ACTIVE" as const,
+    type: "GFRC Semi-Spherical Vessel Bowl",
+    finish: "Matte Charcoal",
+    summary:
+      "Minimalist semi-spherical vessel bowl sink. Perfectly symmetrical hemisphere form with smooth velvety matte interior and uniformly thin rim. Sits directly on countertop — no cutout required. Centered circular slot drain at basin bottom. Clean sculptural profile references a carved stone bowl. Dark charcoal gray finish. Designed for countertop vessel mount on reclaimed wood or stone vanity tops.",
+    targetWeight: { min: 12, max: 18 },
+    outerLength: 16,
+    outerWidth: 16,
+    outerHeight: 6,
+    innerLength: 14.5,
+    innerWidth: 14.5,
+    innerDepth: 5.5,
+    wallThickness: 0.4,
+    bottomThickness: 0.5,
+    topLipThickness: 0.5,
+    hollowCoreDepth: 0,
+    domeRiseMin: 0,
+    domeRiseMax: 0,
+    longRibCount: 0,
+    crossRibCount: 0,
+    ribWidth: 0,
+    ribHeight: 0,
+    drainDiameter: 1.75,
+    drainType: "Round",
+    basinSlopeDeg: 0,
+    slopeDirection: "Center",
+    mountType: "VESSEL_TOP_MOUNT",
+    hasOverflow: false,
+    overflowHoleDiameter: 0,
+    overflowPosition: "",
+    bracketSpec: null,
+    reinforcementDiameter: 0,
+    reinforcementThickness: 0,
+    draftAngle: 3,
+    cornerRadius: 0,
+    fiberPercent: 0.025,
+    datumSystem: [
+      { name: "Datum A", description: "Bottom plane — flat base ring that contacts the countertop surface." },
+      { name: "Datum B", description: "Center axis — vertical center of the hemisphere and drain." },
+      { name: "Datum C", description: "Center axis — perpendicular to B, both pass through drain center." },
+    ],
+    calculatorDefaults: {
+      ...starterCalculatorDefaults,
+      batchSizeLbs: 25,
+      weightPerUnitLbs: 15,
+      autoBatchSizeLbs: 33,
+      scaleFactor: 0.6,
+      pigmentGrams: 300,
     },
   },
 ];
