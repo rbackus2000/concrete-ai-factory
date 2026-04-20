@@ -22,3 +22,5 @@ output/
 Gemini_Generated_Image_*
 S1-EROSION*
 SW-01*.png
+
+.buildtrace-config.json
