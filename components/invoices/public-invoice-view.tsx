@@ -32,6 +32,7 @@ type InvoiceData = {
   contactEmail: string;
   contactPhone: string | null;
   companyName: string | null;
+  clientNumber: string | null;
   billingAddress: string | null;
   customerNote: string | null;
   subtotal: number;
@@ -131,6 +132,9 @@ export function PublicInvoiceView({ invoice, justPaid }: { invoice: InvoiceData;
             <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Bill To</p>
             <p className="font-semibold text-foreground">{invoice.contactName}</p>
             {invoice.companyName && <p className="text-sm text-muted-foreground">{invoice.companyName}</p>}
+            {invoice.clientNumber && (
+              <p className="font-mono text-xs" style={{ color: "#c8a96e" }}>Client: RB-{invoice.clientNumber}</p>
+            )}
             {invoice.contactEmail && <p className="text-sm text-muted-foreground">{invoice.contactEmail}</p>}
             {invoice.billingAddress && <p className="mt-1 text-sm text-muted-foreground">{invoice.billingAddress}</p>}
           </div>

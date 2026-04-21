@@ -20,6 +20,7 @@ export default async function PublicInvoicePage({
 
   const serialized = {
     ...invoice,
+    clientNumber: invoice.contact?.clientNumber ?? null,
     issuedAt: invoice.issuedAt.toISOString(),
     dueDate: invoice.dueDate.toISOString(),
     paidAt: invoice.paidAt?.toISOString() ?? null,

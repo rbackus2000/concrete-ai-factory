@@ -6,11 +6,57 @@ import type { OrderCreateValues, OrderStatusType } from "@/lib/schemas/order";
 
 // ── Generate Order Number ───────────────────────────────────
 
-async function generateOrderNumber(): Promise<string> {
+async function generateOrderNumber(contactId: string | null): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.order.count();
-  const seq = String(count + 1).padStart(4, "0");
-  return `RB-ORD-${year}-${seq}`;
+  if (!contactId) {
+    const count = await prisma.order.count({ where: { contactId: null } });
+    return `RB-ORD-${year}-C0000-${String(count + 1).padStart(4, "0")}`;
+  }
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { clientNumber: true },
+  });
+  const clientNum = contact?.clientNumber ?? "C0000";
+  const perClientCount = await prisma.order.count({ where: { contactId } });
+  return `RB-ORD-${year}-${clientNum}-${String(perClientCount + 1).padStart(4, "0")}`;
+}
+
+// ── Generate Project Number ────────────────────────────────
+
+async function generateProjectNumber(contactId: string | null): Promise<string> {
+  const year = new Date().getFullYear();
+  if (!contactId) {
+    const count = await prisma.order.count({ where: { contactId: null, projectNumber: { not: null } } });
+    return `RB-PRJ-${year}-C0000-${String(count + 1).padStart(4, "0")}`;
+  }
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { clientNumber: true },
+  });
+  const clientNum = contact?.clientNumber ?? "C0000";
+  const perClientCount = await prisma.order.count({ where: { contactId, projectNumber: { not: null } } });
+  return `RB-PRJ-${year}-${clientNum}-${String(perClientCount + 1).padStart(4, "0")}`;
+}
+
+// ── Generate Return Number ─────────────────────────────────
+
+export async function generateReturnNumber(contactId: string | null): Promise<string> {
+  const year = new Date().getFullYear();
+  if (!contactId) {
+    const count = await prisma.orderReturn.count({
+      where: { order: { contactId: null } },
+    });
+    return `RB-RTN-${year}-C0000-${String(count + 1).padStart(4, "0")}`;
+  }
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { clientNumber: true },
+  });
+  const clientNum = contact?.clientNumber ?? "C0000";
+  const perClientCount = await prisma.orderReturn.count({
+    where: { order: { contactId } },
+  });
+  return `RB-RTN-${year}-${clientNum}-${String(perClientCount + 1).padStart(4, "0")}`;
 }
 
 // ── List Orders ─────────────────────────────────────────────
@@ -39,7 +85,7 @@ export async function listOrders(filters?: {
   return prisma.order.findMany({
     where,
     include: {
-      contact: { select: { id: true, name: true, company: true } },
+      contact: { select: { id: true, name: true, company: true, clientNumber: true } },
       invoice: { select: { id: true, invoiceNumber: true } },
       lineItems: { orderBy: { sortOrder: "asc" } },
       _count: { select: { lineItems: true, trackingEvents: true } },
@@ -54,7 +100,7 @@ export async function getOrder(id: string) {
   return prisma.order.findUnique({
     where: { id },
     include: {
-      contact: { select: { id: true, name: true, company: true, email: true, phone: true } },
+      contact: { select: { id: true, name: true, company: true, email: true, phone: true, clientNumber: true } },
       invoice: { select: { id: true, invoiceNumber: true, total: true } },
       quote: { select: { id: true, quoteNumber: true } },
       lineItems: { orderBy: { sortOrder: "asc" } },
@@ -68,11 +114,14 @@ export async function getOrder(id: string) {
 // ── Create Order ────────────────────────────────────────────
 
 export async function createOrder(values: OrderCreateValues, actor: ActionActor) {
-  const orderNumber = await generateOrderNumber();
+  const cid = values.contactId || null;
+  const orderNumber = await generateOrderNumber(cid);
+  const projectNumber = await generateProjectNumber(cid);
 
   const order = await prisma.order.create({
     data: {
       orderNumber,
+      projectNumber,
       invoiceId: values.invoiceId || null,
       quoteId: values.quoteId || null,
       contactId: values.contactId || null,
@@ -613,8 +662,15 @@ export async function createReturn(
   reason: string,
   notes?: string,
 ) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { contactId: true },
+  });
+  const returnNumber = await generateReturnNumber(order?.contactId ?? null);
+
   const ret = await prisma.orderReturn.create({
     data: {
+      returnNumber,
       orderId,
       reason,
       notes: notes || null,

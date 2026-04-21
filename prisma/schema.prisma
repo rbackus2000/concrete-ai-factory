@@ -817,6 +817,7 @@ enum ActivityType {
 
 model Contact {
   id           String    @id @default(cuid())
+  clientNumber String?   @unique
   name         String
   email        String    @unique
   phone        String?
@@ -1357,6 +1358,7 @@ enum OrderStatus {
 model Order {
   id                  String      @id @default(cuid())
   orderNumber         String      @unique
+  projectNumber       String?
   status              OrderStatus @default(PENDING)
 
   // Source documents
@@ -1488,6 +1490,7 @@ model TrackingEvent {
 
 model OrderReturn {
   id               String   @id @default(cuid())
+  returnNumber     String?  @unique
   orderId          String
   order            Order    @relation(fields: [orderId], references: [id])
   reason           String

@@ -102,6 +102,7 @@ type ContactEmailLog = {
 
 type ContactDetail = {
   id: string;
+  clientNumber: string | null;
   name: string;
   email: string;
   phone: string | null;
@@ -307,6 +308,18 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{contact.name}</h1>
+            {contact.clientNumber && (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`RB-${contact.clientNumber}`);
+                }}
+                title="Click to copy"
+                className="rounded border px-2 py-0.5 font-mono text-sm font-bold tracking-wide"
+                style={{ color: "#c8a96e", borderColor: "#c8a96e40" }}
+              >
+                RB-{contact.clientNumber}
+              </button>
+            )}
             <ContactStageBadge stage={contact.stage as LeadStageType} />
             {contact.isUnsubscribed && (
               <Badge variant="destructive">Unsubscribed</Badge>

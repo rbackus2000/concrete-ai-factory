@@ -14,11 +14,19 @@ import { addActivity, recalcContactStats } from "./contact-service";
 
 // ── Invoice Number Generation ───────────────────────────────
 
-async function generateInvoiceNumber(): Promise<string> {
+async function generateInvoiceNumber(contactId: string | null): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.invoice.count();
-  const seq = String(count + 1).padStart(4, "0");
-  return `RB-INV-${year}-${seq}`;
+  if (!contactId) {
+    const count = await prisma.invoice.count({ where: { contactId: null } });
+    return `RB-INV-${year}-C0000-${String(count + 1).padStart(4, "0")}`;
+  }
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { clientNumber: true },
+  });
+  const clientNum = contact?.clientNumber ?? "C0000";
+  const perClientCount = await prisma.invoice.count({ where: { contactId } });
+  return `RB-INV-${year}-${clientNum}-${String(perClientCount + 1).padStart(4, "0")}`;
 }
 
 // ── List Invoices ───────────────────────────────────────────
@@ -46,6 +54,7 @@ export async function listInvoices(filters?: {
   return prisma.invoice.findMany({
     where,
     include: {
+      contact: { select: { clientNumber: true } },
       _count: { select: { lineItems: true, payments: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -74,6 +83,7 @@ export async function getInvoiceByToken(token: string) {
   return prisma.invoice.findUnique({
     where: { publicToken: token },
     include: {
+      contact: { select: { clientNumber: true } },
       lineItems: { orderBy: { sortOrder: "asc" } },
       payments: {
         where: { status: "SUCCEEDED" },
@@ -89,7 +99,7 @@ export async function createInvoice(
   values: InvoiceCreateValues,
   actor: ActionActor,
 ) {
-  const invoiceNumber = await generateInvoiceNumber();
+  const invoiceNumber = await generateInvoiceNumber(values.contactId || null);
   const amountDue = values.total;
 
   const invoice = await prisma.invoice.create({
@@ -179,7 +189,7 @@ export async function createInvoiceFromQuote(
   const existing = await prisma.invoice.findUnique({ where: { quoteId } });
   if (existing) throw new Error("Invoice already exists for this quote");
 
-  const invoiceNumber = await generateInvoiceNumber();
+  const invoiceNumber = await generateInvoiceNumber(quote.contactId);
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
 

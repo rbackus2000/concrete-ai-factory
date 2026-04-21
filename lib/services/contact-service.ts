@@ -101,8 +101,12 @@ export async function createContact(
   values: ContactFormValues,
   actor: ActionActor,
 ) {
+  const count = await prisma.contact.count();
+  const clientNumber = `C${String(count + 1).padStart(4, "0")}`;
+
   const contact = await prisma.contact.create({
     data: {
+      clientNumber,
       name: values.name,
       email: values.email,
       phone: values.phone || null,

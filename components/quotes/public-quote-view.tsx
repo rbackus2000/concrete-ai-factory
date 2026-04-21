@@ -33,6 +33,7 @@ type PublicQuote = {
   status: string;
   contactName: string;
   companyName: string | null;
+  clientNumber: string | null;
   customerMessage: string | null;
   terms: string | null;
   validUntil: string | null;
@@ -258,6 +259,9 @@ export function PublicQuoteView({ quote }: { quote: PublicQuote }) {
           </h1>
           {quote.companyName && (
             <p className="text-muted-foreground">{quote.companyName}</p>
+          )}
+          {quote.clientNumber && (
+            <p className="font-mono text-xs" style={{ color: "#c8a96e" }}>Client: RB-{quote.clientNumber}</p>
           )}
           {quote.validUntil && (
             <p className="mt-1 text-sm text-muted-foreground">

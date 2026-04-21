@@ -21,6 +21,7 @@ export default async function PublicQuotePage({
     status: quote.status,
     contactName: quote.contactName,
     companyName: quote.companyName,
+    clientNumber: quote.contact?.clientNumber ?? null,
     customerMessage: quote.customerMessage,
     terms: quote.terms,
     validUntil: quote.validUntil?.toISOString() ?? null,

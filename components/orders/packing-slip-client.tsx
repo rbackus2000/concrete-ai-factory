@@ -20,7 +20,7 @@ type PackingSlipOrder = {
   shipToZip: string | null;
   productionNotes: string | null;
   packingNotes: string | null;
-  contact: { name: string } | null;
+  contact: { name: string; clientNumber?: string } | null;
   lineItems: Array<{
     id: string;
     name: string;
@@ -88,6 +88,9 @@ export function PackingSlipClient({ order }: { order: PackingSlipOrder }) {
           </div>
           <div className="text-right">
             <p className="text-lg font-bold">ORDER {order.orderNumber}</p>
+            {order.contact?.clientNumber && (
+              <p className="font-mono text-xs" style={{ color: "#c8a96e" }}>Client: RB-{order.contact.clientNumber}</p>
+            )}
             <p className="text-sm text-gray-600">{fmtDate(order.createdAt)}</p>
             <div className="mt-2">
               <svg ref={barcodeRef} />

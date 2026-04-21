@@ -72,6 +72,7 @@ export default async function QuotesPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Quote #</TableHead>
+                  <TableHead className="text-xs">Client</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Total</TableHead>
@@ -91,6 +92,11 @@ export default async function QuotesPage({
                       >
                         {quote.quoteNumber}
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-xs" style={{ color: "#c8a96e" }}>
+                        {quote.contact?.clientNumber ? `RB-${quote.contact.clientNumber}` : "—"}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{quote.contactName}</div>

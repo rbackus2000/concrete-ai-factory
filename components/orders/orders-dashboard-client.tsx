@@ -28,7 +28,7 @@ type OrderRow = {
   labelUrl: string | null;
   weightLbs: number | null;
   weightOz: number | null;
-  contact: { id: string; name: string; company: string | null } | null;
+  contact: { id: string; name: string; company: string | null; clientNumber: string | null } | null;
   lineItems: Array<{
     id: string;
     name: string;
@@ -222,6 +222,7 @@ export function OrdersDashboardClient({
                 </TableHead>
                 <TableHead className="w-8" />
                 <TableHead>Order #</TableHead>
+                <TableHead className="text-xs">Client</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Items</TableHead>
@@ -235,7 +236,7 @@ export function OrdersDashboardClient({
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={12} className="py-8 text-center text-muted-foreground">
                     No orders found.
                   </TableCell>
                 </TableRow>
@@ -266,6 +267,11 @@ export function OrdersDashboardClient({
                         <Link href={`/orders/${order.id}`} className="font-medium text-primary underline-offset-4 hover:underline">
                           {order.orderNumber}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-xs" style={{ color: "#c8a96e" }}>
+                          {order.contact?.clientNumber ? `RB-${order.contact.clientNumber}` : "—"}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <div>
@@ -313,7 +319,7 @@ export function OrdersDashboardClient({
                     </TableRow>
                     {isExpanded && (
                       <TableRow key={`${order.id}-expand`} className="bg-secondary/30">
-                        <TableCell colSpan={11} className="py-2">
+                        <TableCell colSpan={12} className="py-2">
                           <div className="flex flex-wrap gap-3 pl-10">
                             {order.lineItems.map((li) => (
                               <div key={li.id} className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">

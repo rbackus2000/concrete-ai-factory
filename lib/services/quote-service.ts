@@ -9,11 +9,19 @@ import { addActivity, recalcContactStats } from "./contact-service";
 
 // ── Quote Number Generation ──────────────────────────────────
 
-async function generateQuoteNumber(): Promise<string> {
+async function generateQuoteNumber(contactId: string | null): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.quote.count();
-  const seq = String(count + 1).padStart(4, "0");
-  return `RB-${year}-${seq}`;
+  if (!contactId) {
+    const count = await prisma.quote.count({ where: { contactId: null } });
+    return `RB-QT-${year}-C0000-${String(count + 1).padStart(4, "0")}`;
+  }
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { clientNumber: true },
+  });
+  const clientNum = contact?.clientNumber ?? "C0000";
+  const perClientCount = await prisma.quote.count({ where: { contactId } });
+  return `RB-QT-${year}-${clientNum}-${String(perClientCount + 1).padStart(4, "0")}`;
 }
 
 // ── List Quotes ──────────────────────────────────────────────
@@ -41,6 +49,7 @@ export async function listQuotes(filters?: {
   return prisma.quote.findMany({
     where,
     include: {
+      contact: { select: { clientNumber: true } },
       lineItems: { orderBy: { sortOrder: "asc" } },
       _count: { select: { lineItems: true } },
       invoice: { select: { id: true, invoiceNumber: true, status: true } },
@@ -67,6 +76,7 @@ export async function getQuoteByToken(token: string) {
   return prisma.quote.findUnique({
     where: { publicToken: token },
     include: {
+      contact: { select: { clientNumber: true } },
       lineItems: { orderBy: { sortOrder: "asc" } },
     },
   });
@@ -78,7 +88,7 @@ export async function createQuote(
   values: QuoteFormValues & { contactId?: string },
   actor: ActionActor,
 ) {
-  const quoteNumber = await generateQuoteNumber();
+  const quoteNumber = await generateQuoteNumber(values.contactId || null);
 
   const quote = await prisma.quote.create({
     data: {
@@ -482,7 +492,7 @@ export async function duplicateQuote(id: string, actor: ActionActor) {
 
   if (!original) throw new Error("Quote not found");
 
-  const quoteNumber = await generateQuoteNumber();
+  const quoteNumber = await generateQuoteNumber(original.contactId);
 
   const duplicate = await prisma.quote.create({
     data: {

@@ -109,6 +109,7 @@ export default async function InvoicesPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Invoice #</TableHead>
+                  <TableHead className="text-xs">Client</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Issued</TableHead>
@@ -130,6 +131,11 @@ export default async function InvoicesPage({
                         <Link className="text-primary underline-offset-4 hover:underline" href={`/invoices/${inv.id}`}>
                           {inv.invoiceNumber}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-xs" style={{ color: "#c8a96e" }}>
+                          {inv.contact?.clientNumber ? `RB-${inv.contact.clientNumber}` : "—"}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <div className="font-medium">{inv.contactName}</div>
