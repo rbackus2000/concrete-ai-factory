@@ -33,6 +33,7 @@ export default async function SkuDetailPage({ params }: SkuDetailPageProps) {
           eyebrow="SKU Detail"
           title={`${sku.code} overview`}
           description="Edit the SKU definition directly against Prisma, then review the scoped materials, rules, and QC records supporting production."
+          helpKey="skus-detail"
         />
         <Link href={`/calculator?sku=${sku.code}`}>
           <Button variant="outline">Open in Calculator</Button>

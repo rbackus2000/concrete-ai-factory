@@ -14,6 +14,7 @@ export default async function GeneratorPage() {
         eyebrow="Generator"
         title="Prompt generation workspace"
         description="Generate and persist prompt, packet, and calculation outputs from live Prisma-backed SKU and template data."
+        helpKey="generator"
       />
       {config.skus.length > 0 ? (
         <GeneratorForm

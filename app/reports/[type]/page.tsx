@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download } from "lucide-react";
+import { HelpButton } from "@/components/app-shell/help-button";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,6 +106,7 @@ export default function ReportViewerPage() {
           <h1 className="text-xl font-bold">{REPORT_NAMES[reportType] ?? reportType}</h1>
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} rows</p>
         </div>
+        <HelpButton helpKey="reports-viewer" />
       </div>
 
       <Card>

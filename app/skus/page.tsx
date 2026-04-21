@@ -27,6 +27,7 @@ export default async function SkusPage() {
           eyebrow="SKU Library"
           title="SKU master list"
           description="Prisma-backed SKU records ready for richer CRUD, approvals, costing, and production planning."
+          helpKey="skus"
         />
         <Link href="/skus/new"><Button>Create SKU</Button></Link>
       </div>

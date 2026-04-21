@@ -20,6 +20,7 @@ export default async function CalculatorPage({ searchParams }: CalculatorPagePro
           eyebrow="Calculator"
           title="Mix, pigment, sealer, and costing workspace"
           description="Run the calculator engine from real SKU defaults and live material baselines, then override the working assumptions as needed."
+          helpKey="calculator"
         />
         <StateCard
           title="Calculator workspace unavailable"
@@ -35,6 +36,7 @@ export default async function CalculatorPage({ searchParams }: CalculatorPagePro
         eyebrow="Calculator"
         title="Mix, pigment, sealer, and costing workspace"
         description="Run the calculator engine from real SKU defaults and live material baselines, then override the working assumptions as needed."
+        helpKey="calculator"
       />
       <CalculatorForm initialResult={calculator.initialResult} skus={calculator.skus} />
     </div>

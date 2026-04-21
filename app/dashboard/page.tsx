@@ -8,6 +8,7 @@ import { TopCustomersCard } from "@/components/dashboard/top-customers";
 import { AIBriefingCard } from "@/components/dashboard/ai-briefing";
 import { ProductionQueueCard } from "@/components/dashboard/production-queue";
 import { InventoryHealthCard } from "@/components/dashboard/inventory-health";
+import { HelpButton } from "@/components/app-shell/help-button";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Good morning, Robert.</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{today} &middot; RB Studio OS</p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Good morning, Robert.</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{today} &middot; RB Studio OS</p>
+        </div>
+        <HelpButton helpKey="dashboard" />
       </header>
 
       {/* ROW 1 — KPI Cards */}

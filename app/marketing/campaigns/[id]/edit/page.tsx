@@ -25,6 +25,7 @@ export default async function EditCampaignPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        helpKey="campaigns-edit"
         eyebrow="Marketing"
         title={`Edit: ${campaign.name}`}
         description="Modify campaign settings and content."

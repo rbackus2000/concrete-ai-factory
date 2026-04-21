@@ -23,6 +23,7 @@ export default async function QcTemplateDetailPage({ params }: QcTemplateDetailP
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-qc-templates-form"
         eyebrow="Admin"
         title={editor.record.name}
         description="Edit QC checklist content, scope, and status directly against Prisma."

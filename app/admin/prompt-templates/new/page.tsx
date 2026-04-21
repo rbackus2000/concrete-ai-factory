@@ -10,6 +10,7 @@ export default async function NewPromptTemplatePage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-prompt-templates-form"
         eyebrow="Admin"
         title="New prompt template"
         description="Create a scoped prompt template record with status control and versioning."

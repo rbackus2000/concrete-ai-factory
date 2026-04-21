@@ -12,6 +12,7 @@ export default async function NewContactPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="contacts-new"
           eyebrow="CRM"
           title="New contact"
           description="Add a new contact to your CRM pipeline."

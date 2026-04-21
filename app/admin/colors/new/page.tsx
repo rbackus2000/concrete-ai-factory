@@ -9,7 +9,7 @@ export default async function NewColorPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Admin" title="New color" description="Add a color to an RB Studio collection." />
+      <PageHeader helpKey="admin-colors-form" eyebrow="Admin" title="New color" description="Add a color to an RB Studio collection." />
       <ProductColorForm
         mode="create"
         collectionOptions={editor.collectionOptions}

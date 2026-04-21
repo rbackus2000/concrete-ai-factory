@@ -16,6 +16,7 @@ export default async function ReorderPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="inventory-reorder"
           eyebrow="Operations"
           title="Reorder Report"
           description="Raw materials at or below reorder point, grouped by vendor."

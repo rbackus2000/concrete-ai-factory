@@ -25,6 +25,7 @@ export default async function PacketsPage() {
         eyebrow="Packets"
         title="Build packet previews"
         description="Select a SKU to preview the assembled build packet from templates, rules, and QC gates."
+        helpKey="packets"
       />
 
       {skus.length > 0 ? (

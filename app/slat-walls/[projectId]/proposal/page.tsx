@@ -35,6 +35,7 @@ export default async function ProjectProposalPage({ params }: Props) {
         eyebrow="Slat Walls"
         title={`${project.code} - Generate Proposal`}
         description="Build a premium 16-page PDF proposal for this project's slat wall installation."
+        helpKey="slat-walls-proposal"
       />
       <ProposalGeneratorForm
         nextProposalNumber={nextNumber}

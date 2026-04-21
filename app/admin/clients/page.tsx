@@ -13,7 +13,7 @@ export default async function ClientsPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <PageHeader eyebrow="Admin" title="Clients" description="Manage client contacts and project associations." />
+        <PageHeader helpKey="admin-clients" eyebrow="Admin" title="Clients" description="Manage client contacts and project associations." />
         <Link href="/admin/clients/new"><Button>Add Client</Button></Link>
       </div>
       <Table>

@@ -26,6 +26,7 @@ export default async function NewPurchaseOrderPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="purchase-orders-new"
           eyebrow="Operations"
           title="New Purchase Order"
           description="Create a purchase order for raw materials from a vendor."

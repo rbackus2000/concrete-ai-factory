@@ -23,6 +23,7 @@ export default async function EditContactPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="contacts-edit"
           eyebrow="CRM"
           title={`Edit ${contact.name}`}
           description="Update contact information."

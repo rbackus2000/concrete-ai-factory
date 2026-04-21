@@ -40,6 +40,7 @@ export default async function NewOrderPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        helpKey="orders-new"
         eyebrow="Orders"
         title="New Order"
         description="Create a new order manually"

@@ -27,6 +27,7 @@ export default async function MarketingDashboardPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="marketing"
           eyebrow="Marketing"
           title="Marketing & Automation"
           description="Email sequences, campaigns, and follow-up automation."

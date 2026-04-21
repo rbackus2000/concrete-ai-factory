@@ -32,6 +32,7 @@ export default async function JobsPage() {
           eyebrow="Jobs"
           title="Job Tracking"
           description="Track production jobs from quote to delivery."
+          helpKey="jobs"
         />
         <Link href="/jobs/new">
           <Button>Create Job</Button>

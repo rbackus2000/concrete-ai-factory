@@ -87,6 +87,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin"
         eyebrow="Admin"
         title="Core system records"
         description="Internal CRUD for templates and control records that drive generation, packet assembly, and future export."

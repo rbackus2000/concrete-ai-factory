@@ -15,7 +15,7 @@ export default async function EditFinishPage({ params }: Props) {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Admin / Finishes" title={`Edit ${finish.code}`} description={finish.name} />
+      <PageHeader helpKey="admin-finishes-form" eyebrow="Admin / Finishes" title={`Edit ${finish.code}`} description={finish.name} />
       <FinishForm
         mode="edit"
         finishId={finish.id}

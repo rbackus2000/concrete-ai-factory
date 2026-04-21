@@ -74,6 +74,7 @@ export default function ReportsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="reports"
         eyebrow="Reports"
         title="Reports Center"
         description="Pre-built reports across all business functions. Run, export, or schedule any report."

@@ -43,6 +43,7 @@ export default async function InventoryPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="inventory"
           eyebrow="Operations"
           title="Inventory"
           description="Track finished products and raw materials. Scan barcodes, manage stock levels, and reorder."

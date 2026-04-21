@@ -30,6 +30,7 @@ export default async function PipelinePage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="pipeline"
         eyebrow="CRM"
         title="Pipeline"
         description={`${totalContacts} contacts — $${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total pipeline value. Drag contacts between stages.`}

@@ -74,6 +74,7 @@ export default async function InvoiceDetailPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="invoices-detail"
           eyebrow="Invoicing"
           title={invoice.invoiceNumber}
           description={`${invoice.contactName}${invoice.companyName ? ` — ${invoice.companyName}` : ""}`}

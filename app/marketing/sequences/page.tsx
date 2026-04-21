@@ -27,6 +27,7 @@ export default async function SequencesListPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="sequences"
           eyebrow="Marketing"
           title="Email Sequences"
           description="Automated email sequences triggered by customer actions."

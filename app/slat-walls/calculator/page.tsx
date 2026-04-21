@@ -10,6 +10,7 @@ export default function SlatWallCalculatorPage() {
         eyebrow="Slat Walls"
         title="Slat Wall Cost Calculator"
         description="Estimate materials, labor, print, and total client pricing for rotating slat wall installations."
+        helpKey="slat-walls-calculator"
       />
       <SlatWallCalculator />
     </div>

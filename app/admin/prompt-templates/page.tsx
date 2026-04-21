@@ -21,6 +21,7 @@ export default async function PromptTemplatesPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-prompt-templates"
         eyebrow="Admin"
         title="Prompt templates"
         description="Manage template records used by prompt generation and later export workflows."

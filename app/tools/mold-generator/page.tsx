@@ -13,6 +13,7 @@ export default async function MoldGeneratorPage() {
         eyebrow="Mold Generator"
         title="3D Print Mold Generator"
         description="Select a product SKU, preview the mold geometry in 3D, configure print settings, and export STL files for your Ender-5 Max. Generate an AI product preview to visualize the finished GFRC piece."
+        helpKey="mold-generator"
       />
       <MoldGeneratorClient sinks={sinks} tiles={tiles} />
     </div>

@@ -21,6 +21,7 @@ export default async function EditSequencePage({
   return (
     <div className="space-y-6">
       <PageHeader
+        helpKey="sequences-edit"
         eyebrow="Marketing"
         title={`Edit: ${sequence.name}`}
         description="Modify sequence settings and email steps."

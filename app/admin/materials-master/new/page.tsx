@@ -10,6 +10,7 @@ export default async function NewMaterialsMasterPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-materials-master-form"
         eyebrow="Admin"
         title="New material record"
         description="Create a reusable material baseline with scope and status control."

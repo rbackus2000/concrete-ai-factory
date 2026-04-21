@@ -29,6 +29,7 @@ export default async function EditSlatWallPage({ params }: EditSlatWallPageProps
           eyebrow="Slat Walls"
           title={`Edit ${project.code}`}
           description="Update project configuration and wall dimensions."
+          helpKey="slat-walls-edit"
         />
         <Link href={`/slat-walls/${projectId}`}>
           <Button variant="outline">Back to Project</Button>

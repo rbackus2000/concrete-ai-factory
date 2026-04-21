@@ -10,6 +10,7 @@ export default async function NewRulesMasterPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-rules-master-form"
         eyebrow="Admin"
         title="New rule record"
         description="Create a scoped rule record with priority and activation status."

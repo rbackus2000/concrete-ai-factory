@@ -22,6 +22,7 @@ export default async function GalleryPage() {
         eyebrow="Gallery"
         title="Generated Image Portfolio"
         description="All AI-rendered product images grouped by category."
+        helpKey="gallery"
       />
 
       {groups.length === 0 && (

@@ -44,6 +44,7 @@ export default async function QuotesPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="quotes"
           eyebrow="Quotes"
           title="Quote management"
           description="Build, send, and track quotes. Monitor customer views and collect e-signatures."

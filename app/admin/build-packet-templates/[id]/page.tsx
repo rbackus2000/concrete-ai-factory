@@ -25,6 +25,7 @@ export default async function BuildPacketTemplateDetailPage({
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-build-packet-templates-form"
         eyebrow="Admin"
         title={editor.record.name}
         description="Edit packet section order, scope, status, and content directly against Prisma."

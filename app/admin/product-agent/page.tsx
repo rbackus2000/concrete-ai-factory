@@ -7,6 +7,7 @@ export default function ProductAgentPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-product-agent"
         eyebrow="Admin / Product Agent"
         title="Product creation agent"
         description="Describe a new product and the agent will generate a complete SKU with build packets, materials, QC checklists, and calculator defaults — all matching your existing product structure."

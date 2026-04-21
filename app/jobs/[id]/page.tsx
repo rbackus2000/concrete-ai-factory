@@ -27,6 +27,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
           eyebrow="Jobs"
           title={job.jobNumber}
           description={`${job.sku.code} — ${job.sku.name} x${job.quantity}`}
+          helpKey="jobs-detail"
         />
         <Link href="/jobs"><Button variant="outline">Back to Jobs</Button></Link>
       </div>

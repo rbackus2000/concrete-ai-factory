@@ -17,6 +17,7 @@ export default async function SheetsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-sheets"
         eyebrow="Admin"
         title="Google Sheets Sync"
         description="Push app data to your Google Sheet — products, pricing, costing, orders, and capacity."

@@ -21,6 +21,7 @@ export default async function BuildPacketTemplatesPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-build-packet-templates"
         eyebrow="Admin"
         title="Build packet templates"
         description="Manage packet sections and their scoped runtime assembly records."

@@ -15,6 +15,7 @@ export default async function ColorsPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="admin-colors"
           eyebrow="Admin"
           title="Color System"
           description="RB Studio pigment color collections — manage formulas, hex codes, and organization."

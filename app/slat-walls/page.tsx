@@ -27,6 +27,7 @@ export default async function SlatWallsPage() {
           eyebrow="Slat Walls"
           title="Kinetic slat wall projects"
           description="Rotating vertical GFRC slat walls with dual-image UV print artwork."
+          helpKey="slat-walls"
         />
         <div className="flex gap-3">
           <Link href="/slat-walls/calculator">

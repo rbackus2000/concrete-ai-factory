@@ -13,6 +13,7 @@ export default async function NewProposalPage() {
         eyebrow="Slat Walls"
         title="Generate Client Proposal"
         description="Build a premium 16-page PDF proposal for the SW-01 Rotating Slat Wall Installation System."
+        helpKey="slat-walls-proposal"
       />
       <ProposalGeneratorForm nextProposalNumber={nextNumber} />
     </div>

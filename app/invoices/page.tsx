@@ -53,6 +53,7 @@ export default async function InvoicesPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="invoices"
           eyebrow="Invoicing"
           title="Invoices"
           description="Send invoices, track payments, and manage your accounts receivable."

@@ -10,6 +10,7 @@ export default async function NewSequencePage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        helpKey="sequences-new"
         eyebrow="Marketing"
         title="New Sequence"
         description="Create an automated email sequence triggered by customer actions."

@@ -36,6 +36,7 @@ export default async function InventoryItemDetailPage({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="inventory-detail"
           eyebrow="Inventory"
           title={item.name}
           description={[item.sku, item.vendor, item.category].filter(Boolean).join(" — ")}

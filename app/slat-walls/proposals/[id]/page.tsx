@@ -26,6 +26,7 @@ export default async function ProposalDetailPage({ params }: Props) {
           eyebrow="Proposals"
           title={proposal.proposalNumber}
           description={`${proposal.projectName} — ${proposal.clientName}`}
+          helpKey="slat-walls-proposals-detail"
         />
         <Link href="/slat-walls/proposals">
           <Button variant="outline">Back to Proposals</Button>

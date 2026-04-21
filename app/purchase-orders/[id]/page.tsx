@@ -42,6 +42,7 @@ export default async function PurchaseOrderDetailPage({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="purchase-orders-detail"
           eyebrow="Operations"
           title={po.poNumber}
           description={`Vendor: ${po.vendor}`}

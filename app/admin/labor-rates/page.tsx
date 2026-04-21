@@ -14,7 +14,7 @@ export default async function LaborRatesPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <PageHeader eyebrow="Admin" title="Labor Rates" description="Manage shop labor rates used for product costing and quotes." />
+        <PageHeader helpKey="admin-labor-rates" eyebrow="Admin" title="Labor Rates" description="Manage shop labor rates used for product costing and quotes." />
         <Link href="/admin/labor-rates/new"><Button>Add Rate</Button></Link>
       </div>
       <Table>

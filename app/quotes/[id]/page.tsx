@@ -46,6 +46,7 @@ export default async function QuoteDetailPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="quotes-detail"
           eyebrow="Quotes"
           title={quote.quoteNumber}
           description={`${quote.contactName}${quote.companyName ? ` — ${quote.companyName}` : ""}`}

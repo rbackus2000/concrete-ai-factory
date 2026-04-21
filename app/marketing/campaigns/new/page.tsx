@@ -10,6 +10,7 @@ export default async function NewCampaignPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        helpKey="campaigns-new"
         eyebrow="Marketing"
         title="New Campaign"
         description="Create a one-time broadcast email to a segment of contacts."

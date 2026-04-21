@@ -24,6 +24,7 @@ export default async function MaterialsMasterPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-materials-master"
         eyebrow="Admin"
         title="Materials master"
         description="Manage reusable material baselines used by the calculator and future production costing layers."

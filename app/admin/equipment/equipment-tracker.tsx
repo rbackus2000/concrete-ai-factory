@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
+import { HelpButton } from "@/components/app-shell/help-button";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -185,7 +186,10 @@ export function EquipmentTracker({ categories, budgets: _budgets }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <header className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-widest text-blue-600">Admin / Equipment</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium uppercase tracking-widest text-blue-600">Admin / Equipment</p>
+            <HelpButton helpKey="admin-equipment" />
+          </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Equipment Procurement Tracker
           </h1>

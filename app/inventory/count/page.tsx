@@ -12,6 +12,7 @@ export default async function CycleCountPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="inventory-count"
           eyebrow="Operations"
           title="Cycle Count"
           description="Count physical stock and reconcile with system quantities."

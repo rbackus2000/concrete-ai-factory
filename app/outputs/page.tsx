@@ -34,6 +34,7 @@ export default async function OutputsPage({ searchParams }: OutputsPageProps) {
         eyebrow="Outputs"
         title="Generated output history"
         description="Inspect saved prompt, packet, and calculation outputs by SKU before adding export workflows."
+        helpKey="outputs"
       />
 
       <Card>

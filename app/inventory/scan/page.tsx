@@ -12,6 +12,7 @@ export default async function ScanPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="inventory-scan"
           eyebrow="Operations"
           title="Barcode Scanner"
           description="Scan items to view stock levels and adjust quantities."

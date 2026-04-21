@@ -10,6 +10,7 @@ export default async function NewBuildPacketTemplatePage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-build-packet-templates-form"
         eyebrow="Admin"
         title="New build packet section"
         description="Create an internal packet section record ready for runtime assembly and later export."

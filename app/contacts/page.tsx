@@ -52,6 +52,7 @@ export default async function ContactsPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="contacts"
           eyebrow="CRM"
           title="Contacts"
           description="Manage your customer relationships, track leads through the pipeline, and log activities."

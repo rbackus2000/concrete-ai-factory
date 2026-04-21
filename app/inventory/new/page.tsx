@@ -12,6 +12,7 @@ export default async function NewInventoryItemPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="inventory-new"
           eyebrow="Inventory"
           title="Add Item"
           description="Add a new finished product or raw material to inventory."

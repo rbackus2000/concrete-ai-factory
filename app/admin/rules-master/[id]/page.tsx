@@ -23,6 +23,7 @@ export default async function RulesMasterDetailPage({ params }: RulesMasterDetai
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-rules-master-form"
         eyebrow="Admin"
         title={editor.record.title}
         description="Edit rule content, priority, status, and scope directly against Prisma."

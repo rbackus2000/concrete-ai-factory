@@ -48,6 +48,7 @@ export default async function ProductCatalogPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-product-catalog"
         eyebrow="Admin"
         title="Product catalog"
         description="Manage retail and wholesale pricing for all SKUs. Prices are used in the quote builder."

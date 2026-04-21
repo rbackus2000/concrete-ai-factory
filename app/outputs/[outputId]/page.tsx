@@ -43,6 +43,7 @@ export default async function OutputDetailPage({ params }: OutputDetailPageProps
         eyebrow="Output Detail"
         title={detail.title}
         description="Saved output payloads are rendered in an export-friendly layout so markdown or PDF export can be layered in later."
+        helpKey="outputs-detail"
       />
 
       <div className="flex items-center gap-4">

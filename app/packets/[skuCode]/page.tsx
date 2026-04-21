@@ -27,6 +27,7 @@ export default async function PacketPage({ params }: PacketPageProps) {
         eyebrow="Packets"
         title={`${preview.sku.code} build packet`}
         description="Packet sections are assembled from Prisma templates plus derived QC and manufacturing rule content."
+        helpKey="packets-detail"
       />
 
       <section className="grid gap-4 md:grid-cols-3">

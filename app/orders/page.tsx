@@ -22,6 +22,7 @@ export default async function OrdersPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="orders"
           eyebrow="Operations"
           title="Orders"
           description="Manage orders from production through delivery"

@@ -15,7 +15,7 @@ export default async function EditClientPage({ params }: Props) {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Admin / Clients" title={`Edit ${client.name}`} description={client.company ?? ""} />
+      <PageHeader helpKey="admin-clients-form" eyebrow="Admin / Clients" title={`Edit ${client.name}`} description={client.company ?? ""} />
       <ClientForm
         mode="edit"
         clientId={client.id}

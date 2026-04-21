@@ -60,6 +60,7 @@ export default async function EditQuotePage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="quotes-edit"
           eyebrow="Quotes"
           title={`Edit ${quote.quoteNumber}`}
           description={`Modify quote for ${quote.contactName}. Save changes when done.`}

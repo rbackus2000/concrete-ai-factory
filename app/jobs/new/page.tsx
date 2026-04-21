@@ -12,7 +12,7 @@ export default async function NewJobPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Jobs" title="Create New Job" description="Start a new production job for a SKU." />
+      <PageHeader eyebrow="Jobs" title="Create New Job" description="Start a new production job for a SKU." helpKey="jobs-new" />
       <JobForm skuOptions={skus} clientOptions={clients} />
     </div>
   );

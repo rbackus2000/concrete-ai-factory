@@ -30,6 +30,7 @@ export default async function PrintGeneratorPage({ params }: Props) {
         eyebrow="Slat Walls"
         title={`${detail.project.code} — Print Generator`}
         description="Generate print-ready SVG, PDF, and DXF files for UV flatbed printing or stencil cutting."
+        helpKey="slat-walls-print-generator"
       />
       <PrintGeneratorClient
         projectCode={detail.project.code}

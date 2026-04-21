@@ -14,7 +14,7 @@ export default async function SuppliersPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <PageHeader eyebrow="Admin" title="Suppliers" description="Manage material suppliers, product URLs, and pricing sources." />
+        <PageHeader helpKey="admin-suppliers" eyebrow="Admin" title="Suppliers" description="Manage material suppliers, product URLs, and pricing sources." />
         <Link href="/admin/suppliers/new"><Button>Add Supplier</Button></Link>
       </div>
       <Table>

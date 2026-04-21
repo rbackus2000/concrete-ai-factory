@@ -12,6 +12,7 @@ export default async function BarcodeLabelPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="inventory-labels"
           eyebrow="Operations"
           title="Barcode Labels"
           description="Generate and print barcode labels for inventory items. Sized for Avery 5160 sheets (30 labels per page)."

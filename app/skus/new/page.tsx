@@ -16,6 +16,7 @@ export default async function NewSkuPage() {
         eyebrow="SKUs"
         title="Create new SKU"
         description="Manually define a new product SKU with full geometry, specifications, and calculator defaults."
+        helpKey="skus-new"
       />
       <SkuEditForm
         mode="create"

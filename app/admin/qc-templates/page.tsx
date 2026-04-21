@@ -21,6 +21,7 @@ export default async function QcTemplatesPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-qc-templates"
         eyebrow="Admin"
         title="QC templates"
         description="Manage structured QC checklists and gate criteria that feed packets and future exports."

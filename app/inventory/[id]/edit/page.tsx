@@ -23,6 +23,7 @@ export default async function EditInventoryItemPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="inventory-edit"
           eyebrow="Inventory"
           title={`Edit ${item.name}`}
           description="Update item details and stock settings."

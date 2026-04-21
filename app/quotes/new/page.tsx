@@ -39,6 +39,7 @@ export default async function NewQuotePage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="quotes-new"
           eyebrow="Quotes"
           title="New Quote"
           description="Build a quote for your customer with line items, pricing, and terms."

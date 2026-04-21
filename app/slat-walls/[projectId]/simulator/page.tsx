@@ -44,6 +44,7 @@ export default async function SimulatorPage({ params }: SimulatorPageProps) {
           eyebrow="Slat Walls"
           title={`${project.code} — Simulator`}
           description="Interactive rotating slat wall visualization with horizontal line density rendering and three-state optical reveal."
+          helpKey="slat-walls-simulator"
         />
         <Link href={`/slat-walls/${projectId}`}>
           <Button variant="outline">Back to Project</Button>

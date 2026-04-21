@@ -30,6 +30,7 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-audit-logs"
         eyebrow="Admin"
         title="Audit history"
         description="Read-only internal history for record changes and output export activity."

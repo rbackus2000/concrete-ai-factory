@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default function NewSupplierPage() {
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Admin" title="New supplier" description="Add a material supplier with contact info and website." />
+      <PageHeader helpKey="admin-suppliers-form" eyebrow="Admin" title="New supplier" description="Add a material supplier with contact info and website." />
       <SupplierForm
         mode="create"
         defaultValues={{

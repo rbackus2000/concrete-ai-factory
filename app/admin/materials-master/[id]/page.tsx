@@ -25,6 +25,7 @@ export default async function MaterialsMasterDetailPage({
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-materials-master-form"
         eyebrow="Admin"
         title={editor.record.name}
         description="Edit quantity, cost, scope, and status directly against Prisma."

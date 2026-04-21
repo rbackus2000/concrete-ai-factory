@@ -15,7 +15,7 @@ export default async function EditLaborRatePage({ params }: Props) {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Admin" title={editor.record.name} description="Edit labor rate details and hourly cost." />
+      <PageHeader helpKey="admin-labor-rates-form" eyebrow="Admin" title={editor.record.name} description="Edit labor rate details and hourly cost." />
       <LaborRateForm mode="edit" recordId={id} defaultValues={editor.record} />
     </div>
   );

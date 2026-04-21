@@ -15,7 +15,7 @@ export default async function EditSupplierPage({ params }: Props) {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Admin" title={editor.record.name} description="Edit supplier details and status." />
+      <PageHeader helpKey="admin-suppliers-form" eyebrow="Admin" title={editor.record.name} description="Edit supplier details and status." />
       <SupplierForm mode="edit" recordId={id} defaultValues={editor.record} />
     </div>
   );

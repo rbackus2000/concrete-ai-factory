@@ -21,6 +21,7 @@ export default async function RulesMasterPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-rules-master"
         eyebrow="Admin"
         title="Rules master"
         description="Manage scoped rule records that feed validation, generation, and build packet assembly."

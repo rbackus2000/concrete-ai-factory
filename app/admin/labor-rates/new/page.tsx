@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default function NewLaborRatePage() {
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Admin" title="New labor rate" description="Add a shop labor rate for product costing." />
+      <PageHeader helpKey="admin-labor-rates-form" eyebrow="Admin" title="New labor rate" description="Add a shop labor rate for product costing." />
       <LaborRateForm
         mode="create"
         defaultValues={{

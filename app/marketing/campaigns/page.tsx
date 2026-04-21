@@ -33,6 +33,7 @@ export default async function CampaignsListPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="campaigns"
           eyebrow="Marketing"
           title="Campaigns"
           description="One-time broadcast emails to a targeted segment of contacts."

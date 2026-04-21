@@ -61,6 +61,7 @@ export default async function OrderDetailPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="orders-detail"
           eyebrow="Orders"
           title={order.orderNumber}
           description={`${order.contact?.name || "No contact"}${order.contact?.company ? ` — ${order.contact.company}` : ""}`}

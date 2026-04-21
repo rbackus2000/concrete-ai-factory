@@ -15,7 +15,7 @@ export default async function EditColorPage({ params }: Props) {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Admin" title={editor.record.name} description="Edit color details, hex code, and pigment formula." />
+      <PageHeader helpKey="admin-colors-form" eyebrow="Admin" title={editor.record.name} description="Edit color details, hex code, and pigment formula." />
       <ProductColorForm mode="edit" recordId={id} collectionOptions={editor.collectionOptions} defaultValues={editor.record} />
     </div>
   );

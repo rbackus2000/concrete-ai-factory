@@ -85,6 +85,7 @@ export default async function ContactDetailPage({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="contacts-detail"
           eyebrow="CRM"
           title={contact.name}
           description={[contact.company, contact.email].filter(Boolean).join(" — ")}

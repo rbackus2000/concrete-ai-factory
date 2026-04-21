@@ -14,7 +14,7 @@ export default async function FinishesPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <PageHeader eyebrow="Admin" title="Finishes" description="Manage concrete finish presets — color families, textures, sealers, and pigment formulas." />
+        <PageHeader helpKey="admin-finishes" eyebrow="Admin" title="Finishes" description="Manage concrete finish presets — color families, textures, sealers, and pigment formulas." />
         <Link href="/admin/finishes/new"><Button>Create Finish</Button></Link>
       </div>
       <Table>

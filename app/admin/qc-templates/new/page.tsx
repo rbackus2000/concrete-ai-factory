@@ -10,6 +10,7 @@ export default async function NewQcTemplatePage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-qc-templates-form"
         eyebrow="Admin"
         title="New QC template"
         description="Create a QC record with scoped activation and structured checklist content."

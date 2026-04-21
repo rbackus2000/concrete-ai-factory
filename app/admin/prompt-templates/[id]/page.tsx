@@ -23,6 +23,7 @@ export default async function PromptTemplateDetailPage({ params }: PromptTemplat
   return (
     <div className="space-y-8">
       <PageHeader
+        helpKey="admin-prompt-templates-form"
         eyebrow="Admin"
         title={editor.record.name}
         description="Edit template scope, status, version, and body content directly against Prisma."

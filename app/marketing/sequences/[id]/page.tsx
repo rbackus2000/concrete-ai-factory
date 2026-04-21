@@ -42,6 +42,7 @@ export default async function SequenceDetailPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="sequences-detail"
           eyebrow="Marketing"
           title={sequence.name}
           description={TRIGGER_LABELS[sequence.trigger] ?? sequence.trigger}

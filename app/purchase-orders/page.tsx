@@ -44,6 +44,7 @@ export default async function PurchaseOrdersPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="purchase-orders"
           eyebrow="Operations"
           title="Purchase Orders"
           description="Manage vendor purchase orders and track deliveries."

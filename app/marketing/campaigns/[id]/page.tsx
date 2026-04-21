@@ -44,6 +44,7 @@ export default async function CampaignDetailPage({
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          helpKey="campaigns-detail"
           eyebrow="Marketing"
           title={campaign.name}
           description={`Status: ${campaign.status} ${campaign.sentAt ? `| Sent: ${new Date(campaign.sentAt).toLocaleDateString()}` : ""}`}

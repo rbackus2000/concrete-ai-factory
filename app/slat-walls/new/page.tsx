@@ -8,6 +8,7 @@ export default function NewSlatWallPage() {
         eyebrow="Slat Walls"
         title="New slat wall project"
         description="Configure a kinetic rotating slat wall installation."
+        helpKey="slat-walls-new"
       />
       <SlatWallProjectForm mode="create" />
     </div>
