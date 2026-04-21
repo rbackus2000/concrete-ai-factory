@@ -4,35 +4,38 @@ import path from "node:path";
 
 import { prisma } from "@/lib/db";
 
+const IMAGE_HEADERS = {
+  "Content-Type": "image/png",
+  "Cache-Control": "public, max-age=31536000, immutable",
+};
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const raw = await params;
+  const id = raw.id.replace(/\.png$/, "");
 
   // Try local filesystem first (works in dev)
   try {
     const localPath = path.join(process.cwd(), "public", "generated-images", `${id}.png`);
     const data = await readFile(localPath);
-    return new NextResponse(data, {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
+    return new NextResponse(data, { headers: IMAGE_HEADERS });
   } catch {
     // File not on disk — serve from DB
   }
 
-  // Look up asset by generatedOutputId prefix match
+  // Look up asset by imageUrl path (most reliable), then by generatedOutputId
   const asset = await prisma.generatedImageAsset.findFirst({
     where: {
       OR: [
+        { imageUrl: `/api/images/${id}` },
+        { imageUrl: { contains: id } },
         { generatedOutputId: id },
-        { generatedOutputId: id.replace(/-[^-]+$/, "") },
       ],
     },
     select: { metadataJson: true },
+    orderBy: { createdAt: "desc" },
   });
 
   if (!asset?.metadataJson) {
@@ -47,10 +50,5 @@ export async function GET(
   }
 
   const buffer = Buffer.from(base64, "base64");
-  return new NextResponse(buffer, {
-    headers: {
-      "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=31536000, immutable",
-    },
-  });
+  return new NextResponse(buffer, { headers: IMAGE_HEADERS });
 }

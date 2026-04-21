@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
+  async rewrites() {
+    return [
+      {
+        source: "/generated-images/:filename",
+        destination: "/api/images/:filename",
+      },
+    ];
+  },
   outputFileTracingExcludes: {
     "*": [
       "node_modules/three/**",
