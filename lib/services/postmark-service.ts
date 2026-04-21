@@ -1,5 +1,23 @@
 import { ServerClient } from "postmark";
 
+const DOMAIN = "backusdesignco.com";
+
+// ── Sender Addresses by Email Type ─────────────────────────
+
+export type EmailSender = "quotes" | "invoices" | "orders" | "sales" | "marketing" | "ops" | "po" | "noreply" | "info";
+
+const SENDER_MAP: Record<EmailSender, string> = {
+  quotes: `Backus Design Co <quotes@${DOMAIN}>`,
+  invoices: `Backus Design Co <invoices@${DOMAIN}>`,
+  orders: `Backus Design Co <orders@${DOMAIN}>`,
+  sales: `Backus Design Co <sales@${DOMAIN}>`,
+  marketing: `Backus Design Co <hello@${DOMAIN}>`,
+  ops: `Backus Design Co <ops@${DOMAIN}>`,
+  po: `Backus Design Co <po@${DOMAIN}>`,
+  noreply: `Backus Design Co <noreply@${DOMAIN}>`,
+  info: `Backus Design Co <info@${DOMAIN}>`,
+};
+
 function getClient() {
   const apiKey = process.env.POSTMARK_API_KEY;
   if (!apiKey) {
@@ -8,12 +26,8 @@ function getClient() {
   return new ServerClient(apiKey);
 }
 
-function getFromEmail() {
-  return process.env.POSTMARK_FROM_EMAIL ?? "quotes@rbstudio.com";
-}
-
 function getOwnerEmail() {
-  return process.env.OWNER_EMAIL ?? "robert@rbstudio.com";
+  return process.env.OWNER_EMAIL ?? `robert@${DOMAIN}`;
 }
 
 function getAppUrl() {
@@ -24,10 +38,11 @@ export async function sendEmail(input: {
   to: string;
   subject: string;
   htmlBody: string;
+  from?: EmailSender;
 }) {
   const client = getClient();
   return client.sendEmail({
-    From: getFromEmail(),
+    From: SENDER_MAP[input.from ?? "noreply"],
     To: input.to,
     Subject: input.subject,
     HtmlBody: input.htmlBody,
@@ -61,13 +76,13 @@ function emailWrapper(content: string) {
 <body>
   <div style="max-width: 600px; margin: 0 auto;">
     <div class="header">
-      <span class="header-text">RB Studio</span>
+      <span class="header-text">Backus Design Co</span>
     </div>
     <div class="content">
       ${content}
     </div>
     <div class="footer">
-      <p>RB Architecture Concrete Studio</p>
+      <p>Backus Design Co — Architectural Concrete Studio</p>
     </div>
   </div>
 </body>
@@ -90,7 +105,7 @@ export async function sendQuoteSentEmail(input: {
   const html = emailWrapper(`
     <h2>Your Quote is Ready</h2>
     <p>Hi ${input.contactName},</p>
-    <p>Thank you for your interest in RB Studio. We've prepared a custom quote for you:</p>
+    <p>Thank you for your interest in Backus Design Co. We've prepared a custom quote for you:</p>
     <hr class="divider">
     <p style="text-align: center;">
       <span style="color: #666; font-size: 14px;">Quote ${input.quoteNumber}</span><br>
@@ -108,8 +123,9 @@ export async function sendQuoteSentEmail(input: {
 
   return sendEmail({
     to: input.to,
-    subject: `Your RB Studio Quote #${input.quoteNumber} is Ready`,
+    subject: `Your Backus Design Co Quote #${input.quoteNumber} is Ready`,
     htmlBody: html,
+    from: "quotes",
   });
 }
 
@@ -129,13 +145,14 @@ export async function sendSignedConfirmationEmail(input: {
     <p><strong>Total:</strong> $${input.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
     <hr class="divider">
     <p>We'll contact you within <strong>1 business day</strong> to discuss next steps.</p>
-    <p>Thank you for choosing RB Studio.</p>
+    <p>Thank you for choosing Backus Design Co.</p>
   `);
 
   return sendEmail({
     to: input.to,
     subject: `Quote #${input.quoteNumber} Signed — We'll Be In Touch!`,
     htmlBody: html,
+    from: "quotes",
   });
 }
 
@@ -173,6 +190,7 @@ export async function sendSignedOwnerNotification(input: {
     to: getOwnerEmail(),
     subject: `Quote #${input.quoteNumber} Signed by ${input.signerName}`,
     htmlBody: html,
+    from: "sales",
   });
 }
 
@@ -190,7 +208,7 @@ export async function sendInvoiceSentEmail(input: {
   const invoiceUrl = `${getAppUrl()}/inv/${input.publicToken}`;
 
   const html = emailWrapper(`
-    <h2>Invoice from RB Studio</h2>
+    <h2>Invoice from Backus Design Co</h2>
     <p>Hi ${input.contactName},</p>
     <p>Please find your invoice below. Payment is due by <strong>${input.dueDate}</strong>.</p>
     <hr class="divider">
@@ -210,8 +228,9 @@ export async function sendInvoiceSentEmail(input: {
 
   return sendEmail({
     to: input.to,
-    subject: `Invoice #${input.invoiceNumber} from RB Studio — $${input.amountDue.toLocaleString("en-US", { minimumFractionDigits: 2 })} due ${input.dueDate}`,
+    subject: `Invoice #${input.invoiceNumber} from Backus Design Co — $${input.amountDue.toLocaleString("en-US", { minimumFractionDigits: 2 })} due ${input.dueDate}`,
     htmlBody: html,
+    from: "invoices",
   });
 }
 
@@ -255,7 +274,7 @@ export async function sendInvoiceReminderEmail(input: {
     ? `OVERDUE: Invoice #${input.invoiceNumber} — $${input.amountDue.toLocaleString("en-US", { minimumFractionDigits: 2 })} past due`
     : `Reminder: Invoice #${input.invoiceNumber} due ${input.dueDate}`;
 
-  return sendEmail({ to: input.to, subject, htmlBody: html });
+  return sendEmail({ to: input.to, subject, htmlBody: html, from: "invoices" });
 }
 
 export async function sendPaymentConfirmationEmail(input: {
@@ -282,13 +301,14 @@ export async function sendPaymentConfirmationEmail(input: {
       : `<p><strong>Remaining Balance:</strong> $${input.remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>`
     }
     <hr class="divider">
-    <p>Thank you for choosing RB Studio.</p>
+    <p>Thank you for choosing Backus Design Co.</p>
   `);
 
   return sendEmail({
     to: input.to,
     subject: `Payment received — Invoice #${input.invoiceNumber}`,
     htmlBody: html,
+    from: "invoices",
   });
 }
 
@@ -331,8 +351,9 @@ export async function sendOrderShippedEmail(input: {
 
   return sendEmail({
     to: input.to,
-    subject: `Your RB Studio order #${input.orderNumber} has shipped!`,
+    subject: `Your Backus Design Co order #${input.orderNumber} has shipped!`,
     htmlBody: html,
+    from: "orders",
   });
 }
 
@@ -347,13 +368,14 @@ export async function sendOrderDeliveredEmail(input: {
     <p>Your order <strong>#${input.orderNumber}</strong> has been delivered.</p>
     <p>We hope you love your new piece! If you have any questions or concerns about your delivery, please don't hesitate to reach out.</p>
     <hr class="divider">
-    <p>Thank you for choosing RB Studio.</p>
+    <p>Thank you for choosing Backus Design Co.</p>
   `);
 
   return sendEmail({
     to: input.to,
-    subject: `Your RB Studio order #${input.orderNumber} has been delivered!`,
+    subject: `Your Backus Design Co order #${input.orderNumber} has been delivered!`,
     htmlBody: html,
+    from: "orders",
   });
 }
 
@@ -387,6 +409,7 @@ export async function sendOrderExceptionOwnerEmail(input: {
     to: getOwnerEmail(),
     subject: `Shipping exception on order #${input.orderNumber} — action needed`,
     htmlBody: html,
+    from: "ops",
   });
 }
 
@@ -419,8 +442,9 @@ export async function sendReturnLabelEmail(input: {
 
   return sendEmail({
     to: input.to,
-    subject: `Your RB Studio return label for order #${input.orderNumber}`,
+    subject: `Your Backus Design Co return label for order #${input.orderNumber}`,
     htmlBody: html,
+    from: "orders",
   });
 }
 
@@ -458,5 +482,6 @@ export async function sendPaymentOwnerNotification(input: {
     to: getOwnerEmail(),
     subject: `$${input.amountPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })} payment received — Invoice #${input.invoiceNumber}`,
     htmlBody: html,
+    from: "invoices",
   });
 }

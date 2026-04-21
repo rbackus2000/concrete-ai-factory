@@ -329,6 +329,7 @@ export async function processSequenceEmails(): Promise<number> {
         to: contact.email,
         subject: personalizedSubject,
         htmlBody: fullHtml,
+        from: "marketing",
       });
 
       await prisma.emailLog.update({
@@ -601,6 +602,7 @@ async function executeCampaignSend(campaignId: string): Promise<number> {
         to: contact.email,
         subject: personalizedSubject,
         htmlBody: fullHtml,
+        from: "marketing",
       });
 
       await prisma.emailLog.update({

@@ -4,9 +4,9 @@ import { getClaudeClient } from "@/lib/claude";
 import { collectBriefingData, getDashboardKPIs } from "@/lib/services/reporting-service";
 import { sendEmail } from "@/lib/services/postmark-service";
 
-const BRIEFING_SYSTEM_PROMPT = `You are the daily operations assistant for RB Studio (RB Architecture Concrete Studio) — a premium GFRC concrete artistry studio in Anna, Texas, owned by Robert Backus.
+const BRIEFING_SYSTEM_PROMPT = `You are the daily operations assistant for Backus Design Co (Backus Design Co — Architectural Concrete Studio) — a premium GFRC concrete artistry studio in Anna, Texas, owned by Robert Backus.
 
-RB Studio handcrafts architectural concrete pieces: 13 vessel sink designs (S1 The Erosion through S13 The Sphere), decorative slat wall panels, wall tiles, and custom architectural pieces.
+Backus Design Co handcrafts architectural concrete pieces: 13 vessel sink designs (S1 The Erosion through S13 The Sphere), decorative slat wall panels, wall tiles, and custom architectural pieces.
 
 You receive the current business state every morning and generate a concise, actionable daily briefing for the owner, Robert. Your job is to surface what matters most, flag what's urgent, and give one clear recommendation.
 
@@ -71,7 +71,7 @@ function buildDigestEmail(kpis: Awaited<ReturnType<typeof getDashboardKPIs>>, br
 <body>
   <div style="max-width: 600px; margin: 0 auto;">
     <div class="header">
-      <span class="header-text">RB Studio</span>
+      <span class="header-text">Backus Design Co</span>
     </div>
     <div class="content">
       <h2>Good morning, Robert.</h2>
@@ -111,7 +111,7 @@ function buildDigestEmail(kpis: Awaited<ReturnType<typeof getDashboardKPIs>>, br
     </div>
     <div class="footer">
       <p>This digest was generated at 7:00 AM CT</p>
-      <p>RB Architecture Concrete Studio</p>
+      <p>Backus Design Co — Architectural Concrete Studio</p>
     </div>
   </div>
 </body>
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `Here is the current RB Studio business state as of ${briefingData.timestamp}:\n\n${dataStr}`,
+          content: `Here is the current Backus Design Co business state as of ${briefingData.timestamp}:\n\n${dataStr}`,
         },
       ],
     });
@@ -162,8 +162,9 @@ export async function POST(request: NextRequest) {
 
     await sendEmail({
       to: getOwnerEmail(),
-      subject: `RB Studio Daily Digest — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+      subject: `Backus Design Co Daily Digest — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
       htmlBody: emailHtml,
+      from: "ops",
     });
 
     return NextResponse.json({ data: { success: true } });
