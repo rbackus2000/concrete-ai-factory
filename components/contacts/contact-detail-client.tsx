@@ -418,6 +418,19 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
               </div>
             </div>
 
+            {contact.clientNumber && (
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`RB-${contact.clientNumber}`);
+                }}
+                title="Click to copy client ID"
+                className="w-full rounded-md border py-2 text-center font-mono text-lg font-bold tracking-wider"
+                style={{ color: "#c8a96e", borderColor: "#c8a96e40", backgroundColor: "#c8a96e08" }}
+              >
+                RB-{contact.clientNumber}
+              </button>
+            )}
+
             <div className="space-y-3 text-sm">
               <div>
                 <p className="text-xs text-muted-foreground">Email</p>

@@ -103,6 +103,7 @@ export default async function ContactsPage({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="text-xs">Client ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Stage</TableHead>
@@ -115,6 +116,11 @@ export default async function ContactsPage({
               <TableBody>
                 {contacts.map((contact) => (
                   <TableRow key={contact.id}>
+                    <TableCell>
+                      <span className="font-mono text-xs font-bold" style={{ color: "#c8a96e" }}>
+                        {contact.clientNumber ? `RB-${contact.clientNumber}` : "—"}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Link
                         className="font-medium text-primary underline-offset-4 hover:underline"
