@@ -215,9 +215,15 @@ function buildPromptVariables({
   const showDrain = isSink && sku.drainDiameter > 0;
   const showFaucet = isSink && scenePreset === "lifestyle";
 
+  const isRound = sku.outerLength === sku.outerWidth;
+  const shapeLabel = isRound ? "round/circular" : "rectangular";
+
   return {
     skuCode: sku.code,
     productName: sku.name,
+    productDescription: sku.summary || sku.name,
+    shapeLabel,
+    isRound,
     categoryLabel: formatCategoryLabel(sku.category),
     finish: effectiveFinish,
     finishDescription: finishDescriptions[finishName] ?? `${finishName} GFRC surface finish`,
