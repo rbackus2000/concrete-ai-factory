@@ -58,7 +58,7 @@ export default async function ProposalsPage() {
                       <TableCell>{p.clientName}</TableCell>
                       <TableCell>{p.projectName}</TableCell>
                       <TableCell>{p.wallSize}</TableCell>
-                      <TableCell className="font-medium">${p.clientPrice.toLocaleString()}</TableCell>
+                      <TableCell className="font-medium">${p.clientPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell>
                         <Badge variant={p.status === "DRAFT" ? "secondary" : "default"}>{p.status}</Badge>
                       </TableCell>

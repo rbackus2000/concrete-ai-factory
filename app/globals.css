@@ -38,3 +38,37 @@
     text-wrap: balance;
   }
 }
+
+/* Print styles for quotes and invoices */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide sidebar, nav, and non-printable elements */
+  aside,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Remove shadows and adjust borders for print */
+  * {
+    box-shadow: none !important;
+  }
+
+  /* Ensure content fills the page */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}

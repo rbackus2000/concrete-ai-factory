@@ -57,7 +57,7 @@ export default async function ProposalDetailPage({ params }: Props) {
         <Card>
           <CardHeader><CardTitle>Client Price</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">${proposal.clientPrice.toLocaleString()}</p>
+            <p className="text-2xl font-bold">${proposal.clientPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             <p className="text-sm text-muted-foreground">{proposal.printMethod} print</p>
           </CardContent>
         </Card>
@@ -76,7 +76,7 @@ export default async function ProposalDetailPage({ params }: Props) {
           <CardHeader><CardTitle>Specification</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Scenario</span><span>{proposal.scenarioId}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Slat Width</span><span>{proposal.slatWidthIn}"</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Slat Width</span><span>{proposal.slatWidthIn}&quot;</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Slat Height</span><span>{proposal.slatHeightFt} ft</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Print Method</span><span>{proposal.printMethod}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Includes Install</span><span>{proposal.includeInstall ? "Yes" : "No"}</span></div>

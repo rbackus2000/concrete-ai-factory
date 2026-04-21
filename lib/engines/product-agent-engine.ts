@@ -53,6 +53,8 @@ export type GeneratedSkuData = {
   cornerRadius: number;
   fiberPercent: number;
   datumSystem: Array<{ name: string; description: string }>;
+  retailPrice: number;
+  wholesalePrice: number;
   calculatorDefaults: {
     batchSizeLbs: number;
     mixType: string;
@@ -184,6 +186,14 @@ Use {{tokens}} in build packet content: {{skuCode}}, {{productName}}, {{finish}}
 MATERIALS: Generate 6-10 materials (GFRC backing, face coat, fiber, pigment, drain kit, sealer, packaging, plus hardware for wall-mount).
 
 QC CHECKLISTS: Generate 3 — SETUP, PRE_DEMOLD, POST_DEMOLD. Include mounting channel and overflow checks for wall-mount sinks.
+
+PRICING (REQUIRED — set both retailPrice and wholesalePrice on the SKU):
+Pricing is based on product category, size, and manufacturing complexity. Wholesale is approximately 55% of retail.
+- Vessel sinks: $950–$2,800 retail (small round bowls lower, large complex ramps higher)
+- Furniture: $1,400–$4,800 retail (side tables lower, large consoles/benches higher)
+- Panels: $85–$320 retail per panel (small bricks cheap, large panels more)
+- Wall tiles: $65–$385 retail per tile (small tiles lower, large format higher)
+Factors: larger dimensions = higher price, complex textures/molds = higher price, simple forms = lower price.
 
 IMAGE PROMPTS: Generate 3-5 descriptive prompts for product visualization (lifestyle, detail, installed, blueprint-style).
 

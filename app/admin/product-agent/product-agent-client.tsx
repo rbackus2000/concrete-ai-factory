@@ -256,8 +256,8 @@ export function ProductAgentClient() {
           </div>
 
           <div className="mt-4 grid grid-cols-4 gap-3 text-sm">
-            <div><span className="text-xs text-muted-foreground">Size</span><br />{brief.suggestedDimensions.outerLength}" x {brief.suggestedDimensions.outerWidth}" x {brief.suggestedDimensions.outerHeight}"</div>
-            <div><span className="text-xs text-muted-foreground">Depth</span><br />{brief.suggestedDimensions.innerDepth}"</div>
+            <div><span className="text-xs text-muted-foreground">Size</span><br />{brief.suggestedDimensions.outerLength}&quot; x {brief.suggestedDimensions.outerWidth}&quot; x {brief.suggestedDimensions.outerHeight}&quot;</div>
+            <div><span className="text-xs text-muted-foreground">Depth</span><br />{brief.suggestedDimensions.innerDepth}&quot;</div>
             <div><span className="text-xs text-muted-foreground">Drain</span><br />{brief.drainType || "None"}</div>
             <div><span className="text-xs text-muted-foreground">Mount</span><br />{brief.mountType}</div>
           </div>

@@ -64,6 +64,13 @@ enum AuditEntityType {
   COLOR_COLLECTION
   PRODUCT_COLOR
   LABOR_RATE
+  QUOTE
+  CONTACT
+  INVOICE
+  INVENTORY_ITEM
+  PURCHASE_ORDER
+  STOCK_COUNT
+  ORDER
 }
 
 enum SlatWallProjectStatus {
@@ -200,6 +207,7 @@ model Sku {
   laborRate                 LaborRate?            @relation("SkuLaborRate", fields: [laborRateId], references: [id], onDelete: SetNull)
   generatedOutputs          GeneratedOutput[]
   jobs                      Job[]
+  inventoryItems            InventoryItem[]   @relation("InventoryItemSku")
   promptTemplateOverrides   PromptTemplate[]      @relation("PromptTemplateOverrideSku")
   rulesOverrides            RulesMaster[]         @relation("RulesMasterOverrideSku")
   materialsOverrides        MaterialsMaster[]     @relation("MaterialsMasterOverrideSku")
@@ -765,4 +773,936 @@ model ProductColor {
 
   @@index([collectionId])
   @@map("product_colors")
+}
+
+// ── CRM MODULE ───────────────────────────────────────────────
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  QUOTED
+  NEGOTIATING
+  WON
+  LOST
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL
+  QUOTE_CREATED
+  QUOTE_SENT
+  QUOTE_VIEWED
+  QUOTE_SIGNED
+  QUOTE_CONVERTED
+  STAGE_CHANGED
+  INVOICE_CREATED
+  INVOICE_SENT
+  INVOICE_PAID
+  INVOICE_OVERDUE
+  PAYMENT_RECEIVED
+  ORDER_CREATED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_EXCEPTION
+  EMAIL_SENT
+  EMAIL_OPENED
+  EMAIL_CLICKED
+  EMAIL_REPLIED
+  UNSUBSCRIBED
+  SEQUENCE_ENROLLED
+  SEQUENCE_UNENROLLED
+  SEQUENCE_COMPLETED
+}
+
+model Contact {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  phone        String?
+  company      String?
+  title        String?
+  address      String?
+  city         String?
+  state        String?
+  zip          String?
+  source       String?
+  tags         String[]
+  notes        String?   @db.Text
+  stage        LeadStage @default(NEW)
+  assignedTo   String?
+
+  totalQuoted  Float     @default(0)
+  totalWon     Float     @default(0)
+  quoteCount   Int       @default(0)
+  lastActivity DateTime?
+
+  quotes         Quote[]
+  invoices       Invoice[]
+  orders         Order[]
+  activities     ContactActivity[]
+  enrollments    SequenceEnrollment[]
+  emailLogs      EmailLog[]
+
+  isUnsubscribed Boolean   @default(false)
+  unsubscribedAt DateTime?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([stage])
+  @@index([email])
+  @@map("contacts_crm")
+}
+
+model ContactActivity {
+  id         String       @id @default(cuid())
+  contactId  String
+  contact    Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  type       ActivityType
+  content    String       @db.Text
+  metadata   String?      @db.Text
+  createdAt  DateTime     @default(now())
+  createdBy  String?
+
+  @@index([contactId, createdAt])
+  @@map("contact_activities")
+}
+
+// ── QUOTE MODULE ─────────────────────────────────────────────
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  VIEWED
+  SIGNED
+  CONVERTED
+  EXPIRED
+  DECLINED
+}
+
+model Quote {
+  id              String      @id @default(cuid())
+  quoteNumber     String      @unique
+  status          QuoteStatus @default(DRAFT)
+
+  // Customer info
+  contactName     String
+  contactEmail    String
+  contactPhone    String?
+  companyName     String?
+
+  // Pricing tier
+  pricingTier     String      @default("RETAIL") // RETAIL or WHOLESALE
+
+  // Financial
+  subtotal        Float       @default(0)
+  discountAmount  Float       @default(0)
+  taxRate         Float       @default(0)
+  taxAmount       Float       @default(0)
+  total           Float       @default(0)
+
+  // Content
+  notes           String?     @db.Text
+  customerMessage String?     @db.Text
+  terms           String?     @db.Text
+  validUntil      DateTime?
+
+  // Tracking
+  publicToken     String      @unique @default(cuid())
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  viewCount       Int         @default(0)
+  signedAt        DateTime?
+  signatureData   String?     @db.Text
+  signerName      String?
+  signerIp        String?
+
+  // Conversion
+  convertedToOrderAt DateTime?
+  orderId         String?
+
+  // Contact link (CRM)
+  contactId       String?
+  contact         Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  // Relations
+  lineItems       QuoteLineItem[]
+  events          QuoteEvent[]
+  invoice         Invoice?
+  orders          Order[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  createdBy       String?
+
+  @@index([status])
+  @@index([contactEmail])
+  @@map("quotes")
+}
+
+model QuoteLineItem {
+  id            String   @id @default(cuid())
+  quoteId       String
+  quote         Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  // SKU reference (optional — can be custom line item)
+  skuId         String?
+  skuCode       String?
+
+  // Display fields (copied from SKU at time of quote — never live-linked)
+  name          String
+  description   String?  @db.Text
+  imageUrl      String?
+  category      String?
+
+  // Pricing
+  unitPrice     Float
+  quantity      Int      @default(1)
+  discount      Float    @default(0)
+  lineTotal     Float
+
+  // Customer options
+  customerCanEditQty  Boolean @default(false)
+  customerCanRemove   Boolean @default(false)
+  isOptional          Boolean @default(false)
+  isSelected          Boolean @default(true)
+
+  sortOrder     Int      @default(0)
+
+  createdAt     DateTime @default(now())
+
+  @@index([quoteId, sortOrder])
+  @@map("quote_line_items")
+}
+
+model QuoteEvent {
+  id        String   @id @default(cuid())
+  quoteId   String
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  event     String
+  metadata  String?  @db.Text
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([quoteId, createdAt])
+  @@map("quote_events")
+}
+
+// ── INVOICE MODULE ───────────────────────────────────────────
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  STRIPE_CARD
+  STRIPE_ACH
+  CASH
+  CHECK
+  WIRE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model Invoice {
+  id                     String        @id @default(cuid())
+  invoiceNumber          String        @unique
+  status                 InvoiceStatus @default(DRAFT)
+
+  // Source
+  quoteId                String?       @unique
+  quote                  Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  contactId              String?
+  contact                Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  // Customer snapshot
+  contactName            String
+  contactEmail           String
+  contactPhone           String?
+  companyName            String?
+  billingAddress         String?
+
+  // Financials
+  subtotal               Float
+  discountAmount         Float         @default(0)
+  taxRate                Float         @default(0)
+  taxAmount              Float         @default(0)
+  total                  Float
+  amountPaid             Float         @default(0)
+  amountDue              Float
+  depositPercent         Float?
+
+  // Dates
+  issuedAt               DateTime      @default(now())
+  dueDate                DateTime
+  paidAt                 DateTime?
+  sentAt                 DateTime?
+
+  // Stripe
+  stripePaymentIntentId  String?
+  stripePaymentLinkId    String?
+  stripePaymentLinkUrl   String?
+
+  // Tracking
+  publicToken            String        @unique @default(cuid())
+  viewCount              Int           @default(0)
+  viewedAt               DateTime?
+  reminderCount          Int           @default(0)
+  lastReminderAt         DateTime?
+
+  // Notes
+  notes                  String?       @db.Text
+  customerNote           String?       @db.Text
+
+  lineItems              InvoiceLineItem[]
+  payments               Payment[]
+  events                 InvoiceEvent[]
+  reminders              InvoiceReminder[]
+  order                  Order?
+
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  createdBy              String?
+
+  @@index([status])
+  @@index([contactId])
+  @@index([contactEmail])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  name        String
+  description String?  @db.Text
+  imageUrl    String?
+  quantity    Int      @default(1)
+  unitPrice   Float
+  discount    Float    @default(0)
+  lineTotal   Float
+  skuId       String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([invoiceId, sortOrder])
+  @@map("invoice_line_items")
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  invoiceId             String
+  invoice               Invoice       @relation(fields: [invoiceId], references: [id])
+  amount                Float
+  method                PaymentMethod
+  status                PaymentStatus @default(PENDING)
+  stripePaymentIntentId String?
+  stripeChargeId        String?
+  last4                 String?
+  brand                 String?
+  note                  String?       @db.Text
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+
+  @@index([invoiceId, createdAt])
+  @@map("payments")
+}
+
+model InvoiceEvent {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  event       String
+  metadata    String?  @db.Text
+  ip          String?
+  createdAt   DateTime @default(now())
+  createdBy   String?
+
+  @@index([invoiceId, createdAt])
+  @@map("invoice_events")
+}
+
+model InvoiceReminder {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  sentAt      DateTime @default(now())
+  type        String
+  emailSentTo String
+
+  @@index([invoiceId])
+  @@map("invoice_reminders")
+}
+
+// ── INVENTORY MODULE ─────────────────────────────────────────
+
+enum InventoryType {
+  FINISHED_PRODUCT
+  RAW_MATERIAL
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+enum POStatus {
+  DRAFT
+  SENT
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum StockCountStatus {
+  IN_PROGRESS
+  COMMITTED
+  CANCELLED
+}
+
+model InventoryItem {
+  id              String        @id @default(cuid())
+  type            InventoryType
+  name            String
+  sku             String?       @unique
+  barcode         String?       @unique
+  description     String?       @db.Text
+  category        String?
+  imageUrl        String?
+
+  skuId           String?
+  productSku      Sku?          @relation("InventoryItemSku", fields: [skuId], references: [id], onDelete: SetNull)
+
+  unit            String?
+  vendor          String?
+  vendorSku       String?
+  costPerUnit     Float         @default(0)
+
+  qtyOnHand       Float         @default(0)
+  qtyReserved     Float         @default(0)
+  qtyOnOrder      Float         @default(0)
+  reorderPoint    Float         @default(0)
+  reorderQty      Float         @default(0)
+
+  qtyAvailable    Float         @default(0)
+  totalValue      Float         @default(0)
+
+  isActive        Boolean       @default(true)
+  isLowStock      Boolean       @default(false)
+
+  movements       StockMovement[]
+  purchaseOrderItems PurchaseOrderItem[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([type])
+  @@index([isLowStock])
+  @@index([vendor])
+  @@map("inventory_items")
+}
+
+model StockMovement {
+  id              String         @id @default(cuid())
+  itemId          String
+  item            InventoryItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  type            MovementType
+  qtyChange       Float
+  qtyBefore       Float
+  qtyAfter        Float
+  reason          String
+  notes           String?        @db.Text
+
+  referenceType   String?
+  referenceId     String?
+  referenceNumber String?
+
+  createdAt       DateTime       @default(now())
+  createdBy       String?
+
+  @@index([itemId, createdAt])
+  @@map("stock_movements")
+}
+
+model PurchaseOrder {
+  id              String     @id @default(cuid())
+  poNumber        String     @unique
+  status          POStatus   @default(DRAFT)
+  vendor          String
+  vendorContact   String?
+  vendorEmail     String?
+
+  expectedDelivery DateTime?
+  receivedAt       DateTime?
+
+  subtotal        Float      @default(0)
+  tax             Float      @default(0)
+  shipping        Float      @default(0)
+  total           Float      @default(0)
+
+  notes           String?    @db.Text
+
+  items           PurchaseOrderItem[]
+  events          POEvent[]
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  createdBy       String?
+
+  @@index([status])
+  @@index([vendor])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  poId            String
+  po              PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  itemId          String?
+  item            InventoryItem? @relation(fields: [itemId], references: [id])
+
+  name            String
+  sku             String?
+  unit            String?
+
+  qtyOrdered      Float
+  qtyReceived     Float         @default(0)
+  unitCost        Float
+  lineTotal       Float
+
+  createdAt       DateTime      @default(now())
+
+  @@index([poId])
+  @@map("purchase_order_items")
+}
+
+model POEvent {
+  id        String        @id @default(cuid())
+  poId      String
+  po        PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  event     String
+  metadata  String?       @db.Text
+  createdAt DateTime      @default(now())
+  createdBy String?
+
+  @@index([poId, createdAt])
+  @@map("po_events")
+}
+
+model StockCount {
+  id          String           @id @default(cuid())
+  status      StockCountStatus @default(IN_PROGRESS)
+  scope       String           @default("ALL")
+  notes       String?          @db.Text
+  startedAt   DateTime         @default(now())
+  committedAt DateTime?
+  startedBy   String?
+  lines       StockCountLine[]
+
+  @@map("stock_counts")
+}
+
+model StockCountLine {
+  id          String     @id @default(cuid())
+  countId     String
+  count       StockCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  itemId      String
+  itemName    String
+  itemSku     String?
+  systemQty   Float
+  countedQty  Float?
+  variance    Float?
+  createdAt   DateTime   @default(now())
+
+  @@index([countId])
+  @@map("stock_count_lines")
+}
+
+// ── ORDER MANAGEMENT MODULE ────────────��────────────────────
+
+enum OrderStatus {
+  PENDING
+  IN_PRODUCTION
+  QUALITY_CHECK
+  READY_TO_SHIP
+  LABEL_PURCHASED
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  EXCEPTION
+  CANCELLED
+  RETURNED
+}
+
+model Order {
+  id                  String      @id @default(cuid())
+  orderNumber         String      @unique
+  status              OrderStatus @default(PENDING)
+
+  // Source documents
+  invoiceId           String?     @unique
+  invoice             Invoice?    @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  quoteId             String?
+  quote               Quote?      @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  // Contact
+  contactId           String?
+  contact             Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  // Ship-to address
+  shipToName          String?
+  shipToCompany       String?
+  shipToAddress1      String?
+  shipToAddress2      String?
+  shipToCity          String?
+  shipToState         String?
+  shipToZip           String?
+  shipToCountry       String      @default("US")
+  addressVerified     Boolean     @default(false)
+
+  // Package details
+  weightLbs           Float?
+  weightOz            Float?
+  dimLength           Float?
+  dimWidth            Float?
+  dimHeight           Float?
+  packageType         String?
+
+  // Shipping
+  carrier             String?
+  serviceLevel        String?
+  shippingRate        Float?
+  trackingNumber      String?
+  labelUrl            String?
+  easypostShipmentId  String?
+  easypostTrackerId   String?
+  insuranceAmount     Float?
+  insured             Boolean     @default(false)
+
+  // Dates
+  shipByDate          DateTime?
+  shippedAt           DateTime?
+  estimatedDelivery   DateTime?
+  deliveredAt         DateTime?
+
+  // Tracking
+  trackingStatus      String?
+  lastTrackingUpdate  DateTime?
+
+  // Production
+  productionNotes     String?     @db.Text
+  packingNotes        String?     @db.Text
+
+  // Financial
+  orderTotal          Float       @default(0)
+  shippingCost        Float       @default(0)
+
+  lineItems           OrderLineItem[]
+  events              OrderEvent[]
+  trackingEvents      TrackingEvent[]
+  returns             OrderReturn[]
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  createdBy           String?
+
+  @@index([status])
+  @@index([contactId])
+  @@index([invoiceId])
+  @@index([trackingNumber])
+  @@map("orders")
+}
+
+model OrderLineItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?  @db.Text
+  imageUrl        String?
+  sku             String?
+  barcode         String?
+  quantity        Int      @default(1)
+  unitPrice       Float
+  lineTotal       Float
+
+  // Scan verification
+  qtyVerified     Int      @default(0)
+  isVerified      Boolean  @default(false)
+
+  inventoryItemId String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([orderId, sortOrder])
+  @@map("order_line_items")
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  event     String
+  metadata  String?  @db.Text
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  @@index([orderId, createdAt])
+  @@map("order_events")
+}
+
+model TrackingEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  message   String
+  location  String?
+  datetime  DateTime
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@map("tracking_events")
+}
+
+model OrderReturn {
+  id               String   @id @default(cuid())
+  orderId          String
+  order            Order    @relation(fields: [orderId], references: [id])
+  reason           String
+  notes            String?  @db.Text
+  returnLabelUrl   String?
+  easypostReturnId String?
+  trackingNumber   String?
+  status           String   @default("INITIATED")
+  createdAt        DateTime @default(now())
+
+  @@index([orderId])
+  @@map("order_returns")
+}
+
+// ── MARKETING & FOLLOW-UP MODULE ─────────────────────────────
+
+enum SequenceTrigger {
+  QUOTE_SENT
+  QUOTE_VIEWED
+  QUOTE_UNOPENED_3DAY
+  QUOTE_VIEWED_UNSIGNED_2DAY
+  INVOICE_SENT
+  INVOICE_OVERDUE
+  INVOICE_OVERDUE_7DAY
+  INVOICE_OVERDUE_14DAY
+  ORDER_DELIVERED
+  NEW_CONTACT
+  CONTACT_DORMANT_60DAY
+  CONTACT_DORMANT_90DAY
+  MANUAL
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  UNENROLLED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELLED
+}
+
+model EmailSequence {
+  id            String              @id @default(cuid())
+  name          String
+  description   String?
+  trigger       SequenceTrigger
+  isActive      Boolean             @default(true)
+  isPrebuilt    Boolean             @default(false)
+
+  totalEnrolled Int                 @default(0)
+  totalSent     Int                 @default(0)
+
+  steps         SequenceStep[]
+  enrollments   SequenceEnrollment[]
+
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  createdBy     String?
+
+  @@index([trigger])
+  @@map("email_sequences")
+}
+
+model SequenceStep {
+  id            String        @id @default(cuid())
+  sequenceId    String
+  sequence      EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  stepNumber    Int
+  delayDays     Int           @default(0)
+  subject       String
+  bodyHtml      String        @db.Text
+  tone          String?
+
+  sentCount     Int           @default(0)
+  openCount     Int           @default(0)
+  clickCount    Int           @default(0)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([sequenceId, stepNumber])
+  @@map("sequence_steps")
+}
+
+model SequenceEnrollment {
+  id            String             @id @default(cuid())
+  sequenceId    String
+  sequence      EmailSequence      @relation(fields: [sequenceId], references: [id])
+  contactId     String
+  contact       Contact            @relation(fields: [contactId], references: [id])
+
+  status        EnrollmentStatus   @default(ACTIVE)
+  currentStep   Int                @default(0)
+  nextSendAt    DateTime?
+
+  triggerType   String?
+  triggerRefId  String?
+
+  unenrollReason String?
+  unenrolledAt  DateTime?
+
+  logs          EmailLog[]
+
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([sequenceId, contactId])
+  @@index([status, nextSendAt])
+  @@map("sequence_enrollments")
+}
+
+model EmailLog {
+  id              String              @id @default(cuid())
+  enrollmentId    String?
+  enrollment      SequenceEnrollment? @relation(fields: [enrollmentId], references: [id])
+  campaignId      String?
+  campaign        EmailCampaign?      @relation(fields: [campaignId], references: [id])
+
+  contactId       String
+  contact         Contact             @relation(fields: [contactId], references: [id])
+
+  toEmail         String
+  subject         String
+  bodyHtml        String              @db.Text
+
+  postmarkMessageId String?
+
+  trackingToken   String              @unique @default(cuid())
+  sentAt          DateTime            @default(now())
+  openedAt        DateTime?
+  openCount       Int                 @default(0)
+  clickedAt       DateTime?
+  clickCount      Int                 @default(0)
+  repliedAt       DateTime?
+  bouncedAt       DateTime?
+  unsubscribedAt  DateTime?
+
+  stepNumber      Int?
+
+  createdAt       DateTime            @default(now())
+
+  @@index([contactId, createdAt])
+  @@index([enrollmentId])
+  @@index([campaignId])
+  @@map("email_logs")
+}
+
+model EmailCampaign {
+  id              String           @id @default(cuid())
+  name            String
+  subject         String
+  bodyHtml        String           @db.Text
+  status          CampaignStatus   @default(DRAFT)
+
+  segmentType     String
+  segmentConfig   String?
+  recipientCount  Int              @default(0)
+
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+
+  sentCount       Int              @default(0)
+  openCount       Int              @default(0)
+  clickCount      Int              @default(0)
+  unsubCount      Int              @default(0)
+
+  logs            EmailLog[]
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  createdBy       String?
+
+  @@index([status])
+  @@map("email_campaigns")
+}
+
+model UnsubscribeRecord {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  contactId   String?
+  reason      String?
+  source      String?
+  createdAt   DateTime @default(now())
+
+  @@map("unsubscribe_records")
+}
+
+// ── DASHBOARD & REPORTING MODULE ────────────────────────────
+
+model DailyBriefing {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  content     String   @db.Text
+  dataSnapshot String  @db.Text
+  generatedAt DateTime @default(now())
+
+  @@unique([date])
+  @@map("daily_briefings")
+}
+
+model ReportExport {
+  id          String   @id @default(cuid())
+  reportType  String
+  format      String
+  filters     String?
+  filePath    String?
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  createdBy   String?
+
+  @@map("report_exports")
 }

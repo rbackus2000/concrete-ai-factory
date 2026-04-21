@@ -2,9 +2,10 @@ type PageHeaderProps = {
   eyebrow: string;
   title: string;
   description: string;
+  stats?: string;
 };
 
-export function PageHeader({ eyebrow, title, description }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, stats }: PageHeaderProps) {
   return (
     <header className="max-w-4xl space-y-2">
       <p className="text-xs font-medium uppercase tracking-widest text-blue-600">{eyebrow}</p>
@@ -14,6 +15,11 @@ export function PageHeader({ eyebrow, title, description }: PageHeaderProps) {
       <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
         {description}
       </p>
+      {stats && (
+        <p className="text-xs font-medium text-muted-foreground">
+          {stats}
+        </p>
+      )}
     </header>
   );
 }

@@ -155,7 +155,7 @@ export function ProposalGeneratorForm({
     URL.revokeObjectURL(url);
   };
 
-  const fmt = (n: number) => `$${n.toLocaleString()}`;
+  const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className="space-y-6">

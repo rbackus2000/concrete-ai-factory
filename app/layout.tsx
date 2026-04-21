@@ -16,6 +16,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-screen font-sans text-foreground">
         <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
           <AppSidebar />

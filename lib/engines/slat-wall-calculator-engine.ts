@@ -215,7 +215,7 @@ export function calculateSlatWallCost(input: SlatWallCalcInput): SlatWallCalcRes
   const pricePerSqFt = wallSqFt > 0 ? studioPrice / wallSqFt : 0;
   const pricePerLinFt = wallWidthFt > 0 ? studioPrice / wallWidthFt : 0;
 
-  const fmt = (n: number) => `$${n.toLocaleString()}`;
+  const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return {
     inputs: {

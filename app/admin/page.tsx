@@ -7,6 +7,11 @@ export const dynamic = "force-dynamic";
 
 const adminSections = [
   {
+    title: "Product Catalog",
+    href: "/admin/product-catalog",
+    description: "Manage retail and wholesale pricing for all SKUs. Prices flow into the quote builder.",
+  },
+  {
     title: "Prompt Templates",
     href: "/admin/prompt-templates",
     description: "Manage generation templates, scope, status, and versioning.",

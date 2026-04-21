@@ -78,12 +78,12 @@ export default async function OutputsPage({ searchParams }: OutputsPageProps) {
             >
               Apply
             </button>
-            <a
+            <Link
               className="inline-flex h-11 items-center justify-center rounded-full border border-border bg-transparent px-5 py-2.5 text-sm font-medium"
               href="/outputs"
             >
               Clear
-            </a>
+            </Link>
           </form>
         </CardContent>
       </Card>

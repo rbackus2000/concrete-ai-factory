@@ -3,6 +3,22 @@
     {
       "path": "/api/price-sync",
       "schedule": "0 6 1 * *"
+    },
+    {
+      "path": "/api/cron/sequences",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/campaigns",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/triggers",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/daily-briefing",
+      "schedule": "0 13 * * *"
     }
   ]
 }

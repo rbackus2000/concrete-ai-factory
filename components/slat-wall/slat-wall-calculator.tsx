@@ -88,7 +88,7 @@ export function SlatWallCalculator({ defaultSlatCount, defaultSlatWidthIn, defau
     [slatCount, slatWidthIn, slatHeightFt, printMethod, includeInstall, costOverrides],
   );
 
-  const fmt = (n: number) => `$${n.toLocaleString()}`;
+  const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const barData = [
     { label: "Materials", value: result.breakdown.materialsTotal, pct: result.percentages.materials, color: "bg-blue-500" },

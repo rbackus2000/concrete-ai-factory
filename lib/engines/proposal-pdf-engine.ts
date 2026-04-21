@@ -724,7 +724,7 @@ function renderInvestment(page: PDFPage, fonts: Fonts, input: ProposalInput, cal
 
   for (const [label, val] of clientLines) {
     page.drawText(label, { x: MARGIN, y, size: 10, font: fonts.regular, color: BLACK });
-    const vStr = `$${val.toLocaleString()}`;
+    const vStr = `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const vw = fonts.regular.widthOfTextAtSize(vStr, 10);
     page.drawText(vStr, { x: MARGIN + CONTENT_W - vw, y, size: 10, font: fonts.regular, color: BLACK });
     y -= 18;
@@ -735,7 +735,7 @@ function renderInvestment(page: PDFPage, fonts: Fonts, input: ProposalInput, cal
   // Total
   const totalLabel = "Total investment";
   page.drawText(totalLabel, { x: MARGIN, y, size: 11, font: fonts.bold, color: BLACK });
-  const totalStr = `$${pricing.studioPrice.toLocaleString()}`;
+  const totalStr = `$${pricing.studioPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const tw = fonts.bold.widthOfTextAtSize(totalStr, 14);
   page.drawText(totalStr, { x: MARGIN + CONTENT_W - tw, y: y - 2, size: 14, font: fonts.bold, color: BLACK });
   y -= 30;
@@ -743,7 +743,7 @@ function renderInvestment(page: PDFPage, fonts: Fonts, input: ProposalInput, cal
   // Gold total bar
   page.drawRectangle({ x: MARGIN, y: y - 40, width: CONTENT_W, height: 40, color: GOLD });
   page.drawText("TOTAL INVESTMENT", { x: MARGIN + 16, y: y - 26, size: 14, font: fonts.bold, color: DARK });
-  const bigTotal = `$${pricing.studioPrice.toLocaleString()}`;
+  const bigTotal = `$${pricing.studioPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const btw = fonts.bold.widthOfTextAtSize(bigTotal, 28);
   page.drawText(bigTotal, { x: MARGIN + CONTENT_W - btw - 16, y: y - 30, size: 28, font: fonts.bold, color: DARK });
   y -= 56;
@@ -761,10 +761,10 @@ function renderInvestment(page: PDFPage, fonts: Fonts, input: ProposalInput, cal
   const m4 = total - m1 - m2 - m3;
 
   const milestones = [
-    [`Milestone 1: Contract signing - 30%`, `$${m1.toLocaleString()}`],
-    [`Milestone 2: Fabrication start - 30%`, `$${m2.toLocaleString()}`],
-    [`Milestone 3: Print approval - 20%`, `$${m3.toLocaleString()}`],
-    [`Milestone 4: Installation complete - 20%`, `$${m4.toLocaleString()}`],
+    [`Milestone 1: Contract signing - 30%`, `$${m1.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+    [`Milestone 2: Fabrication start - 30%`, `$${m2.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+    [`Milestone 3: Print approval - 20%`, `$${m3.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+    [`Milestone 4: Installation complete - 20%`, `$${m4.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
   ];
   for (const [label, val] of milestones) {
     page.drawText(label, { x: MARGIN, y, size: 9, font: fonts.regular, color: BLACK });

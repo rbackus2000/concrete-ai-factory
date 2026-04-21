@@ -245,6 +245,10 @@ export async function saveProductBundle(
     ?? 40;
   const sku = rawSku;
 
+  // Resolve pricing — Claude should provide it, fall back to category defaults
+  const retailPrice = Number(skuAny.retailPrice ?? 0);
+  const wholesalePrice = Number(skuAny.wholesalePrice ?? 0);
+
   const skuRecord = await prisma.sku.create({
     data: {
       code: sku.code,
@@ -255,6 +259,8 @@ export async function saveProductBundle(
       type: sku.type,
       finish: sku.finish,
       description: sku.summary ?? (skuAny.description as string) ?? "",
+      retailPrice: retailPrice > 0 ? retailPrice : null,
+      wholesalePrice: wholesalePrice > 0 ? wholesalePrice : null,
       targetWeightMinLbs: targetWeightMin,
       targetWeightMaxLbs: targetWeightMax,
       outerLength: sku.outerLength ?? 0,
