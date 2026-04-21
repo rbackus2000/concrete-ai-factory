@@ -89,7 +89,7 @@ Respond with ONLY valid JSON matching this type:
 
 export async function generateConceptImage(imagePrompt: string, productName: string): Promise<{
   imageUrl: string;
-  filePath: string;
+  filePath: string | null;
   outputId: string;
 }> {
   const config = getGeminiConfig();
@@ -139,31 +139,37 @@ export async function generateConceptImage(imagePrompt: string, productName: str
   for (const candidate of candidates) {
     for (const part of candidate?.content?.parts ?? []) {
       if (part?.inlineData?.data) {
-        const directory = path.join(process.cwd(), "public", "generated-images");
         const filename = `${output.id}.png`;
-        const absolutePath = path.join(directory, filename);
+        const imageUrl = `/api/images/${output.id}`;
 
-        await mkdir(directory, { recursive: true });
-        await writeFile(absolutePath, Buffer.from(part.inlineData.data, "base64"));
+        // Try writing to disk (works locally, fails on Vercel)
+        let filePath: string | null = null;
+        try {
+          const directory = path.join(process.cwd(), "public", "generated-images");
+          const absolutePath = path.join(directory, filename);
+          await mkdir(directory, { recursive: true });
+          await writeFile(absolutePath, Buffer.from(part.inlineData.data, "base64"));
+          filePath = absolutePath;
+        } catch {
+          // Vercel read-only filesystem
+        }
 
-        const imageUrl = `/generated-images/${filename}`;
-
-        // Save GeneratedImageAsset record
+        // Save GeneratedImageAsset record with base64 for Vercel serving
         await prisma.generatedImageAsset.create({
           data: {
             generatedOutputId: output.id,
             promptTextUsed: imagePrompt,
             modelName: config.model,
             imageUrl,
-            filePath: absolutePath,
+            filePath,
             status: "GENERATED",
             width: 2048,
             height: 1152,
-            metadataJson: { source: "product-agent", productName },
+            metadataJson: { source: "product-agent", productName, imageBase64: part.inlineData.data },
           },
         });
 
-        return { imageUrl, filePath: absolutePath, outputId: output.id };
+        return { imageUrl, filePath, outputId: output.id };
       }
     }
   }

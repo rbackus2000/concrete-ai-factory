@@ -128,16 +128,26 @@ async function saveBase64Image({
   b64Json: string;
   suffix?: string;
 }) {
-  const directory = path.join(process.cwd(), "public", "generated-images");
   const filename = `${generatedOutputId}${suffix ? `-${suffix}` : ""}.png`;
-  const absolutePath = path.join(directory, filename);
+  const imageUrl = `/api/images/${generatedOutputId}${suffix ? `-${suffix}` : ""}`;
 
-  await mkdir(directory, { recursive: true });
-  await writeFile(absolutePath, Buffer.from(b64Json, "base64"));
+  // Try writing to disk (works locally, fails on Vercel's read-only fs)
+  let filePath: string | null = null;
+  try {
+    const directory = path.join(process.cwd(), "public", "generated-images");
+    const absolutePath = path.join(directory, filename);
+    await mkdir(directory, { recursive: true });
+    await writeFile(absolutePath, Buffer.from(b64Json, "base64"));
+    filePath = absolutePath;
+  } catch {
+    // Vercel read-only filesystem — image served from DB via /api/images/[id]
+  }
 
+  // Always store base64 in the DB metadata for Vercel serving
   return {
-    imageUrl: `/generated-images/${filename}`,
-    filePath: absolutePath,
+    imageUrl,
+    filePath,
+    imageBase64: b64Json,
   };
 }
 
@@ -286,6 +296,9 @@ export async function generateImageWithGemini({
     });
     imageUrl = persisted.imageUrl;
     filePath = persisted.filePath;
+
+    // Store base64 in metadata so images can be served from DB on Vercel
+    (payload as Record<string, unknown>)["imageBase64"] = inlineData["data"];
   } else {
     throw new Error("Gemini returned an image candidate without inline data.");
   }
