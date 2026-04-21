@@ -167,9 +167,15 @@ function buildImageTemplateKey(category: SkuCategory, scenePreset?: ImageScenePr
 }
 
 function applyConditionals(templateBody: string, variables: Record<string, string | boolean>) {
-  return templateBody.replace(/{{#if\s+([a-zA-Z0-9_]+)}}([\s\S]*?){{\/if}}/g, (_, key, content) => {
-    return variables[key] ? content : "";
-  });
+  return templateBody.replace(
+    /{{#if\s+([a-zA-Z0-9_]+)}}([\s\S]*?){{\/if}}/g,
+    (_, key, content) => {
+      const parts = content.split("{{else}}");
+      const trueBranch = parts[0];
+      const falseBranch = parts[1] ?? "";
+      return variables[key] ? trueBranch : falseBranch;
+    },
+  );
 }
 
 function replaceTokens(templateBody: string, variables: Record<string, string | boolean>) {
