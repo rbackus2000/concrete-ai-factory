@@ -16,57 +16,88 @@ function formatNumber(n: number | null | undefined): string {
 }
 
 function buildBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
-  const dims = {
-    outerL: formatNumber(sku.outerLength),
-    outerW: formatNumber(sku.outerWidth),
-    outerH: formatNumber(sku.outerHeight),
-    innerL: formatNumber(sku.innerLength),
-    innerW: formatNumber(sku.innerWidth),
-    innerD: formatNumber(sku.innerDepth),
-    wall: formatNumber(sku.wallThickness),
-    bottom: formatNumber(sku.bottomThickness),
-    drain: formatNumber(sku.drainDiameter),
-  };
-
+  const L = formatNumber(sku.outerLength);
+  const W = formatNumber(sku.outerWidth);
+  const H = formatNumber(sku.outerHeight);
+  const iL = formatNumber(sku.innerLength);
+  const iW = formatNumber(sku.innerWidth);
+  const iD = formatNumber(sku.innerDepth);
+  const wall = formatNumber(sku.wallThickness);
+  const bottom = formatNumber(sku.bottomThickness);
+  const drain = formatNumber(sku.drainDiameter);
   const isRound = sku.outerLength === sku.outerWidth;
-  const shapeDesc = isRound
-    ? `circular/round vessel bowl, ${dims.outerL} in diameter x ${dims.outerH} in tall`
-    : `rectangular vessel sink, ${dims.outerL} x ${dims.outerW} x ${dims.outerH} inches`;
+  const shape = isRound ? "round" : "rectangular";
+  const name = sku.name.toUpperCase();
+  const code = sku.code;
 
-  return `Single-object technical blueprint of the "${sku.name}" — a hand-cast GFRC ${shapeDesc}.
+  // Build the exact text strings the model must render — keep them short and unambiguous
+  const titleLines = [
+    name,
+    sku.type?.toUpperCase() || "SCULPTED BASIN",
+    "",
+    `LENGTH:  ${L} in`,
+    `WIDTH:   ${W} in`,
+    `HEIGHT:  ${H} in`,
+    "MATERIAL: GFRC",
+    sku.drainDiameter > 0 ? `DRAIN:   ${drain} in` : "",
+  ].filter(Boolean);
 
-Deep cobalt blue background (#0a1628) with subtle grid lines. Clean white 2D orthographic line drawing only. No shading, no lighting effects, no 3D rendering.
+  const noteLines = [
+    "ALL DIMENSIONS IN INCHES",
+    "TOLERANCE: +/- 0.04 in",
+    sku.drainDiameter > 0 ? `DRAIN OPENING ${drain} in` : "",
+    sku.hasOverflow ? "OVERFLOW: YES" : "NO OVERFLOW",
+    `WALL: ${wall} in`,
+    "GFRC CONSTRUCTION",
+  ].filter(Boolean);
 
-Layout (6 panels on one sheet):
-1. TOP VIEW (largest, top-center): ${isRound ? "Circular" : "Rectangular"} outer profile ${dims.outerL} x ${dims.outerW} in. Interior basin contour lines showing sculpted depth. ${sku.drainDiameter > 0 ? `Centered drain opening ∅${dims.drain} in.` : ""} Dimension arrows on all sides.
-2. FRONT VIEW (below top view): Profile showing height ${dims.outerH} in, wall thickness ${dims.wall} in, basin depth ${dims.innerD} in.
-3. SIDE VIEW (bottom-left): ${isRound ? "Same as front (circular symmetry)" : `Width profile ${dims.outerW} in x ${dims.outerH} in`}.
-4. SECTION A-A (bottom-right): Cross-section cut through center showing wall thickness ${dims.wall} in, bottom thickness ${dims.bottom} in, interior basin shape.
-5. DRAIN DETAIL (small inset, bottom-left): Enlarged view of drain area, ∅${dims.drain} in opening.
-6. CONTOUR STUDY (small inset): Top-down contour map of basin interior depth.
+  return `CRITICAL TEXT RULES — FOLLOW EXACTLY:
+- Every dimension label MUST end with the two letters "in" (for inches). NEVER write "mm" or "cm".
+- Spell every word correctly. Double-check: "HEIGHT" not "HE GHT", "DRAIN" not "BRAIN", "LENGTH" not "LENGHT", "TOLERANCE" not "TOLERENCE", "OVERFLOW" not "OVERPLOW".
+- Copy the text strings below CHARACTER FOR CHARACTER. Do not paraphrase or abbreviate.
 
-Title block (top-left):
-${sku.name.toUpperCase()}
-${sku.type || "SCULPTED BASIN"}
-LENGTH: ${dims.outerL} in
-WIDTH: ${dims.outerW} in
-HEIGHT: ${dims.outerH} in
-MATERIAL: GFRC
-${sku.drainDiameter > 0 ? `DRAIN ∅: ${dims.drain} in` : ""}
+IMAGE DESCRIPTION:
+Single-object technical blueprint. Deep cobalt blue background (#0a1628) with faint grid. White 2D orthographic line drawings only — no shading, no 3D, no gradients, no fills.
 
-Notes block (bottom-right):
-• ALL DIMENSIONS IN INCHES
-• TOLERANCE: ±0.04 in
-${sku.drainDiameter > 0 ? `• DRAIN OPENING ∅${dims.drain} in` : ""}
-• ${sku.hasOverflow ? "OVERFLOW INCLUDED" : "NO OVERFLOW"}
-• WALL THICKNESS: ${dims.wall} in
-• GFRC CONSTRUCTION
+THE OBJECT: A ${shape} GFRC vessel sink, ${L} x ${W} x ${H} in.
 
-Brand mark (bottom-right corner):
-${sku.code}
+LAYOUT — 6 PANELS:
+
+TOP-LEFT TITLE BLOCK (plain white text, left-aligned):
+${titleLines.join("\n")}
+
+PANEL 1 — TOP VIEW (largest panel, upper-right area):
+${isRound ? "Circular" : "Rectangular"} outline ${L} x ${W}. Interior contour lines for sculpted basin.${sku.drainDiameter > 0 ? ` Small circle at center for drain.` : ""} Dimension arrows labeled "${L} in" across top and "${W} in" on right side.
+Label below: "TOP VIEW"
+
+PANEL 2 — FRONT VIEW (middle row):
+Side profile, width ${L} in, height ${H} in. Show wall thickness ${wall} in. Dimension arrows labeled "${L} in" across top, "${H} in" on side.
+Label below: "FRONT VIEW"
+
+PANEL 3 — SIDE VIEW (bottom-left):
+End profile, width ${W} in, height ${H} in. Dimension labels "${W} in" and "${H} in".
+Label below: "SIDE VIEW"
+
+PANEL 4 — SECTION A-A (bottom-right):
+Cross-section showing wall ${wall} in, bottom ${bottom} in, inner depth ${iD} in.
+Label below: "SECTION A-A"
+
+PANEL 5 — DRAIN DETAIL (small inset):
+Enlarged drain circle, label "${drain} in".
+Label: "DRAIN DETAIL"
+
+PANEL 6 — CONTOUR STUDY (small inset):
+Top-down contour lines of basin interior.
+Label: "CONTOUR STUDY"
+
+BOTTOM-RIGHT NOTES BLOCK (bulleted list, small white text):
+${noteLines.map((l) => `- ${l}`).join("\n")}
+
+BOTTOM-RIGHT CORNER BRAND MARK:
+${code}
 BACKUS DESIGN CO.
 
-Style: Precise architectural blueprint. Measurement ticks with arrows. Minimal technical labels in inches. Balanced layout with negative space. White lines on dark blue. Professional engineering drawing aesthetic.`;
+STYLE: Precise, minimal, architectural. White lines on dark blue. Measurement arrows with tick marks. All labels in clean sans-serif or monospace font. Generous negative space. Professional engineering drawing.`;
 }
 
 export async function generateBlueprintOutput(values: GeneratorFormValues) {
