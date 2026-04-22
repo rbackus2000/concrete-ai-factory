@@ -23,6 +23,7 @@ import {
 } from "../engines/validation-engine";
 import { buildTechnicalDrawingPrompts } from "../engines/drawing-prompt-engine";
 import { generateImageRenderOutput, generateImageWithGemini, getSkuReferenceImagePath } from "./image-generation-service";
+import { generateBlueprintOutput } from "./openai-image-service";
 import { outputTypeValues } from "../schemas/domain";
 import { generatorFormSchema, type GeneratorFormValues } from "../schemas/generator";
 import {
@@ -290,6 +291,10 @@ export async function generateOutput(values: GeneratorFormValues) {
 
   if (parsed.outputType === "IMAGE_RENDER") {
     return generateImageRenderOutput(parsed);
+  }
+
+  if (parsed.outputType === "BLUEPRINT_RENDER") {
+    return generateBlueprintOutput(parsed);
   }
 
   const sku = await prisma.sku.findUnique({

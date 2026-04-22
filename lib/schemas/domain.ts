@@ -21,6 +21,7 @@ export const promptTemplateCategoryValues = [
 export const outputTypeValues = [
   "IMAGE_PROMPT",
   "IMAGE_RENDER",
+  "BLUEPRINT_RENDER",
   "BLUEPRINT_PROMPT",
   "ALIGNMENT_PROMPT",
   "MOLD_BREAKDOWN_PROMPT",
