@@ -25,12 +25,32 @@ function buildBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
   const wall = formatNumber(sku.wallThickness);
   const bottom = formatNumber(sku.bottomThickness);
   const drain = formatNumber(sku.drainDiameter);
+  const drainType = (sku.drainType || "Round").toLowerCase();
   const isRound = sku.outerLength === sku.outerWidth;
   const shape = isRound ? "round" : "rectangular";
   const name = sku.name.toUpperCase();
   const code = sku.code;
 
+  // Build drain-specific descriptions
+  let drainShapeDesc: string;
+  let drainDetailDesc: string;
+  let drainTopViewDesc: string;
+  if (drainType === "slot") {
+    drainShapeDesc = `linear slot drain, ${drain} in wide`;
+    drainDetailDesc = `Enlarged view of the SLOT DRAIN — a narrow rectangular opening ${drain} in wide running along the basin floor. Draw as a long thin rectangle with dimension arrow labeled "${drain} in". NOT a circle.`;
+    drainTopViewDesc = `Thin rectangular slot drain at basin center (NOT circular).`;
+  } else if (drainType === "grid") {
+    drainShapeDesc = `grid drain, ${drain} in square`;
+    drainDetailDesc = `Enlarged view of the GRID DRAIN — a square grate pattern ${drain} in x ${drain} in. Draw as a square with internal grid lines and dimension arrow labeled "${drain} in". NOT a circle.`;
+    drainTopViewDesc = `Square grid drain at basin center (NOT circular).`;
+  } else {
+    drainShapeDesc = `round drain, ${drain} in diameter`;
+    drainDetailDesc = `Enlarged view of the ROUND DRAIN — a circular opening ${drain} in diameter. Draw as a circle with dimension arrow labeled "${drain} in".`;
+    drainTopViewDesc = `Small circle at center for round drain.`;
+  }
+
   // Build the exact text strings the model must render — keep them short and unambiguous
+  const drainTypeLabel = drainType === "slot" ? "SLOT" : drainType === "grid" ? "GRID" : "ROUND";
   const titleLines = [
     name,
     sku.type?.toUpperCase() || "SCULPTED BASIN",
@@ -39,13 +59,13 @@ function buildBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
     `WIDTH:   ${W} in`,
     `HEIGHT:  ${H} in`,
     "MATERIAL: GFRC",
-    sku.drainDiameter > 0 ? `DRAIN:   ${drain} in` : "",
+    sku.drainDiameter > 0 ? `DRAIN:   ${drainTypeLabel} ${drain} in` : "",
   ].filter(Boolean);
 
   const noteLines = [
     "ALL DIMENSIONS IN INCHES",
     "TOLERANCE: +/- 0.04 in",
-    sku.drainDiameter > 0 ? `DRAIN OPENING ${drain} in` : "",
+    sku.drainDiameter > 0 ? `${drainTypeLabel} DRAIN ${drain} in` : "",
     sku.hasOverflow ? "OVERFLOW: YES" : "NO OVERFLOW",
     `WALL: ${wall} in`,
     "GFRC CONSTRUCTION",
@@ -59,7 +79,7 @@ function buildBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
 IMAGE DESCRIPTION:
 Single-object technical blueprint. Deep cobalt blue background (#0a1628) with faint grid. White 2D orthographic line drawings only — no shading, no 3D, no gradients, no fills.
 
-THE OBJECT: A ${shape} GFRC vessel sink, ${L} x ${W} x ${H} in.
+THE OBJECT: A ${shape} GFRC vessel sink, ${L} x ${W} x ${H} in.${sku.drainDiameter > 0 ? ` Equipped with a ${drainShapeDesc}.` : ""}
 
 LAYOUT — 6 PANELS:
 
@@ -67,7 +87,7 @@ TOP-LEFT TITLE BLOCK (plain white text, left-aligned):
 ${titleLines.join("\n")}
 
 PANEL 1 — TOP VIEW (largest panel, upper-right area):
-${isRound ? "Circular" : "Rectangular"} outline ${L} x ${W}. Interior contour lines for sculpted basin.${sku.drainDiameter > 0 ? ` Small circle at center for drain.` : ""} Dimension arrows labeled "${L} in" across top and "${W} in" on right side.
+${isRound ? "Circular" : "Rectangular"} outline ${L} x ${W}. Interior contour lines for sculpted basin.${sku.drainDiameter > 0 ? ` ${drainTopViewDesc}` : ""} Dimension arrows labeled "${L} in" across top and "${W} in" on right side.
 Label below: "TOP VIEW"
 
 PANEL 2 — FRONT VIEW (middle row):
@@ -83,7 +103,7 @@ Cross-section showing wall ${wall} in, bottom ${bottom} in, inner depth ${iD} in
 Label below: "SECTION A-A"
 
 PANEL 5 — DRAIN DETAIL (small inset):
-Enlarged drain circle, label "${drain} in".
+${drainDetailDesc}
 Label: "DRAIN DETAIL"
 
 PANEL 6 — CONTOUR STUDY (small inset):
