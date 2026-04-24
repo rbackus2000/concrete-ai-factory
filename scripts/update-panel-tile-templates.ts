@@ -35,25 +35,28 @@ No flat featureless rectangle when the design specifies surface relief. No bathr
   },
   {
     key: "panel_image_installed",
-    body: `Ultra-realistic architectural render of the {{skuCode}} {{productName}} installed in a refined space.
+    body: `Editorial architectural-magazine render of the {{skuCode}} {{productName}} installed as a full feature wall in a premium interior.
 
 Product type: {{productType}}.
 Design intent: {{productDescription}}
 
 Object:
-A premium concrete panel or tile whose distinctive surface relief, carving, or texture (described above) must be clearly visible across the installed wall. {{finish}} finish — {{finishDescription}}. Repeatable manufacturable geometry. Module size approximately {{tileLength}} x {{tileWidth}} inches, thickness {{tileThickness}} inches.
+A premium cast-concrete feature wall whose distinctive surface relief, carving, or texture (described above) must be unmistakably visible across every visible panel. {{finish}} finish — {{finishDescription}}. Repeatable manufacturable geometry. Module size approximately {{tileLength}} x {{tileWidth}} inches, thickness {{tileThickness}} inches. Crisp edge profile {{edgeProfile}}; joint lines visible but subordinate to the surface pattern.
 
-Installation:
-Show the panel installed on a wall in a believable architectural setting — emphasize pattern rhythm, joint spacing, and edge profile {{edgeProfile}}. Raking light across the wall to reveal the surface relief.
+Installation and composition:
+Full floor-to-ceiling installation dominating the frame — the wall is the unambiguous hero and fills most of the composition. Shot at a three-quarter architectural perspective from a low-to-mid camera height so the wall recedes into space with strong parallax. Include minimal but intentional architectural context: a polished concrete floor, a single low bench or console in soft focus, and ideally a distant window or aperture revealing sky or city lights to suggest scale and place. No people, no clutter, no decor.
 
-Render intent:
-Highlight how the product looks in use, including repeatability, alignment, scale, and material realism. The defining surface pattern must be legible at this viewing distance.
+Lighting:
+Dramatic raking light skimming across the panel surface from one side (either golden-hour sun, late-afternoon side light, or concealed linear wall-wash). The relief must cast clear, legible shadows that reveal the pattern rhythm. Soft ambient fill only in the foreground — the wall itself stays in the light's primary reveal.
 
 Material:
-{{finish}} GFRC — {{finishDescription}}. Show realistic surface detail consistent with this finish technique.
+{{finish}} GFRC — {{finishDescription}}. Show realistic surface detail consistent with this finish technique. Natural material warmth; no plasticky sheen.
+
+Render intent:
+Interior-design-magazine hero shot. The viewer should instantly understand the panel's scale, repeat logic, relief depth, and material quality.
 
 Negative constraints:
-No flat featureless wall when the design specifies surface relief. No faucet. No drain. No sink bowl geometry. No furniture styling. No chaotic pattern distortion. No impossible grout or joint spacing.`,
+No flat featureless wall when the design specifies surface relief. No faucet, drain, or sink bowl geometry. No furniture styling beyond a single bench or console. No chaotic pattern distortion. No impossible grout or joint spacing. No people. No visible brand logos. No HDR halos or surreal lighting.`,
   },
   {
     key: "panel_image_repeat_pattern",
