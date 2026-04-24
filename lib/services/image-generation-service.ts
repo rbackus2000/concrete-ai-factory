@@ -179,18 +179,28 @@ export async function getSkuReferenceImagePath(skuId: string): Promise<string | 
   }
 }
 
+const DEFAULT_REFERENCE_INSTRUCTION =
+  "REFERENCE IMAGE: The attached image is the approved hero render for this product. You MUST match the exact same product appearance, shape, color, finish, material texture, and proportions shown in the reference image. Do not deviate from the product design.";
+
 export async function generateImageWithGemini({
   generatedOutputId,
   promptText,
   suffix,
   imageSize,
   referenceImagePath,
+  referenceInstruction,
 }: {
   generatedOutputId: string;
   promptText: string;
   suffix?: string;
   imageSize?: string;
   referenceImagePath?: string | null;
+  /**
+   * Override for the sentence prepended when a reference image is supplied.
+   * Callers that want geometry-only match (e.g. color variants) should pass
+   * an instruction that preserves shape/relief but allows color to change.
+   */
+  referenceInstruction?: string;
 }): Promise<ProviderImageResult> {
   const config = getProviderConfig();
   const effectiveImageSize = imageSize ?? config.imageSize;
@@ -209,8 +219,9 @@ export async function generateImageWithGemini({
         },
       });
       // Prepend reference instruction to prompt
+      const instruction = referenceInstruction ?? DEFAULT_REFERENCE_INSTRUCTION;
       requestParts.push({
-        text: `REFERENCE IMAGE: The attached image is the approved hero render for this product. You MUST match the exact same product appearance, shape, color, finish, material texture, and proportions shown in the reference image. Do not deviate from the product design.\n\n${promptText}`,
+        text: `${instruction}\n\n${promptText}`,
       });
     } catch {
       // Reference image unreadable — fall back to text-only
@@ -419,9 +430,14 @@ export async function generateImageRenderOutput(values: GeneratorFormValues) {
   });
 
   try {
+    // Auto-use the most recent approved render as a reference so subsequent
+    // renders stay geometrically consistent with the "locked" product design.
+    // For the very first render, this returns null and we fall back to text-only.
+    const referenceImagePath = await getSkuReferenceImagePath(sku.id);
     const providerResult = await generateImageWithGemini({
       generatedOutputId: createdOutput.id,
       promptText: prompt.promptText,
+      referenceImagePath,
     });
 
     const asset = await prisma.generatedImageAsset.create({
