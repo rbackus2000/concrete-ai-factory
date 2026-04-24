@@ -37,7 +37,7 @@ export function MoldGeneratorClient({ sinks, tiles }: Props) {
         outerLength: selectedSku.outerLength,
         outerWidth: selectedSku.outerWidth,
         outerHeight: selectedSku.outerHeight,
-        category: selectedSku.category as "VESSEL_SINK" | "WALL_TILE",
+        category: selectedSku.category as "VESSEL_SINK" | "WALL_TILE" | "PANEL",
       })
     : null;
 
@@ -47,7 +47,7 @@ export function MoldGeneratorClient({ sinks, tiles }: Props) {
           outerLength: selectedSku.outerLength,
           outerWidth: selectedSku.outerWidth,
           outerHeight: selectedSku.outerHeight,
-          category: selectedSku.category as "VESSEL_SINK" | "WALL_TILE",
+          category: selectedSku.category as "VESSEL_SINK" | "WALL_TILE" | "PANEL",
         },
         sectionPlan,
       )

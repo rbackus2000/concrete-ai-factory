@@ -20,7 +20,9 @@ export function buildSolidMoldMesh(
   sectionPlan: SectionPlan,
   sectionIndex?: number,
 ): THREE.BufferGeometry {
-  if (sku.category === "WALL_TILE") {
+  // WALL_TILE and PANEL share the same flat-slab mold strategy
+  // (optional ribs/channels via longRibCount / crossRibCount).
+  if (sku.category === "WALL_TILE" || sku.category === "PANEL") {
     return buildTileSolidGeometry(sku);
   }
 

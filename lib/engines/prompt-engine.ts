@@ -90,6 +90,9 @@ const imageRenderTemplateKeyByCategory: Partial<
     sample: "panel_image_sample",
     repeat_pattern: "panel_image_repeat_pattern",
   },
+  WALL_TILE: {
+    repeat_pattern: "wall-tile_image_repeat_pattern",
+  },
 };
 
 const finishDescriptions: Record<string, string> = {
@@ -228,6 +231,7 @@ function buildPromptVariables({
     skuCode: sku.code,
     productName: sku.name,
     productDescription: sku.summary || sku.name,
+    productType: sku.type || "",
     shapeLabel,
     isRound,
     categoryLabel: formatCategoryLabel(sku.category),

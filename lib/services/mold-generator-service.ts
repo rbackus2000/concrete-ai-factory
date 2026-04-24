@@ -43,7 +43,7 @@ export async function getMoldGeneratorSkus(): Promise<{
   const skus = await prisma.sku.findMany({
     where: {
       status: "ACTIVE",
-      category: { in: ["VESSEL_SINK", "WALL_TILE"] },
+      category: { in: ["VESSEL_SINK", "WALL_TILE", "PANEL"] },
     },
     orderBy: [{ category: "asc" }, { code: "asc" }],
   });
@@ -86,6 +86,8 @@ export async function getMoldGeneratorSkus(): Promise<{
 
   return {
     sinks: mapped.filter((s) => s.category === "VESSEL_SINK"),
-    tiles: mapped.filter((s) => s.category === "WALL_TILE"),
+    // PANEL and WALL_TILE share a mold-build strategy (flat slab + optional ribs),
+    // so they share the same tab in the UI.
+    tiles: mapped.filter((s) => s.category === "WALL_TILE" || s.category === "PANEL"),
   };
 }

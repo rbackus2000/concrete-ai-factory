@@ -39,7 +39,7 @@ const MOLD_BASE_THICKNESS = 10; // mm base plate under the product
  * representing the mold form for the given SKU.
  */
 export function generateMoldGeometry(sku: SkuGeometryInput): THREE.Group {
-  if (sku.category === "WALL_TILE") {
+  if (sku.category === "WALL_TILE" || sku.category === "PANEL") {
     return generateTileMoldGeometry(sku);
   }
 
