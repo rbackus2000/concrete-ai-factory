@@ -97,13 +97,22 @@ async function main() {
 
     const start = Date.now();
     try {
+      // Derive finish family from the SKU.finish string so prompts use the
+      // correct family ("Woodform" for Woodform finishes) instead of the
+      // prompt-engine's default "Classic".
+      const finishRaw = sku.finish || "";
+      let finishFamily: "Classic" | "Foundry" | "Industrial" | "Woodform" = "Classic";
+      if (/^woodform\b/i.test(finishRaw)) finishFamily = "Woodform";
+      else if (/^foundry\b/i.test(finishRaw)) finishFamily = "Foundry";
+      else if (/^industrial\b/i.test(finishRaw)) finishFamily = "Industrial";
+
       const result = await generateImageRenderOutput({
         skuCode: sku.code,
         outputType: "IMAGE_RENDER",
         scenePreset: cfg.scenePreset,
         colorOverride: "SKU Default",
-        finishOverride: "SKU Default",
-        sealerOverride: "SKU Default",
+        finishOverride: finishFamily,
+        sealerOverride: "Matte",
         requestedOutput: "Hero product image for the web catalog.",
         creativeDirection: "Keep the object production-aware, premium, and grounded in real manufacturable geometry.",
       });

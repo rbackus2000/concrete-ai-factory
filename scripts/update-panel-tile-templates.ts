@@ -35,7 +35,7 @@ No flat featureless rectangle when the design specifies surface relief. No bathr
   },
   {
     key: "panel_image_installed",
-    body: `Editorial architectural-magazine render of the {{skuCode}} {{productName}} installed as a full feature wall in a premium interior.
+    body: `Lifestyle interior photograph of the {{skuCode}} {{productName}} installed as a full-height wall treatment in a premium hospitality or refined residential interior.
 
 Product type: {{productType}}.
 Design intent: {{productDescription}}
@@ -44,19 +44,19 @@ Object:
 A premium cast-concrete feature wall whose distinctive surface relief, carving, or texture (described above) must be unmistakably visible across every visible panel. {{finish}} finish — {{finishDescription}}. Repeatable manufacturable geometry. Module size approximately {{tileLength}} x {{tileWidth}} inches, thickness {{tileThickness}} inches. Crisp edge profile {{edgeProfile}}; joint lines visible but subordinate to the surface pattern.
 
 Installation and composition:
-Full floor-to-ceiling installation dominating the frame — the wall is the unambiguous hero and fills most of the composition. Shot at a three-quarter architectural perspective from a low-to-mid camera height so the wall recedes into space with strong parallax. Include minimal but intentional architectural context: a polished concrete floor, a single low bench or console in soft focus, and ideally a distant window or aperture revealing sky or city lights to suggest scale and place. No people, no clutter, no decor.
+The wall runs along one side of an inhabited interior — a boutique hotel lobby, a lounge, a refined living room, or a hospitality reception area. The wall is clearly the focal element, but the composition also shows the livable space around it: one or two upholstered armchairs or a low sofa at a comfortable distance, a warm floor lamp or table lamp casting soft light, a side table or small rug grounding the scene. The viewer feels like they are walking through a refined interior, not staring at a detail shot. Wide-to-medium interior shot at relaxed eye-level; the wall stretches through the frame and recedes into the space with comfortable parallax. No people.
 
 Lighting:
-Dramatic raking light skimming across the panel surface from one side (either golden-hour sun, late-afternoon side light, or concealed linear wall-wash). The relief must cast clear, legible shadows that reveal the pattern rhythm. Soft ambient fill only in the foreground — the wall itself stays in the light's primary reveal.
+Warm, ambient interior lighting — soft daylight from windows outside the frame or from concealed coves, combined with incandescent warmth from visible floor or table lamps. Accent light grazes the panel relief enough to reveal its pattern, but the overall feel is lived-in and integrated, not a dramatized isolation shot.
 
 Material:
 {{finish}} GFRC — {{finishDescription}}. Show realistic surface detail consistent with this finish technique. Natural material warmth; no plasticky sheen.
 
 Render intent:
-Interior-design-magazine hero shot. The viewer should instantly understand the panel's scale, repeat logic, relief depth, and material quality.
+Editorial hospitality-interior photograph. The viewer should instantly understand that this panel lives in real rooms — its scale, repeat logic, relief depth, and material are all legible at this viewing distance, and so is the space it creates.
 
 Negative constraints:
-No flat featureless wall when the design specifies surface relief. No faucet, drain, or sink bowl geometry. No furniture styling beyond a single bench or console. No chaotic pattern distortion. No impossible grout or joint spacing. No people. No visible brand logos. No HDR halos or surreal lighting.`,
+No flat featureless wall when the design specifies surface relief. No faucet, drain, or sink bowl geometry. No staged product-photography isolation. No extreme raking sidelight that turns the wall into a shadow abstract. No chaotic pattern distortion. No impossible grout or joint spacing. No people. No visible brand logos. No surreal HDR halos.`,
   },
   {
     key: "panel_image_repeat_pattern",
