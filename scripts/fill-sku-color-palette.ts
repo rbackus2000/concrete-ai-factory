@@ -166,6 +166,17 @@ const TILE_PLANS: SkuPlan[] = [
   { code: "T5-TECTONIC", slug: "t5-tectonic", family: "Classic", heroColor: "Carbon", heroAliasColor: "Carbon" },
 ];
 
+const HARDGOOD_PLANS: SkuPlan[] = [
+  { code: "HG1-VESSEL-XL", slug: "vessel-bowl-xl",      family: "Classic", heroColor: "Pewter", heroAliasColor: "Pewter" },
+  { code: "HG2-CANDLE",    slug: "taper-candle-holder", family: "Classic", heroColor: "Carbon", heroAliasColor: "Carbon" },
+  { code: "HG3-CATCHALL",  slug: "catchall-tray",       family: "Classic", heroColor: "Linen",  heroAliasColor: "Linen"  },
+  { code: "HG4-BOOKEND",   slug: "bookend-set",         family: "Classic", heroColor: "Shadow", heroAliasColor: "Shadow" },
+  { code: "HG5-INCENSE",   slug: "incense-burner",      family: "Classic", heroColor: "Pewter", heroAliasColor: "Pewter" },
+  { code: "HG6-SOAPDISH",  slug: "soap-dish",           family: "Classic", heroColor: "Linen",  heroAliasColor: "Linen"  },
+  { code: "HG7-PLANTER",   slug: "desktop-planter",     family: "Classic", heroColor: "Beach",  heroAliasColor: "Beach"  },
+  { code: "HG8-COASTER",   slug: "coaster-set",         family: "Classic", heroColor: "Pewter", heroAliasColor: "Pewter" },
+];
+
 const CATEGORIES: Record<string, CategoryCfg> = {
   sinks: {
     category: "VESSEL_SINK",
@@ -194,6 +205,13 @@ const CATEGORIES: Record<string, CategoryCfg> = {
     scenePreset: "repeat_pattern",
     roomHintBuilder: (color) => studioHint("Classic", color),
     plans: TILE_PLANS,
+  },
+  hardgoods: {
+    category: "HARD_GOOD",
+    websiteDir: "hard-goods",
+    scenePreset: "catalog",
+    roomHintBuilder: (color) => studioHint("Classic", color),
+    plans: HARDGOOD_PLANS,
   },
 };
 
@@ -230,12 +248,12 @@ Do NOT change the product shape, relief, or proportions. No people. No visible b
   // drift (e.g. Carbon variant landed on a black backdrop).
   return `Color variant render of the ${opts.skuCode} ${opts.productName}.
 
-The ONLY change from the reference image is the product's material color. Apply ${opts.family} ${opts.color} (${opts.color} is the dominant material tone) to the product surface. Keep the studio backdrop, floor/shadow, camera angle, lighting, framing, and composition identical to the reference. Do not restyle the scene.
+The ONLY change from the reference image is the product's material color. The product is hand-cast Glass Fiber Reinforced Concrete (GFRC) — solid pigmented concrete throughout. "${opts.family} ${opts.color}" is the NAME of a concrete pigment color, not a different material. Apply ${opts.family} ${opts.color} as a UNIFORM, MATTE concrete pigment with very subtle micro-texture only. The color must be even and consistent across the entire product. Keep the studio backdrop, floor/shadow, camera angle, lighting, framing, and composition identical to the reference. Do not restyle the scene.
 
 Composition: 3:4 portrait orientation, matching the reference crop.
 
 Negative constraints:
-Do NOT change the backdrop color or lighting. Do NOT change the camera angle. Do NOT change the product shape, relief, or proportions. No people. No visible brand logos.`;
+Do NOT change the backdrop color or lighting. Do NOT change the camera angle. Do NOT change the product shape, relief, or proportions. Do NOT add marble veining, streaks, swirling cloudy patterns, or stone-like figuring of any kind. Do NOT render the product as carbon fiber, woven fabric, twill weave, herringbone, or any composite material — it is solid concrete only. The interior of any basin or curved surface must be a uniform matte tone, not marbled. No people. No visible brand logos.`;
 }
 
 async function persistOne(opts: {
@@ -358,7 +376,7 @@ function parseArgs() {
 async function main() {
   const { category } = parseArgs();
   if (!category || !CATEGORIES[category]) {
-    console.error(`Usage: --category <sinks|furniture|panels|tiles>`);
+    console.error(`Usage: --category <sinks|furniture|panels|tiles|hardgoods>`);
     process.exit(1);
   }
   const cfg = CATEGORIES[category]!;

@@ -12,6 +12,7 @@ enum SkuCategory {
   FURNITURE
   PANEL
   WALL_TILE
+  HARD_GOOD
 }
 
 enum CategoryScope {
