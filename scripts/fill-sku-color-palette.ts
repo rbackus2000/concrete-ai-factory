@@ -15,7 +15,7 @@
  */
 
 import path from "node:path";
-import { copyFile, mkdir } from "node:fs/promises";
+import { copyFile, mkdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 
 import { config as loadDotenv } from "dotenv";
@@ -25,12 +25,43 @@ loadDotenv({ path: path.resolve(process.cwd(), ".env"), quiet: true });
 process.env.GEMINI_IMAGE_ASPECT_RATIO = "3:4";
 
 import { Prisma, PrismaClient, type SkuCategory } from "@prisma/client";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { generateImageWithGemini } from "../lib/services/image-generation-service";
 import type { ImageScenePreset } from "../lib/schemas/generator";
 
 const prisma = new PrismaClient();
 
 const WEBSITE_ROOT = "/Users/rbackus2000/backus-design-co";
+
+// MinIO S3 client. When MINIO_* env vars are set, generated variants
+// are pushed to the bucket in addition to the local website public dir.
+// When unset, the script runs local-only.
+const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT ?? "";
+const MINIO_BUCKET = process.env.MINIO_BUCKET ?? "bdc-products";
+const minioClient = MINIO_ENDPOINT
+  ? new S3Client({
+      endpoint: MINIO_ENDPOINT,
+      region: "us-east-1",
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: process.env.MINIO_ACCESS_KEY ?? "",
+        secretAccessKey: process.env.MINIO_SECRET_KEY ?? "",
+      },
+    })
+  : null;
+
+async function pushToMinIO(localPath: string, key: string): Promise<void> {
+  if (!minioClient) return;
+  const body = await readFile(localPath);
+  await minioClient.send(
+    new PutObjectCommand({
+      Bucket: MINIO_BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: "image/png",
+    }),
+  );
+}
 
 const CLASSIC_COLORS = ["Linen", "Frost", "Beach", "Graphite", "Pewter", "Storm", "Shadow", "Carbon"] as const;
 const WOODFORM_COLORS = ["Mist", "Dune", "Fog", "Forest", "Grove", "Twilight", "Mocha", "Ember"] as const;
@@ -345,8 +376,10 @@ async function persistOne(opts: {
     if (!asset.filePath) throw new Error("no filePath");
     const destDir = path.join(WEBSITE_ROOT, "public", "images", opts.websiteDir);
     await mkdir(destDir, { recursive: true });
-    const destFile = path.join(destDir, `${opts.slug}-${opts.color.toLowerCase()}.png`);
+    const fileName = `${opts.slug}-${opts.color.toLowerCase()}.png`;
+    const destFile = path.join(destDir, fileName);
     await copyFile(asset.filePath, destFile);
+    await pushToMinIO(destFile, `${opts.websiteDir}/${fileName}`);
     return { ok: true as const, file: destFile };
   } catch (err) {
     await prisma.generatedOutput.update({
