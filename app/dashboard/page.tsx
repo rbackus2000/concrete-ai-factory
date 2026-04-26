@@ -6,6 +6,7 @@ import { ARAgingCard } from "@/components/dashboard/ar-aging";
 import { SalesTrendChart } from "@/components/dashboard/sales-trend";
 import { TopCustomersCard } from "@/components/dashboard/top-customers";
 import { AIBriefingCard } from "@/components/dashboard/ai-briefing";
+import { MarketIntelCard } from "@/components/dashboard/market-intel-card";
 import { ProductionQueueCard } from "@/components/dashboard/production-queue";
 import { InventoryHealthCard } from "@/components/dashboard/inventory-health";
 import { HelpButton } from "@/components/app-shell/help-button";
@@ -34,6 +35,11 @@ export default function DashboardPage() {
         </div>
         <HelpButton helpKey="dashboard" />
       </header>
+
+      {/* ROW 0 — Weekly Market Intelligence (Jacob, Mondays at 8 AM) */}
+      <Suspense fallback={<SectionSkeleton height="h-48" />}>
+        <MarketIntelCard />
+      </Suspense>
 
       {/* ROW 1 — KPI Cards */}
       <Suspense fallback={<SectionSkeleton height="h-24" />}>

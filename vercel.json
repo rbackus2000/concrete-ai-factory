@@ -10,6 +10,10 @@
     "app/api/cron/daily-briefing/route.ts": {
       "maxDuration": 120
     },
+    "app/api/cron/jacob-market-intel/route.ts": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
     "app/generator/page.tsx": {
       "maxDuration": 120
     }
@@ -34,6 +38,10 @@
     {
       "path": "/api/cron/daily-briefing",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/jacob-market-intel",
+      "schedule": "0 13 * * 1"
     }
   ]
 }

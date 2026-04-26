@@ -1699,6 +1699,25 @@ model DailyBriefing {
   @@map("daily_briefings")
 }
 
+model IntelligenceReport {
+  id                String   @id @default(cuid())
+  weekOf            DateTime @db.Date
+  generatedAt       DateTime @default(now())
+  executiveSummary  String   @db.Text
+  fullMarkdown      String   @db.Text
+  topProductsJson   Json?
+  status            String   @default("PUBLISHED")
+  model             String?
+  inputTokens       Int?
+  outputTokens      Int?
+  estimatedCostUsd  Decimal? @db.Decimal(8, 4)
+  errorMessage      String?  @db.Text
+
+  @@unique([weekOf])
+  @@index([generatedAt])
+  @@map("intelligence_reports")
+}
+
 model ReportExport {
   id          String   @id @default(cuid())
   reportType  String
