@@ -27,6 +27,7 @@ const DIR_BY_CATEGORY: Record<SkuCategory, string> = {
   PANEL: "slat-wall",
   WALL_TILE: "tile",
   HARD_GOOD: "hard-goods",
+  CARE_KIT: "care",
 };
 
 async function pullOne(code: string) {

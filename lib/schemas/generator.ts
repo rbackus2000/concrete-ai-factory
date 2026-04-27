@@ -31,6 +31,7 @@ export const imageScenePresetOptionsByCategory: Record<
   PANEL: ["installed", "sample", "repeat_pattern"],
   WALL_TILE: ["installed", "sample", "repeat_pattern"],
   HARD_GOOD: ["catalog", "lifestyle", "detail"],
+  CARE_KIT: ["catalog"],
 };
 
 export function getImageScenePresetsForCategory(category?: string | null) {

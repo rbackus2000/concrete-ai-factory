@@ -13,6 +13,7 @@ enum SkuCategory {
   PANEL
   WALL_TILE
   HARD_GOOD
+  CARE_KIT
 }
 
 enum CategoryScope {
@@ -1729,4 +1730,67 @@ model ReportExport {
   createdBy   String?
 
   @@map("report_exports")
+}
+
+// ── Care kit fulfillment ──
+// Care kit SKUs (RBS-CARE-*) live in the Sku table with category=CARE_KIT.
+// Storefront (BDC) sells them; this section tracks how to BUILD each kit.
+//
+// CareKitComponent: catalog of consumables/packaging used to assemble kits
+//   (cleaner bottles, beeswax tins, microfiber cloths, gloves, etc.).
+// CareKitBuildSheet: per-SKU assembly instructions — how many of each
+//   component, the assembly notes for the shop floor.
+
+model CareKitComponent {
+  id              String                 @id @default(cuid())
+  componentKey    String                 @unique
+  name            String
+  description     String?                @db.Text
+  supplierName    String?
+  supplierUrl     String?
+  unitCost        Decimal?               @db.Decimal(10, 2)
+  size            String?
+  reorderQty      Int?
+  leadTimeDays    Int?
+  storageNotes    String?                @db.Text
+  labelRequired   Boolean                @default(false)
+  assemblyNotes   String?                @db.Text
+  mixRatio        String?
+  madeToOrder     Boolean                @default(false)
+  status          RecordStatus           @default(ACTIVE)
+  buildSheetItems CareKitBuildSheetItem[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@map("care_kit_components")
+}
+
+model CareKitBuildSheet {
+  id                  String                 @id @default(cuid())
+  skuCode             String                 @unique
+  assemblyTimeMinutes Int?
+  assemblyNotes       Json?
+  colorRequired       Boolean                @default(false)
+  notes               String?                @db.Text
+  status              RecordStatus           @default(ACTIVE)
+  items               CareKitBuildSheetItem[]
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  @@map("care_kit_build_sheets")
+}
+
+model CareKitBuildSheetItem {
+  id            String            @id @default(cuid())
+  buildSheetId  String
+  componentId   String
+  qty           Decimal           @db.Decimal(8, 2)
+  notes         String?           @db.Text
+  buildSheet    CareKitBuildSheet @relation(fields: [buildSheetId], references: [id], onDelete: Cascade)
+  component     CareKitComponent  @relation(fields: [componentId], references: [id], onDelete: Restrict)
+
+  @@unique([buildSheetId, componentId])
+  @@index([buildSheetId])
+  @@index([componentId])
+  @@map("care_kit_build_sheet_items")
 }

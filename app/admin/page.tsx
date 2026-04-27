@@ -81,6 +81,11 @@ const adminSections = [
     href: "/admin/product-agent",
     description: "AI-powered product creation — describe a product and generate the complete SKU, build packets, materials, and QC specs.",
   },
+  {
+    title: "Care Kits",
+    href: "/admin/care-kits",
+    description: "Build sheets, COGS, supplier links, and assembly tracking for the customer-facing care kits sold on the storefront.",
+  },
 ] as const;
 
 export default function AdminPage() {

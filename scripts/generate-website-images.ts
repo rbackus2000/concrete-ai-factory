@@ -45,6 +45,7 @@ const CATEGORY_CONFIG: Record<
   PANEL: { websiteDir: "slat-wall", scenePreset: "installed" },
   WALL_TILE: { websiteDir: "tile", scenePreset: "repeat_pattern" },
   HARD_GOOD: { websiteDir: "hard-goods", scenePreset: "catalog" },
+  CARE_KIT: { websiteDir: "care", scenePreset: "catalog" },
 };
 
 function parseArgs() {

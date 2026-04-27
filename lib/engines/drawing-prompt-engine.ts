@@ -35,6 +35,7 @@ const drawingSectionKeyMap: Record<SkuCategory, Partial<Record<TechnicalDrawingT
   HARD_GOOD: {
     dimensions: "dimensions",
   },
+  CARE_KIT: {},
 };
 
 const DRAWING_STYLE_PREFIX =
@@ -315,6 +316,7 @@ const promptBuilders: Record<SkuCategory, Partial<Record<TechnicalDrawingType, (
     mold_assembly: buildPanelMoldAssemblyPrompt,
   },
   HARD_GOOD: {},
+  CARE_KIT: {},
 };
 
 export function buildTechnicalDrawingPrompts(sku: Sku & { category: SkuCategory }): TechnicalDrawingPrompt[] {
