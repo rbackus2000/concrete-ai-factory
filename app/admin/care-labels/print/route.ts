@@ -31,14 +31,12 @@ export async function GET(req: NextRequest) {
     specs = CARE_LABEL_SPECS;
   }
 
-  const pdf = renderCareLabelsPdf(specs, mode, side);
+  const pdf = await renderCareLabelsPdf(specs, mode, side);
 
   const baseName = sku ? sku.toLowerCase() : "all-care-labels";
   const fileName = `${baseName}-${side}-${mode}.pdf`;
 
-  // The Buffer.subarray gives us a Uint8Array-compatible view that satisfies
-  // Response's BodyInit type without an extra copy.
-  return new Response(new Uint8Array(pdf), {
+  return new Response(Buffer.from(pdf), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
