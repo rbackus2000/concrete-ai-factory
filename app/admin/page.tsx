@@ -86,6 +86,11 @@ const adminSections = [
     href: "/admin/care-kits",
     description: "Build sheets, COGS, supplier links, and assembly tracking for the customer-facing care kits sold on the storefront.",
   },
+  {
+    title: "Care Labels",
+    href: "/admin/care-labels",
+    description: "Print-ready PDF labels for care kit packaging — single proofs and full Avery sheets.",
+  },
 ] as const;
 
 export default function AdminPage() {
