@@ -25,9 +25,9 @@ export default async function TradePortalDashboard() {
         : "Catalog not yet published.",
     },
     {
-      title: "Design Packets",
+      title: "Specs & Packets",
       href: "/trade/portal/packets",
-      description: "Per-SKU build packets — dimensions, drains, mount type, finish notes — formatted for project drawings.",
+      description: "One-page architect spec sheet for every SKU, plus the full studio build packet where available. Both as PDF.",
     },
     {
       title: "Trade Pricing",

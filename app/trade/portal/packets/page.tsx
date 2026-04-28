@@ -33,7 +33,7 @@ export default async function TradePacketsPage() {
     (a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b),
   );
 
-  const totalPackets = catalog.filter((c) => c.buildPacketOutputId).length;
+  const buildPacketCount = catalog.filter((c) => c.buildPacketOutputId).length;
 
   return (
     <div className="space-y-8">
@@ -41,15 +41,18 @@ export default async function TradePacketsPage() {
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           Trade portal
         </p>
-        <h1 className="mt-2 font-serif text-3xl">Design packets</h1>
+        <h1 className="mt-2 font-serif text-3xl">Specs &amp; design packets</h1>
         <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
-          Per-SKU build packets — dimensions, drains, mount type, finish notes,
-          weight, and shop-floor specs — formatted for project drawings. Drop
-          them into your spec set or share with your contractor.
+          Two PDFs per SKU. The <strong>Trade Spec Sheet</strong> is a
+          one-page architect tear sheet — dimensions, finishes, lead time,
+          your trade pricing — generated fresh on every download. The{" "}
+          <strong>Build Packet</strong> is the full studio packet: mix, mold,
+          QC, install context — useful for contractors and detailed specs.
         </p>
         <p className="mt-3 text-xs text-muted-foreground">
-          {totalPackets} of {catalog.length} SKUs have a packet ready. Items
-          without a packet are still being prepared.
+          Spec sheets are available for every active SKU.{" "}
+          {buildPacketCount} of {catalog.length} SKUs also have a full build
+          packet — the rest are still being prepared.
         </p>
       </div>
 
@@ -72,7 +75,8 @@ export default async function TradePacketsPage() {
                       <th className="px-4 py-3 text-left font-medium">Name</th>
                       <th className="px-4 py-3 text-left font-medium">Finish</th>
                       <th className="px-4 py-3 text-right font-medium">Trade price</th>
-                      <th className="px-4 py-3 text-right font-medium">Packet</th>
+                      <th className="px-4 py-3 text-right font-medium">Spec sheet</th>
+                      <th className="px-4 py-3 text-right font-medium">Build packet</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -87,6 +91,14 @@ export default async function TradePacketsPage() {
                             : "—"}
                         </td>
                         <td className="px-4 py-3 text-right">
+                          <a
+                            href={`/api/trade/portal/spec-sheets/${item.code}/pdf`}
+                            className="text-primary underline-offset-4 hover:underline"
+                          >
+                            Download PDF →
+                          </a>
+                        </td>
+                        <td className="px-4 py-3 text-right">
                           {item.buildPacketOutputId ? (
                             <a
                               href={`/api/trade/portal/packets/${item.code}/pdf`}
@@ -95,7 +107,7 @@ export default async function TradePacketsPage() {
                               Download PDF →
                             </a>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">In preparation</span>
                           )}
                         </td>
                       </tr>
