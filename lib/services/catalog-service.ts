@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 import { composeCatalogSpec, type CatalogSpec } from "@/lib/catalog/compose-spec";
 import { renderCatalogPdf } from "@/lib/catalog/render-pdf";
 
-const CDN_BASE = "https://cdn.opsrbstudio.com";
+// MinIO is path-style, so the public URL must include the bucket name.
+const CDN_BASE = "https://cdn.opsrbstudio.com/bdc-products";
 
 export type CatalogRecord = {
   id: string;
