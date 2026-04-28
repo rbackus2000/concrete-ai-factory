@@ -481,6 +481,581 @@ function drawOrthoView(opts: {
   return scale;
 }
 
+// ─────────────────────────────────────────────────────────
+// Procedural blueprint (page 3) — pure pdf-lib, no AI.
+// Cobalt-blue background, white lines, perfect text every time.
+// ─────────────────────────────────────────────────────────
+
+const BP_BG = rgb(0.039, 0.086, 0.157);   // #0a1628 cobalt
+const BP_INK = rgb(1, 1, 1);              // white lines + text
+const BP_DIM = rgb(0.65, 0.72, 0.82);     // muted blue-grey for dim lines
+const BP_ACCENT = rgb(0.85, 0.66, 0.45);  // warm tan for emphasis (drain, clip body)
+
+type BpDrawCtx = {
+  page: PDFPage;
+  fonts: Fonts;
+};
+
+function bpText(ctx: BpDrawCtx, text: string, x: number, y: number, opts?: {
+  font?: PDFFont; size?: number; color?: Color;
+}) {
+  ctx.page.drawText(text, {
+    x, y,
+    size: opts?.size ?? 8,
+    font: opts?.font ?? ctx.fonts.regular,
+    color: opts?.color ?? BP_INK,
+  });
+}
+
+function bpLine(ctx: BpDrawCtx, x1: number, y1: number, x2: number, y2: number, opts?: { thickness?: number; color?: Color }) {
+  ctx.page.drawLine({
+    start: { x: x1, y: y1 }, end: { x: x2, y: y2 },
+    thickness: opts?.thickness ?? 0.6, color: opts?.color ?? BP_INK,
+  });
+}
+
+function bpRect(ctx: BpDrawCtx, x: number, y: number, w: number, h: number, opts?: { thickness?: number; color?: Color; fill?: Color }) {
+  ctx.page.drawRectangle({
+    x, y, width: w, height: h,
+    borderColor: opts?.color ?? BP_INK,
+    borderWidth: opts?.thickness ?? 0.6,
+    color: opts?.fill,
+  });
+}
+
+function bpArrow(ctx: BpDrawCtx, fromX: number, fromY: number, toX: number, toY: number, color: Color = BP_DIM) {
+  ctx.page.drawLine({
+    start: { x: fromX, y: fromY }, end: { x: toX, y: toY },
+    thickness: 0.5, color,
+  });
+  const ang = Math.atan2(toY - fromY, toX - fromX);
+  const len = 4;
+  ctx.page.drawLine({
+    start: { x: toX, y: toY },
+    end: { x: toX + Math.cos(ang + Math.PI - 0.4) * len, y: toY + Math.sin(ang + Math.PI - 0.4) * len },
+    thickness: 0.5, color,
+  });
+  ctx.page.drawLine({
+    start: { x: toX, y: toY },
+    end: { x: toX + Math.cos(ang + Math.PI + 0.4) * len, y: toY + Math.sin(ang + Math.PI + 0.4) * len },
+    thickness: 0.5, color,
+  });
+}
+
+/** Horizontal dimension line BELOW a shape, label centered above the line. */
+function bpHDim(ctx: BpDrawCtx, x1: number, x2: number, y: number, label: string) {
+  bpLine(ctx, x1, y + 6, x1, y, { thickness: 0.4, color: BP_DIM });
+  bpLine(ctx, x2, y + 6, x2, y, { thickness: 0.4, color: BP_DIM });
+  bpArrow(ctx, x1 + 6, y, x1 + 1, y);
+  bpArrow(ctx, x2 - 6, y, x2 - 1, y);
+  bpLine(ctx, x1 + 1, y, x2 - 1, y, { thickness: 0.4, color: BP_DIM });
+  const w = ctx.fonts.regular.widthOfTextAtSize(label, 7);
+  // White-text label sits centered, slightly above the line — over the cobalt background it reads cleanly.
+  bpText(ctx, label, (x1 + x2) / 2 - w / 2, y + 2, { size: 7, color: BP_INK });
+}
+
+/** Vertical dimension line to the RIGHT of a shape. */
+function bpVDim(ctx: BpDrawCtx, y1: number, y2: number, x: number, label: string) {
+  bpLine(ctx, x - 6, y1, x, y1, { thickness: 0.4, color: BP_DIM });
+  bpLine(ctx, x - 6, y2, x, y2, { thickness: 0.4, color: BP_DIM });
+  bpArrow(ctx, x, y1 + 6, x, y1 + 1);
+  bpArrow(ctx, x, y2 - 6, x, y2 - 1);
+  bpLine(ctx, x, y1 + 1, x, y2 - 1, { thickness: 0.4, color: BP_DIM });
+  bpText(ctx, label, x + 3, (y1 + y2) / 2 - 3, { size: 7, color: BP_INK });
+}
+
+/** Faint background grid — subtle, every 36pt. */
+function drawBlueprintGrid(ctx: BpDrawCtx, x: number, y: number, w: number, h: number) {
+  const step = 36;
+  const grid = rgb(0.10, 0.16, 0.24); // very faint blue
+  for (let gx = x; gx <= x + w; gx += step) {
+    ctx.page.drawLine({ start: { x: gx, y }, end: { x: gx, y: y + h }, thickness: 0.3, color: grid });
+  }
+  for (let gy = y; gy <= y + h; gy += step) {
+    ctx.page.drawLine({ start: { x, y: gy }, end: { x: x + w, y: gy }, thickness: 0.3, color: grid });
+  }
+}
+
+/** Slot-aware orthographic view drawer for the blueprint canvas. */
+function bpOrthoView(ctx: BpDrawCtx, opts: {
+  slotX: number; slotY: number; slotW: number; slotH: number;
+  label: string;
+  objW: number; objH: number;
+  innerW?: number | null; innerH?: number | null;
+  drainCircle?: { diameter: number } | null;
+  showInnerLabel?: string;
+}): void {
+  const PAD_L = 14, PAD_R = 28, PAD_T = 14, PAD_B = 30;
+  const drawW = opts.slotW - PAD_L - PAD_R;
+  const drawH = opts.slotH - PAD_T - PAD_B;
+  const scale = Math.min(drawW / opts.objW, drawH / opts.objH);
+  const w = opts.objW * scale, h = opts.objH * scale;
+  const x = opts.slotX + PAD_L + (drawW - w) / 2;
+  const y = opts.slotY + PAD_B + (drawH - h) / 2;
+
+  bpRect(ctx, x, y, w, h, { thickness: 0.8 });
+
+  if (opts.innerW && opts.innerH && opts.innerW > 0 && opts.innerH > 0) {
+    const iw = opts.innerW * scale, ih = opts.innerH * scale;
+    const ix = x + (w - iw) / 2, iy = y + (h - ih) / 2;
+    bpRect(ctx, ix, iy, iw, ih, { thickness: 0.5, color: BP_DIM });
+  }
+  if (opts.drainCircle && opts.drainCircle.diameter > 0) {
+    const r = (opts.drainCircle.diameter * scale) / 2;
+    ctx.page.drawCircle({
+      x: x + w / 2, y: y + h / 2,
+      size: Math.max(r, 1.5),
+      borderColor: BP_ACCENT, borderWidth: 0.7,
+    });
+  }
+
+  bpHDim(ctx, x, x + w, y - 14, `${fmtDim(opts.objW)}"`);
+  bpVDim(ctx, y, y + h, x + w + 6, `${fmtDim(opts.objH)}"`);
+
+  const w2 = ctx.fonts.bold.widthOfTextAtSize(opts.label, 8);
+  bpText(ctx, opts.label, opts.slotX + opts.slotW / 2 - w2 / 2, opts.slotY + 6, {
+    font: ctx.fonts.bold, size: 8, color: BP_INK,
+  });
+}
+
+/** Detailed Z-clip cross-section for the panel category. */
+function drawZClipSectionDetail(ctx: BpDrawCtx, opts: {
+  slotX: number; slotY: number; slotW: number; slotH: number;
+}) {
+  const PAD = 18;
+  const drawX = opts.slotX + PAD, drawY = opts.slotY + 30;
+  const drawW = opts.slotW - 2 * PAD, drawH = opts.slotH - 50;
+
+  // Coordinate system: wall on left, panel on right, gap between
+  const wallX = drawX + 28;        // wall face X
+  const panelBackX = wallX + 92;   // back of panel X
+  const panelFaceX = drawX + drawW - 30; // front face of panel
+  const cy = drawY + drawH / 2;
+
+  // ── Wall ──
+  // Hatched wall to the left of wallX
+  for (let i = 0; i < 6; i++) {
+    bpLine(ctx, drawX + i * 4, cy - drawH / 2 + 8, drawX + i * 4 + 8, cy + drawH / 2 - 8, { thickness: 0.4, color: BP_DIM });
+  }
+  bpLine(ctx, wallX, cy - drawH / 2, wallX, cy + drawH / 2, { thickness: 0.8 });
+  bpText(ctx, "WALL STUD", drawX, cy + drawH / 2 + 4, { size: 7, color: BP_DIM });
+
+  // ── Wall-side Z-clip (Z-shape attached to wall) ──
+  // Z-shape: top tab going right, vertical web, bottom tab back to wall
+  const wallClipBottomY = cy - 18;
+  const wallClipTopY = cy + 18;
+  const wallClipWebX = wallX + 20;
+  const wallClipHookY = cy + 10;
+  // bottom tab
+  bpLine(ctx, wallX, wallClipBottomY, wallClipWebX, wallClipBottomY, { thickness: 0.9 });
+  bpLine(ctx, wallClipWebX, wallClipBottomY, wallClipWebX, wallClipHookY, { thickness: 0.9 });
+  // hook
+  bpLine(ctx, wallClipWebX, wallClipHookY, wallClipWebX + 10, wallClipHookY, { thickness: 0.9 });
+  bpLine(ctx, wallClipWebX + 10, wallClipHookY, wallClipWebX + 10, wallClipHookY + 6, { thickness: 0.9 });
+
+  // Screw arrow into wall clip
+  bpArrow(ctx, wallClipWebX - 30, wallClipBottomY - 14, wallX - 2, wallClipBottomY - 6, BP_ACCENT);
+  bpText(ctx, "WOOD SCREW INTO STUD", wallClipWebX - 30, wallClipBottomY - 22, { size: 6.5, color: BP_ACCENT });
+
+  // ── Panel-side Z-clip (mirror Z, attached to panel back) ──
+  const panelClipWebX = panelBackX - 20;
+  const panelClipTopY = cy + 18;
+  const panelClipHookY = cy + 4;
+  // top tab against panel back
+  bpLine(ctx, panelClipWebX, panelClipTopY, panelBackX, panelClipTopY, { thickness: 0.9 });
+  // web
+  bpLine(ctx, panelClipWebX, panelClipTopY, panelClipWebX, panelClipHookY, { thickness: 0.9 });
+  // hook (catches the wall-clip hook)
+  bpLine(ctx, panelClipWebX, panelClipHookY, panelClipWebX - 10, panelClipHookY, { thickness: 0.9 });
+  bpLine(ctx, panelClipWebX - 10, panelClipHookY, panelClipWebX - 10, panelClipHookY - 6, { thickness: 0.9 });
+
+  // ── GFRC panel ──
+  bpRect(ctx, panelBackX, drawY + 14, panelFaceX - panelBackX, drawH - 28, { thickness: 0.9 });
+  bpText(ctx, "GFRC PANEL", panelBackX + 6, drawY + drawH - 22, { size: 7, color: BP_INK });
+
+  // Epoxy + screw label on the panel-side clip-to-panel bond
+  bpArrow(ctx, panelBackX + 60, panelClipTopY + 22, panelBackX + 4, panelClipTopY + 4, BP_ACCENT);
+  bpText(ctx, "EPOXY + 4x #10 SS SCREWS", panelBackX + 18, panelClipTopY + 30, { size: 6.5, color: BP_ACCENT });
+
+  // 1/16" gap label between wall and panel
+  const gapMidX = (wallX + panelBackX) / 2;
+  bpText(ctx, "1/16 in", gapMidX - 12, drawY + 10, { size: 6.5, color: BP_DIM });
+  bpText(ctx, "PANEL-TO-WALL", gapMidX - 24, drawY + 4, { size: 6, color: BP_DIM });
+
+  // Clip extrusion label
+  bpText(ctx, "1.5 in ALUMINUM Z-CLIP", drawX + 4, drawY + 4, { size: 6.5, color: BP_INK });
+
+  // Section label
+  const sectLabel = "SECTION A-A — Z-CLIP DETAIL";
+  const sw = ctx.fonts.bold.widthOfTextAtSize(sectLabel, 8);
+  bpText(ctx, sectLabel, opts.slotX + opts.slotW / 2 - sw / 2, opts.slotY + 8, {
+    font: ctx.fonts.bold, size: 8, color: BP_INK,
+  });
+}
+
+/** Exploded clip pair — the small Mounting Hardware inset. */
+function drawZClipExploded(ctx: BpDrawCtx, opts: { slotX: number; slotY: number; slotW: number; slotH: number }) {
+  const cx = opts.slotX + opts.slotW / 2;
+  const topY = opts.slotY + opts.slotH - 30;
+  const botY = opts.slotY + 28;
+
+  // Top clip (panel side)
+  const w = 60;
+  bpLine(ctx, cx - w / 2, topY, cx + w / 2, topY, { thickness: 0.9 });
+  bpLine(ctx, cx + w / 2, topY, cx + w / 2, topY - 8, { thickness: 0.9 });
+  bpLine(ctx, cx + w / 2, topY - 8, cx + w / 2 - 10, topY - 8, { thickness: 0.9 });
+
+  // Engagement arrow
+  bpArrow(ctx, cx, topY - 14, cx, botY + 14, BP_ACCENT);
+
+  // Bottom clip (wall side) — mirror
+  bpLine(ctx, cx - w / 2, botY, cx + w / 2, botY, { thickness: 0.9 });
+  bpLine(ctx, cx - w / 2, botY, cx - w / 2, botY + 8, { thickness: 0.9 });
+  bpLine(ctx, cx - w / 2, botY + 8, cx - w / 2 + 10, botY + 8, { thickness: 0.9 });
+
+  bpText(ctx, "PANEL-SIDE CLIP", cx - w / 2 - 6, topY + 6, { size: 6.5, color: BP_INK });
+  bpText(ctx, "WALL-SIDE CLIP", cx - w / 2 - 4, botY - 12, { size: 6.5, color: BP_INK });
+  bpText(ctx, "MONARCH MZA-1.5", cx + w / 2 + 8, (topY + botY) / 2 - 3, { size: 6.5, color: BP_ACCENT });
+
+  const lbl = "MOUNTING HARDWARE";
+  const lw = ctx.fonts.bold.widthOfTextAtSize(lbl, 8);
+  bpText(ctx, lbl, opts.slotX + opts.slotW / 2 - lw / 2, opts.slotY + 6, {
+    font: ctx.fonts.bold, size: 8, color: BP_INK,
+  });
+  const lbl2 = "BUNDLED PER PANEL";
+  const lw2 = ctx.fonts.regular.widthOfTextAtSize(lbl2, 7);
+  bpText(ctx, lbl2, opts.slotX + opts.slotW / 2 - lw2 / 2, opts.slotY - 4, {
+    font: ctx.fonts.regular, size: 7, color: BP_DIM,
+  });
+}
+
+/** Rear view of a panel with horizontal Z-clip strips drawn at their actual positions. */
+function drawPanelRearViewWithClips(ctx: BpDrawCtx, opts: {
+  slotX: number; slotY: number; slotW: number; slotH: number;
+  panelLengthIn: number; panelHeightIn: number; clipPairs: number;
+}): void {
+  const PAD_L = 16, PAD_R = 28, PAD_T = 14, PAD_B = 30;
+  const drawW = opts.slotW - PAD_L - PAD_R;
+  const drawH = opts.slotH - PAD_T - PAD_B;
+  const scale = Math.min(drawW / opts.panelLengthIn, drawH / opts.panelHeightIn);
+  const w = opts.panelLengthIn * scale, h = opts.panelHeightIn * scale;
+  const x = opts.slotX + PAD_L + (drawW - w) / 2;
+  const y = opts.slotY + PAD_B + (drawH - h) / 2;
+
+  // Panel back outline
+  bpRect(ctx, x, y, w, h, { thickness: 0.8 });
+
+  // Distribute clipPairs evenly along the LENGTH (horizontal). Each clip is
+  // drawn as a thin horizontal bar with 4 small circles for screws.
+  const inset = 4 * scale; // 4" from each end
+  const usable = w - 2 * inset;
+  const clipW = Math.min(usable / opts.clipPairs * 0.85, usable);
+  const stepX = (w - clipW) / Math.max(1, opts.clipPairs - 1);
+  const clipY = y + h / 2 - 3; // centered vertically
+  const clipH = 6;
+  for (let i = 0; i < opts.clipPairs; i++) {
+    const cx = opts.clipPairs === 1 ? x + (w - clipW) / 2 : x + i * stepX;
+    bpRect(ctx, cx, clipY, clipW, clipH, { thickness: 0.5, color: BP_ACCENT });
+    // 4 screw holes per clip
+    for (let s = 0; s < 4; s++) {
+      const sx = cx + (clipW / 5) * (s + 1);
+      ctx.page.drawCircle({ x: sx, y: clipY + clipH / 2, size: 0.8, borderColor: BP_INK, borderWidth: 0.4 });
+    }
+  }
+
+  // Annotation
+  const note = `${opts.clipPairs} x Z-CLIP — Monarch MZA-1.5  (8 in long)`;
+  const nw = ctx.fonts.regular.widthOfTextAtSize(note, 6.5);
+  bpText(ctx, note, x + w / 2 - nw / 2, clipY - 10, { size: 6.5, color: BP_ACCENT });
+
+  bpHDim(ctx, x, x + w, y - 14, `${fmtDim(opts.panelLengthIn)}"`);
+  bpVDim(ctx, y, y + h, x + w + 6, `${fmtDim(opts.panelHeightIn)}"`);
+
+  const lbl = "REAR VIEW — CLIP LAYOUT";
+  const lw = ctx.fonts.bold.widthOfTextAtSize(lbl, 8);
+  bpText(ctx, lbl, opts.slotX + opts.slotW / 2 - lw / 2, opts.slotY + 6, {
+    font: ctx.fonts.bold, size: 8, color: BP_INK,
+  });
+}
+
+type BlueprintInputs = {
+  outerL: number | null;
+  outerW: number | null;
+  outerH: number | null;
+  innerL: number | null;
+  innerW: number | null;
+  innerD: number | null;
+  drainDiameter: number | null;
+  clipPairs: number;
+};
+
+/**
+ * Renders the procedural blueprint page. Cobalt-blue background, 6-panel
+ * layout, white-line drawings with perfect text — all pdf-lib, no AI.
+ *
+ * Returns true if the page was drawn (skipped only when outer dims missing).
+ */
+function renderProceduralBlueprintPage(
+  pdf: PDFDocument,
+  fonts: Fonts,
+  logo: PDFImage | null,
+  sku: { code: string; name: string; category: string; finish: string; type?: string | null },
+  inputs: BlueprintInputs,
+  meta: { productUrl: string },
+): boolean {
+  if (inputs.outerL === null || inputs.outerW === null || inputs.outerH === null) {
+    return false;
+  }
+
+  const PAGE_W = 612, PAGE_H = 792, M = 36;
+  const HEADER_H = 56, FOOTER_H = 30;
+
+  const page = pdf.addPage([PAGE_W, PAGE_H]);
+  const ctx: BpDrawCtx = { page, fonts };
+
+  // Cobalt full-bleed background
+  page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: BP_BG });
+
+  // Faint grid in the content area
+  drawBlueprintGrid(ctx, M, FOOTER_H + 6, PAGE_W - 2 * M, PAGE_H - HEADER_H - FOOTER_H - 12);
+
+  // ── Dark header band (matches other pages, but white type for cobalt) ──
+  page.drawRectangle({ x: 0, y: PAGE_H - HEADER_H, width: PAGE_W, height: HEADER_H, color: rgb(0, 0, 0) });
+  if (logo) {
+    const logoH = 28;
+    const ratio = logoH / logo.height;
+    const logoW = logo.width * ratio;
+    page.drawImage(logo, { x: M, y: PAGE_H - HEADER_H + (HEADER_H - logoH) / 2, width: logoW, height: logoH });
+  } else {
+    bpText(ctx, "BACKUS DESIGN CO", M, PAGE_H - HEADER_H / 2 - 4, { font: fonts.bold, size: 13, color: BP_INK });
+  }
+  const headerRight = "MANUFACTURING BLUEPRINT";
+  const hw = fonts.bold.widthOfTextAtSize(headerRight, 11);
+  bpText(ctx, headerRight, PAGE_W - M - hw, PAGE_H - HEADER_H / 2 + 2, { font: fonts.bold, size: 11, color: BP_INK });
+  const subtitle = `${sku.code} · ${sku.name}`;
+  const sw = fonts.regular.widthOfTextAtSize(subtitle, 8);
+  bpText(ctx, subtitle, PAGE_W - M - sw, PAGE_H - HEADER_H / 2 - 12, {
+    font: fonts.regular, size: 8, color: rgb(0.7, 0.74, 0.78),
+  });
+
+  // ── Title block (top-left) ──
+  const TITLE_X = M, TITLE_Y = PAGE_H - HEADER_H - 16, TITLE_W = 220, TITLE_H = 130;
+  bpRect(ctx, TITLE_X, TITLE_Y - TITLE_H, TITLE_W, TITLE_H, { thickness: 0.8 });
+
+  let ty = TITLE_Y - 16;
+  bpText(ctx, sku.name.toUpperCase(), TITLE_X + 10, ty, { font: fonts.bold, size: 11, color: BP_INK });
+  ty -= 14;
+  bpText(ctx, (sku.type || sku.category).toUpperCase(), TITLE_X + 10, ty, { size: 7, color: BP_DIM });
+  ty -= 16;
+
+  const titleRows: [string, string][] = [
+    ["LENGTH:", `${fmtDim(inputs.outerL)} in`],
+    ["WIDTH:", `${fmtDim(inputs.outerW)} in`],
+    [sku.category === "PANEL" || sku.category === "WALL_TILE" ? "DEPTH:" : "HEIGHT:", `${fmtDim(inputs.outerH)} in`],
+    ["MATERIAL:", "GFRC"],
+  ];
+  if (sku.category === "PANEL") {
+    titleRows.push(["MOUNT:", `Z-CLIP (${inputs.clipPairs} PAIRS)`]);
+  } else if (sku.category === "VESSEL_SINK" && inputs.drainDiameter) {
+    titleRows.push(["DRAIN:", `${fmtDim(inputs.drainDiameter)} in ROUND`]);
+  }
+  for (const [k, v] of titleRows) {
+    bpText(ctx, k, TITLE_X + 10, ty, { size: 8, color: BP_DIM });
+    bpText(ctx, v, TITLE_X + 78, ty, { size: 8.5, color: BP_INK });
+    ty -= 12;
+  }
+
+  // ── Notes block (bottom-right) ──
+  const NOTES_W = 200, NOTES_H = 120;
+  const NOTES_X = PAGE_W - M - NOTES_W, NOTES_Y = FOOTER_H + 8 + NOTES_H;
+  bpRect(ctx, NOTES_X, NOTES_Y - NOTES_H, NOTES_W, NOTES_H, { thickness: 0.8 });
+
+  let ny = NOTES_Y - 16;
+  bpText(ctx, "NOTES", NOTES_X + 10, ny, { font: fonts.bold, size: 8, color: BP_INK });
+  ny -= 14;
+  const noteLines: string[] = [
+    "All dimensions in inches.",
+    "Tolerance: +/- 0.04 in",
+    "Hand-cast pieces vary +/- 1/8 in.",
+    "GFRC construction, sealed.",
+  ];
+  if (sku.category === "PANEL") {
+    noteLines.push(
+      `Mount: Z-Clip, ${inputs.clipPairs} pairs bundled.`,
+      "Load: 100 lb / linear ft",
+      "Wall: 16 in O.C. studs.",
+    );
+  } else if (sku.category === "VESSEL_SINK") {
+    noteLines.push("Wall-mount: 4x 1/4-20 SS studs.", "Drain: standard 1.5 in tailpiece.");
+  }
+  for (const l of noteLines) {
+    bpText(ctx, "- " + l, NOTES_X + 10, ny, { size: 7, color: BP_INK });
+    ny -= 10;
+  }
+
+  // Brand mark below notes
+  bpText(ctx, sku.code, NOTES_X + NOTES_W - 60, FOOTER_H + 14, { font: fonts.bold, size: 8, color: BP_ACCENT });
+  bpText(ctx, "BACKUS DESIGN CO.", NOTES_X + NOTES_W - 100, FOOTER_H + 4, { font: fonts.regular, size: 6.5, color: BP_DIM });
+
+  // ── Drawing area (right of title block, above notes) ──
+  const VIEWS_X = TITLE_X + TITLE_W + 16;
+  const VIEWS_Y_TOP = TITLE_Y;
+  const VIEWS_X_END = PAGE_W - M;
+  const VIEWS_Y_BOT = NOTES_Y + 8; // gap above notes
+
+  const VIEWS_W = VIEWS_X_END - VIEWS_X;
+  const VIEWS_H = VIEWS_Y_TOP - VIEWS_Y_BOT;
+
+  // Two-row layout in the views area:
+  //   Row 1 (top): primary view (full width)
+  //   Row 2 (mid): two side-by-side
+  //   Bottom area (full width below title): big section + 2 small details
+  // For PANEL: face view, rear view, side edge, big section A-A, surface, hardware
+  // For others: top view, front, side, section A-A, drain/edge, contour/base
+
+  // Row 1 — primary view (full width across the views area)
+  const ROW1_H = VIEWS_H * 0.45;
+  const row1Slot = { slotX: VIEWS_X, slotY: VIEWS_Y_TOP - ROW1_H, slotW: VIEWS_W, slotH: ROW1_H };
+
+  // Row 2 — two views side by side
+  const ROW2_GAP = 10;
+  const ROW2_H = VIEWS_H * 0.55 - 4;
+  const ROW2_Y = VIEWS_Y_TOP - ROW1_H - 4;
+  const ROW2_SLOT_W = (VIEWS_W - ROW2_GAP) / 2;
+  const row2aSlot = { slotX: VIEWS_X, slotY: ROW2_Y - ROW2_H, slotW: ROW2_SLOT_W, slotH: ROW2_H };
+  const row2bSlot = { slotX: VIEWS_X + ROW2_SLOT_W + ROW2_GAP, slotY: ROW2_Y - ROW2_H, slotW: ROW2_SLOT_W, slotH: ROW2_H };
+
+  // Section row (full width, below the views area, above notes — left of notes)
+  const SECTION_X = M;
+  const SECTION_W = NOTES_X - M - 12;
+  const SECTION_H = NOTES_H - 4;
+  const sectionSlot = { slotX: SECTION_X, slotY: NOTES_Y - NOTES_H, slotW: SECTION_W, slotH: SECTION_H };
+
+  // ── Category-specific view layout ──
+  if (sku.category === "PANEL") {
+    // Row 1: FACE VIEW
+    bpOrthoView(ctx, {
+      ...row1Slot,
+      label: "FACE VIEW",
+      objW: inputs.outerL!,
+      objH: inputs.outerW!,
+    });
+    // Tiny visual hint of relief — horizontal lines across face
+    {
+      const PAD_L = 14, PAD_R = 28, PAD_T = 14, PAD_B = 30;
+      const drawW = row1Slot.slotW - PAD_L - PAD_R;
+      const drawH = row1Slot.slotH - PAD_T - PAD_B;
+      const scale = Math.min(drawW / inputs.outerL!, drawH / inputs.outerW!);
+      const w2 = inputs.outerL! * scale, h2 = inputs.outerW! * scale;
+      const x2 = row1Slot.slotX + PAD_L + (drawW - w2) / 2;
+      const y2 = row1Slot.slotY + PAD_B + (drawH - h2) / 2;
+      for (let i = 1; i < 8; i++) {
+        const ly = y2 + (h2 / 8) * i;
+        bpLine(ctx, x2 + 4, ly, x2 + w2 - 4, ly, { thickness: 0.3, color: BP_DIM });
+      }
+    }
+
+    // Row 2A: REAR VIEW with clip layout
+    drawPanelRearViewWithClips(ctx, {
+      ...row2aSlot,
+      panelLengthIn: inputs.outerL!,
+      panelHeightIn: inputs.outerW!,
+      clipPairs: inputs.clipPairs,
+    });
+
+    // Row 2B: SIDE EDGE
+    bpOrthoView(ctx, {
+      ...row2bSlot,
+      label: "SIDE EDGE",
+      objW: inputs.outerH!,
+      objH: inputs.outerW!,
+    });
+
+    // Section A-A: Z-clip detail (large)
+    drawZClipSectionDetail(ctx, sectionSlot);
+  } else if (sku.category === "VESSEL_SINK") {
+    bpOrthoView(ctx, {
+      ...row1Slot,
+      label: "TOP VIEW",
+      objW: inputs.outerL!,
+      objH: inputs.outerW!,
+      innerW: inputs.innerL,
+      innerH: inputs.innerW,
+      drainCircle: inputs.drainDiameter ? { diameter: inputs.drainDiameter } : null,
+    });
+    bpOrthoView(ctx, {
+      ...row2aSlot,
+      label: "FRONT ELEVATION",
+      objW: inputs.outerL!,
+      objH: inputs.outerH!,
+      innerW: inputs.innerL,
+      innerH: inputs.innerD,
+    });
+    bpOrthoView(ctx, {
+      ...row2bSlot,
+      label: "SIDE ELEVATION",
+      objW: inputs.outerW!,
+      objH: inputs.outerH!,
+      innerW: inputs.innerW,
+      innerH: inputs.innerD,
+    });
+    // Section
+    bpOrthoView(ctx, {
+      ...sectionSlot,
+      label: "SECTION A-A — BASIN PROFILE",
+      objW: inputs.outerL!,
+      objH: inputs.outerH!,
+      innerW: inputs.innerL,
+      innerH: inputs.innerD,
+    });
+  } else {
+    // FURNITURE / HARD_GOOD / WALL_TILE / default
+    bpOrthoView(ctx, {
+      ...row1Slot,
+      label: "TOP VIEW",
+      objW: inputs.outerL!,
+      objH: inputs.outerW!,
+      innerW: inputs.innerL,
+      innerH: inputs.innerW,
+    });
+    bpOrthoView(ctx, {
+      ...row2aSlot,
+      label: "FRONT ELEVATION",
+      objW: inputs.outerL!,
+      objH: inputs.outerH!,
+    });
+    bpOrthoView(ctx, {
+      ...row2bSlot,
+      label: "SIDE ELEVATION",
+      objW: inputs.outerW!,
+      objH: inputs.outerH!,
+    });
+    bpOrthoView(ctx, {
+      ...sectionSlot,
+      label: "SECTION A-A",
+      objW: inputs.outerL!,
+      objH: inputs.outerH!,
+      innerW: inputs.innerL,
+      innerH: inputs.innerD,
+    });
+  }
+
+  // For PANEL: tuck the exploded clip-pair into the title block area (below it)
+  if (sku.category === "PANEL") {
+    const explodedSlot = { slotX: TITLE_X, slotY: TITLE_Y - TITLE_H - 110, slotW: TITLE_W, slotH: 96 };
+    bpRect(ctx, explodedSlot.slotX, explodedSlot.slotY, explodedSlot.slotW, explodedSlot.slotH, { thickness: 0.6 });
+    drawZClipExploded(ctx, explodedSlot);
+  }
+
+  // ── Footer ──
+  bpLine(ctx, M, FOOTER_H + 18, PAGE_W - M, FOOTER_H + 18, { thickness: 0.4, color: BP_DIM });
+  const footer = `${meta.productUrl}   ·   trade@backusdesignco.com   ·   Page 3 — Manufacturing Blueprint`;
+  const fw = fonts.regular.widthOfTextAtSize(footer, 7);
+  bpText(ctx, footer, (PAGE_W - fw) / 2, FOOTER_H + 4, { size: 7, color: BP_DIM });
+
+  return true;
+}
+
 // ── Main render ──
 
 export type TradeSpecSheetResult = {
@@ -530,10 +1105,12 @@ export async function renderTradeSpecSheet(input: {
   const heroUrl = await findHeroImageUrl(sku.id, sku.category, sku.slug);
   const heroBytes = heroUrl ? await fetchImageBytes(heroUrl) : null;
 
-  // Blueprint render (gpt-image-1 6-panel technical drawing). Embedded
-  // on page 3 if it exists. Generated via /generator → BLUEPRINT_RENDER
-  // and cached in GeneratedImageAsset.metadataJson.imageBase64.
-  const blueprintBytes = await findBlueprintRenderBytes(sku.id);
+  // (Page 3 is now drawn procedurally in pdf-lib — see
+  // renderProceduralBlueprintPage. We no longer fetch the
+  // BLUEPRINT_RENDER asset to avoid a wasted DB query and a heavy
+  // unused PNG embed in the output PDF.)
+  const _findBlueprintRenderBytes_kept_for_future_use = findBlueprintRenderBytes;
+  void _findBlueprintRenderBytes_kept_for_future_use;
 
   const pdf = await PDFDocument.create();
   const fonts: Fonts = {
@@ -563,16 +1140,6 @@ export async function renderTradeSpecSheet(input: {
     }
   }
 
-  let blueprint: PDFImage | null = null;
-  if (blueprintBytes) {
-    try {
-      blueprint = blueprintBytes.format === "png"
-        ? await pdf.embedPng(blueprintBytes.bytes)
-        : await pdf.embedJpg(blueprintBytes.bytes);
-    } catch {
-      blueprint = null;
-    }
-  }
 
   const PAGE_W = 612;
   const PAGE_H = 792;
@@ -852,35 +1419,33 @@ export async function renderTradeSpecSheet(input: {
     drawText(p2, f2, (PAGE_W - f2W) / 2, footerY, { font: fonts.regular, size: 8, color: SUBTLE });
   }
 
-  // ── PAGE 3 — Manufacturing Blueprint (only if a BLUEPRINT_RENDER exists) ──
-  if (blueprint) {
-    const p3 = pdf.addPage([PAGE_W, PAGE_H]);
-    drawHeader(p3, "MANUFACTURING BLUEPRINT", `${sku.code} · ${sku.name}`);
-
-    let yy = PAGE_H - HEADER_H - 28;
-    drawText(p3, "AI-rendered 6-panel technical blueprint generated from this SKU's geometry.",
-      M, yy, { font: fonts.italic, size: 9, color: SUBTLE });
-    yy -= 18;
-
-    // Fit the blueprint into the remaining page area, preserving aspect.
-    const availW = PAGE_W - 2 * M;
-    const availH = yy - (footerY + 24);
-    const widthFitH = (blueprint.height / blueprint.width) * availW;
-    let bpDrawW = availW;
-    let bpDrawH = widthFitH;
-    if (widthFitH > availH) {
-      bpDrawH = availH;
-      bpDrawW = (blueprint.width / blueprint.height) * availH;
-    }
-    const bpX = M + (availW - bpDrawW) / 2;
-    const bpY = (footerY + 24) + (availH - bpDrawH) / 2;
-    p3.drawImage(blueprint, { x: bpX, y: bpY, width: bpDrawW, height: bpDrawH });
-
-    drawLine(p3, M, footerY + 14, PAGE_W - M, footerY + 14, { thickness: 0.5, color: LINE });
-    const f3 = `${productUrl}   ·   trade@backusdesignco.com   ·   Page 3 — Manufacturing Blueprint`;
-    const f3W = fonts.regular.widthOfTextAtSize(f3, 8);
-    drawText(p3, f3, (PAGE_W - f3W) / 2, footerY, { font: fonts.regular, size: 8, color: SUBTLE });
-  }
+  // ── PAGE 3 — Manufacturing Blueprint (procedural; no AI) ──
+  // Cobalt-blue background with white-line drawings rendered entirely
+  // in pdf-lib. Replaces the previous gpt-image-1 embed which couldn't
+  // render technical text without typos. Text here is real PDF text —
+  // perfect spelling every time.
+  const clipPairsForBlueprint = sku.category === "PANEL" && outerL !== null
+    ? Math.max(2, Math.ceil(outerL / 24))
+    : 0;
+  renderProceduralBlueprintPage(
+    pdf,
+    fonts,
+    logo,
+    {
+      code: sku.code,
+      name: sku.name,
+      category: sku.category,
+      finish: sku.finish,
+      type: null,
+    },
+    {
+      outerL, outerW, outerH,
+      innerL, innerW, innerD,
+      drainDiameter: sku.category === "VESSEL_SINK" ? 1.75 : null,
+      clipPairs: clipPairsForBlueprint,
+    },
+    { productUrl },
+  );
 
   // ── PAGE 4 — Mounting Install Guide (panel SKUs with Z-clip) ──
   if (sku.category === "PANEL" && hasOuterDims) {
