@@ -15,6 +15,19 @@ function formatNumber(n: number | null | undefined): string {
   return Number(n).toFixed(2);
 }
 
+// ── Common style header — shared by every category builder ──
+const BLUEPRINT_STYLE_HEADER = `CRITICAL TEXT RULES — FOLLOW EXACTLY:
+- Every dimension label MUST end with the two letters "in" (for inches). NEVER write "mm" or "cm".
+- Spell every word correctly. Double-check: "HEIGHT" not "HE GHT", "DEPTH" not "DEPHT", "LENGTH" not "LENGHT", "TOLERANCE" not "TOLERENCE", "WIDTH" not "WIDHT".
+- Copy the text strings below CHARACTER FOR CHARACTER. Do not paraphrase or abbreviate.
+
+IMAGE DESCRIPTION:
+Single-object technical blueprint. Deep cobalt blue background (#0a1628) with faint grid. White 2D orthographic line drawings only — no shading, no 3D, no gradients, no fills.
+`;
+
+const BLUEPRINT_STYLE_FOOTER =
+  "STYLE: Precise, minimal, architectural. White lines on dark blue. Measurement arrows with tick marks. All labels in clean sans-serif or monospace font. Generous negative space. Professional engineering drawing.";
+
 function buildBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
   const L = formatNumber(sku.outerLength);
   const W = formatNumber(sku.outerWidth);
@@ -120,6 +133,273 @@ BACKUS DESIGN CO.
 STYLE: Precise, minimal, architectural. White lines on dark blue. Measurement arrows with tick marks. All labels in clean sans-serif or monospace font. Generous negative space. Professional engineering drawing.`;
 }
 
+// ── FURNITURE blueprint ──
+function buildFurnitureBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
+  const L = formatNumber(sku.outerLength);
+  const W = formatNumber(sku.outerWidth);
+  const H = formatNumber(sku.outerHeight);
+  const wall = formatNumber(sku.wallThickness);
+  const code = sku.code;
+  const name = sku.name.toUpperCase();
+  const isHollow = (sku.hollowCoreDepth ?? 0) > 0;
+  return `${BLUEPRINT_STYLE_HEADER}
+THE OBJECT: A GFRC furniture piece — ${sku.name}, ${L} x ${W} x ${H} in. ${isHollow ? `Hollow core construction with ${wall} in walls.` : "Solid construction."}
+
+LAYOUT — 6 PANELS:
+
+TOP-LEFT TITLE BLOCK (plain white text, left-aligned):
+${name}
+${(sku.type || "FURNITURE").toUpperCase()}
+
+LENGTH:  ${L} in
+WIDTH:   ${W} in
+HEIGHT:  ${H} in
+MATERIAL: GFRC
+
+PANEL 1 — TOP VIEW (largest panel, upper-right area):
+Rectangular outline ${L} x ${W} in. Show the upper surface — flat top, edge profile visible. Dimension arrows labeled "${L} in" across top and "${W} in" on right side.
+Label below: "TOP VIEW"
+
+PANEL 2 — FRONT ELEVATION (middle row):
+Front face profile, width ${L} in, height ${H} in. Show wall thickness ${wall} in if hollow. Dimension arrows labeled "${L} in" across top, "${H} in" on side.
+Label below: "FRONT ELEVATION"
+
+PANEL 3 — SIDE ELEVATION (bottom-left):
+Side profile, width ${W} in, height ${H} in. Dimension labels "${W} in" and "${H} in".
+Label below: "SIDE ELEVATION"
+
+PANEL 4 — SECTION A-A (bottom-right):
+Cross-section showing internal structure. ${isHollow ? `Wall thickness ${wall} in around hollow core.` : "Solid section with optional internal rib reinforcement."}
+Label below: "SECTION A-A"
+
+PANEL 5 — EDGE DETAIL (small inset):
+Enlarged corner profile showing edge treatment, chamfer, or bullnose if applicable. Dimension arrow for edge thickness.
+Label: "EDGE DETAIL"
+
+PANEL 6 — MOUNTING / BASE DETAIL (small inset):
+Bottom view or base footprint showing leveling pads, leg attachment points, or flat bearing surface.
+Label: "BASE DETAIL"
+
+BOTTOM-RIGHT NOTES BLOCK (bulleted list, small white text):
+- ALL DIMENSIONS IN INCHES
+- TOLERANCE: +/- 0.04 in
+- WALL: ${wall} in${isHollow ? " (HOLLOW CORE)" : " (SOLID)"}
+- GFRC CONSTRUCTION
+
+BOTTOM-RIGHT CORNER BRAND MARK:
+${code}
+BACKUS DESIGN CO.
+
+${BLUEPRINT_STYLE_FOOTER}`;
+}
+
+// ── PANEL (slat wall / wall panel) blueprint ──
+function buildPanelBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
+  const L = formatNumber(sku.outerLength);
+  const W = formatNumber(sku.outerWidth);
+  const H = formatNumber(sku.outerHeight);
+  const code = sku.code;
+  const name = sku.name.toUpperCase();
+  return `${BLUEPRINT_STYLE_HEADER}
+THE OBJECT: A GFRC architectural wall panel — ${sku.name}, ${L} x ${W} x ${H} in. Surface relief / texture visible on the face.
+
+LAYOUT — 6 PANELS:
+
+TOP-LEFT TITLE BLOCK (plain white text, left-aligned):
+${name}
+${(sku.type || "WALL PANEL").toUpperCase()}
+
+LENGTH:  ${L} in
+WIDTH:   ${W} in
+DEPTH:   ${H} in
+MATERIAL: GFRC
+
+PANEL 1 — FACE VIEW (largest panel, upper-right area):
+Rectangular outline ${L} x ${W} in showing the front face pattern (slats, ribs, waves, or relief geometry). Dimension arrows labeled "${L} in" across top and "${W} in" on right side.
+Label below: "FACE VIEW"
+
+PANEL 2 — TOP EDGE (middle row):
+Top edge profile, width ${L} in, depth ${H} in showing the relief depth. Dimension arrows labeled "${L} in" across top, "${H} in" on side.
+Label below: "TOP EDGE"
+
+PANEL 3 — SIDE EDGE (bottom-left):
+End profile, height ${W} in, depth ${H} in. Dimension labels "${W} in" and "${H} in".
+Label below: "SIDE EDGE"
+
+PANEL 4 — SECTION A-A (bottom-right):
+Vertical cross-section showing relief depth, panel thickness, and any concealed mounting channels.
+Label below: "SECTION A-A"
+
+PANEL 5 — SURFACE DETAIL (small inset):
+Enlarged repeat of one slat, rib, or relief unit with depth and spacing dimensions.
+Label: "SURFACE DETAIL"
+
+PANEL 6 — MOUNTING DETAIL (small inset):
+Z-clip, French cleat, or thinset mounting profile. Show panel-to-substrate gap.
+Label: "MOUNTING DETAIL"
+
+BOTTOM-RIGHT NOTES BLOCK (bulleted list, small white text):
+- ALL DIMENSIONS IN INCHES
+- TOLERANCE: +/- 0.04 in
+- PANEL DEPTH: ${H} in
+- GFRC CONSTRUCTION
+- INSTALL WITH CONCEALED MOUNTING
+
+BOTTOM-RIGHT CORNER BRAND MARK:
+${code}
+BACKUS DESIGN CO.
+
+${BLUEPRINT_STYLE_FOOTER}`;
+}
+
+// ── WALL_TILE blueprint ──
+function buildTileBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
+  const L = formatNumber(sku.outerLength);
+  const W = formatNumber(sku.outerWidth);
+  const H = formatNumber(sku.outerHeight);
+  const code = sku.code;
+  const name = sku.name.toUpperCase();
+  return `${BLUEPRINT_STYLE_HEADER}
+THE OBJECT: A GFRC wall tile — ${sku.name}, ${L} x ${W} in face, ${H} in thick. Sold by the tile or square foot, installed in a repeat pattern.
+
+LAYOUT — 6 PANELS:
+
+TOP-LEFT TITLE BLOCK (plain white text, left-aligned):
+${name}
+${(sku.type || "WALL TILE").toUpperCase()}
+
+LENGTH:  ${L} in
+WIDTH:   ${W} in
+THICKNESS: ${H} in
+MATERIAL: GFRC
+
+PANEL 1 — TILE FACE (largest panel, upper-right area):
+Single tile face — outline ${L} x ${W} in showing the surface texture or relief. Dimension arrows labeled "${L} in" and "${W} in".
+Label below: "TILE FACE"
+
+PANEL 2 — REPEAT PATTERN (middle row):
+3x3 tile field showing how tiles align and the recommended joint spacing.
+Label below: "REPEAT PATTERN"
+
+PANEL 3 — EDGE PROFILE (bottom-left):
+Cross-section through one tile edge showing thickness ${H} in and any edge bevel or chamfer.
+Label below: "EDGE PROFILE"
+
+PANEL 4 — SECTION A-A (bottom-right):
+Vertical section through a tile in-place — substrate, thinset bed, tile body, surface finish.
+Label below: "SECTION A-A"
+
+PANEL 5 — JOINT DETAIL (small inset):
+Enlarged joint between two tiles showing recommended grout or open-joint spacing.
+Label: "JOINT DETAIL"
+
+PANEL 6 — TEXTURE DETAIL (small inset):
+Close-up of the surface relief or finish character.
+Label: "TEXTURE DETAIL"
+
+BOTTOM-RIGHT NOTES BLOCK (bulleted list, small white text):
+- ALL DIMENSIONS IN INCHES
+- TOLERANCE: +/- 0.04 in
+- THICKNESS: ${H} in
+- GFRC CONSTRUCTION
+- THINSET MORTAR INSTALL
+
+BOTTOM-RIGHT CORNER BRAND MARK:
+${code}
+BACKUS DESIGN CO.
+
+${BLUEPRINT_STYLE_FOOTER}`;
+}
+
+// ── HARD_GOOD blueprint (bowls, planters, candle holders, trays) ──
+function buildHardGoodBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
+  const L = formatNumber(sku.outerLength);
+  const W = formatNumber(sku.outerWidth);
+  const H = formatNumber(sku.outerHeight);
+  const iL = formatNumber(sku.innerLength);
+  const iW = formatNumber(sku.innerWidth);
+  const iD = formatNumber(sku.innerDepth);
+  const wall = formatNumber(sku.wallThickness);
+  const code = sku.code;
+  const name = sku.name.toUpperCase();
+  const hasCavity = (sku.innerLength ?? 0) > 0 || (sku.innerWidth ?? 0) > 0;
+  const isRound = sku.outerLength === sku.outerWidth;
+  const shape = isRound ? "round" : "rectangular";
+  return `${BLUEPRINT_STYLE_HEADER}
+THE OBJECT: A small GFRC hard good — ${sku.name}, ${L} x ${W} x ${H} in (${shape}). ${hasCavity ? `Interior cavity ${iL} x ${iW} x ${iD} in.` : "Solid object."}
+
+LAYOUT — 6 PANELS:
+
+TOP-LEFT TITLE BLOCK (plain white text, left-aligned):
+${name}
+${(sku.type || "HARD GOOD").toUpperCase()}
+
+LENGTH:  ${L} in
+WIDTH:   ${W} in
+HEIGHT:  ${H} in
+MATERIAL: GFRC
+
+PANEL 1 — TOP VIEW (largest panel, upper-right area):
+${isRound ? "Circular" : "Rectangular"} outline ${L} x ${W} in. ${hasCavity ? `Interior cavity outline ${iL} x ${iW} in centered.` : ""} Dimension arrows labeled "${L} in" across top and "${W} in" on right side.
+Label below: "TOP VIEW"
+
+PANEL 2 — FRONT ELEVATION (middle row):
+Side profile, width ${L} in, height ${H} in. ${hasCavity ? `Interior cavity depth ${iD} in shown.` : ""}
+Label below: "FRONT ELEVATION"
+
+PANEL 3 — SIDE ELEVATION (bottom-left):
+End profile, width ${W} in, height ${H} in.
+Label below: "SIDE ELEVATION"
+
+PANEL 4 — SECTION A-A (bottom-right):
+${hasCavity ? `Vertical section showing wall thickness ${wall} in and cavity depth ${iD} in.` : `Solid cross-section showing wall ${wall} in.`}
+Label below: "SECTION A-A"
+
+PANEL 5 — EDGE / RIM DETAIL (small inset):
+${hasCavity ? "Enlarged rim profile showing thickness and edge treatment." : "Enlarged edge profile."}
+Label: "EDGE DETAIL"
+
+PANEL 6 — BASE DETAIL (small inset):
+Base footprint and contact surface.
+Label: "BASE DETAIL"
+
+BOTTOM-RIGHT NOTES BLOCK (bulleted list, small white text):
+- ALL DIMENSIONS IN INCHES
+- TOLERANCE: +/- 0.04 in
+- WALL: ${wall} in
+- GFRC CONSTRUCTION
+
+BOTTOM-RIGHT CORNER BRAND MARK:
+${code}
+BACKUS DESIGN CO.
+
+${BLUEPRINT_STYLE_FOOTER}`;
+}
+
+/**
+ * Dispatch to the right blueprint builder based on SKU category.
+ * Care kits skip blueprints (consumables, no geometry).
+ */
+function buildBlueprintPromptForSku(sku: ReturnType<typeof mapSkuRecord>): string | null {
+  switch (sku.category) {
+    case "VESSEL_SINK":
+      return buildBlueprintPrompt(sku);
+    case "FURNITURE":
+      return buildFurnitureBlueprintPrompt(sku);
+    case "PANEL":
+      return buildPanelBlueprintPrompt(sku);
+    case "WALL_TILE":
+      return buildTileBlueprintPrompt(sku);
+    case "HARD_GOOD":
+      return buildHardGoodBlueprintPrompt(sku);
+    case "CARE_KIT":
+      return null;
+    default:
+      // Best-effort: treat unknown categories as hard goods.
+      return buildHardGoodBlueprintPrompt(sku);
+  }
+}
+
 export async function generateBlueprintOutput(values: GeneratorFormValues) {
   const sku = await prisma.sku.findUnique({ where: { code: values.skuCode } });
   if (!sku) throw new Error(`SKU ${values.skuCode} not found.`);
@@ -143,7 +423,12 @@ export async function generateBlueprintOutput(values: GeneratorFormValues) {
     })),
   });
 
-  const promptText = buildBlueprintPrompt(mapped);
+  const promptText = buildBlueprintPromptForSku(mapped);
+  if (!promptText) {
+    throw new Error(
+      `Blueprint generation is not supported for category ${sku.category} (${sku.code}).`,
+    );
+  }
 
   // Create the output record
   const output = await prisma.generatedOutput.create({
