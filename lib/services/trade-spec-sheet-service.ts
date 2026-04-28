@@ -100,7 +100,55 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-async function findHeroImageUrl(skuId: string): Promise<string | null> {
+// MinIO bucket where the storefront catalog publisher writes product
+// imagery. URLs are stable and category-mapped — same formula as
+// lib/catalog/compose-spec.ts.
+const CDN_BASE = "https://cdn.opsrbstudio.com/bdc-products";
+const CDN_FOLDER_BY_CATEGORY: Record<string, string | null> = {
+  VESSEL_SINK: "sinks",
+  FURNITURE: "furniture",
+  PANEL: "slat-wall",
+  TILE: "tile",
+  WALL_TILE: "tile",
+  HARD_GOOD: "hard-goods",
+  CARE_KIT: null, // care kits use a different naming scheme; skip
+};
+
+function buildCdnImageUrl(category: string, slug: string): string | null {
+  const folder = CDN_FOLDER_BY_CATEGORY[category];
+  if (!folder) return null;
+  return `${CDN_BASE}/${folder}/${slug}.png`;
+}
+
+/**
+ * Resolve a hero image URL for a SKU. Tries in order:
+ * 1. The published catalog image on the MinIO CDN — these are the
+ *    real product photos used in the storefront and catalog PDF.
+ * 2. The latest AI-rendered IMAGE_RENDER GeneratedImageAsset, if any.
+ *    Falls back here when a SKU's catalog image hasn't been uploaded.
+ * 3. null → caller falls back to the wireframe placeholder.
+ *
+ * For (1) we do a HEAD request to confirm the image exists before
+ * returning it, so SKUs without an uploaded image don't block on a
+ * 404 download attempt.
+ */
+async function findHeroImageUrl(
+  skuId: string,
+  category: string,
+  slug: string,
+): Promise<string | null> {
+  // (1) CDN catalog image
+  const cdnUrl = buildCdnImageUrl(category, slug);
+  if (cdnUrl) {
+    try {
+      const head = await fetch(cdnUrl, { method: "HEAD" });
+      if (head.ok) return cdnUrl;
+    } catch {
+      /* ignore — fall through */
+    }
+  }
+
+  // (2) AI-rendered asset
   const asset = await prisma.generatedImageAsset.findFirst({
     where: {
       status: OutputStatus.GENERATED,
@@ -114,21 +162,33 @@ async function findHeroImageUrl(skuId: string): Promise<string | null> {
     orderBy: { createdAt: "desc" },
     select: { imageUrl: true, filePath: true },
   });
-  if (!asset) return null;
-  return asset.imageUrl ?? asset.filePath ?? null;
+  if (asset) {
+    return asset.imageUrl ?? asset.filePath ?? null;
+  }
+
+  return null;
 }
 
 async function fetchImageBytes(url: string): Promise<{ bytes: Uint8Array; format: "png" | "jpg" } | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
-    const ct = res.headers.get("content-type") ?? "";
     const ab = await res.arrayBuffer();
     const bytes = new Uint8Array(ab);
+    // Sniff magic bytes FIRST — Content-Type and filename extensions are
+    // commonly wrong (e.g. our MinIO bucket serves JPEGs as image/png
+    // with .png filenames). pdf-lib's embedPng/embedJpg rejects mismatches
+    // with no useful error, so we have to know the real format.
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+      return { bytes, format: "png" }; // PNG: 89 50 4E 47
+    }
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return { bytes, format: "jpg" }; // JPEG: FF D8 FF
+    }
+    // Fallback to content-type / extension if magic bytes were inconclusive.
+    const ct = res.headers.get("content-type") ?? "";
     if (ct.includes("png") || url.toLowerCase().endsWith(".png")) return { bytes, format: "png" };
     if (ct.includes("jpeg") || ct.includes("jpg") || /\.jpe?g$/i.test(url)) return { bytes, format: "jpg" };
-    if (bytes[0] === 0x89 && bytes[1] === 0x50) return { bytes, format: "png" };
-    if (bytes[0] === 0xff && bytes[1] === 0xd8) return { bytes, format: "jpg" };
     return null;
   } catch {
     return null;
@@ -426,7 +486,7 @@ export async function renderTradeSpecSheet(input: {
   const wMax = decimalToNumber(sku.targetWeightMaxLbs);
   const hasOuterDims = outerL !== null && outerW !== null && outerH !== null;
 
-  const heroUrl = await findHeroImageUrl(sku.id);
+  const heroUrl = await findHeroImageUrl(sku.id, sku.category, sku.slug);
   const heroBytes = heroUrl ? await fetchImageBytes(heroUrl) : null;
 
   const pdf = await PDFDocument.create();
