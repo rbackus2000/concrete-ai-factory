@@ -327,7 +327,99 @@ function buildTileSolidGeometry(sku: MoldGeneratorSku): THREE.BufferGeometry {
     }
   }
 
+  // ── Z-clip fastener pockets (PANEL only) ──
+  // Slat-wall art panels mount with Monarch MZA-1.5 Z-clips bonded to the
+  // back face with epoxy + 4× #10 SS screws per clip. The mold casts shallow
+  // pockets in the back face where #10-24 brass threaded inserts get
+  // embedded into the wet GFRC. The clips screw into those inserts after
+  // demold + cure.
+  //
+  // Layout matches the spec sheet rear-view: clipPairs distributed evenly
+  // along the LENGTH, each clip 8" long, vertically centered on the back
+  // face. Each clip has 4 screws at 1", 3", 5", 7" along its length.
+  if (sku.category === "PANEL") {
+    result = addZClipFastenerPockets(result, evaluator, dummyMat, {
+      panelLengthIn: sku.outerLength,
+      panelWidthIn: sku.outerWidth,
+      tileW, tileH, tileT,
+    });
+  }
+
   return result.geometry;
+}
+
+/**
+ * Subtracts cylindrical pockets from the BACK face of a panel slab — one
+ * pocket per #10 screw on each Z-clip. Pockets are sized for #10-24 brass
+ * threaded inserts (5/16" OD, 3/8" deep) with a 1mm clearance.
+ */
+function addZClipFastenerPockets(
+  slab: Brush,
+  evaluator: Evaluator,
+  dummyMat: THREE.Material,
+  opts: {
+    panelLengthIn: number; panelWidthIn: number;
+    tileW: number; tileH: number; tileT: number;
+  },
+): Brush {
+  // Match the spec sheet: clipPairs = max(2, ceil(length / 24in))
+  const clipPairs = Math.max(2, Math.ceil(opts.panelLengthIn / 24));
+  const CLIP_LEN_IN = 8;
+  const SCREW_OFFSETS_IN = [1, 3, 5, 7]; // 4 screws per clip, 2" o.c., 1" inset
+  const POCKET_DIA_MM = 8;   // 5/16" OD insert (7.94mm) + 0.06mm clearance
+  const POCKET_DEPTH_MM = 10; // 3/8" insert (9.5mm) + 0.5mm slack
+  const SEGMENTS = 16;
+
+  // Convert to mm and centered coordinates: panel spans X = -tileW/2 to +tileW/2,
+  // Z = -tileH/2 to +tileH/2. Back face is at Y=0 (going UP into the slab).
+  const clipLenMM = CLIP_LEN_IN * IN_TO_MM;
+
+  // Distribute clip CENTERS along X. Match drawPanelRearViewWithClips:
+  // for clipPairs === 1, single clip is centered; otherwise spread evenly with
+  // edge insets so end clips don't run off the panel.
+  const clipCentersX: number[] = [];
+  if (clipPairs === 1) {
+    clipCentersX.push(0); // panel-center (X=0 in centered coords)
+  } else {
+    // Inset enough that an 8" clip stays inside the panel with at least 0.5"
+    // edge margin. Available range = tileW - clipLen - 2 * 0.5"
+    const edgeMarginMM = 0.5 * IN_TO_MM;
+    const range = opts.tileW - clipLenMM - 2 * edgeMarginMM;
+    const startX = -opts.tileW / 2 + edgeMarginMM + clipLenMM / 2;
+    const stepX = range / (clipPairs - 1);
+    for (let i = 0; i < clipPairs; i++) {
+      clipCentersX.push(startX + i * stepX);
+    }
+  }
+
+  // Pockets are vertically centered on the back face (Z = 0 in centered coords).
+  // Pocket cylinders are oriented with axis along Y (vertical), punching UP
+  // from the back face into the slab.
+  let out = slab;
+  for (const cxMM of clipCentersX) {
+    const clipStartXMM = cxMM - clipLenMM / 2;
+    for (const offsetIn of SCREW_OFFSETS_IN) {
+      const pocketX = clipStartXMM + offsetIn * IN_TO_MM;
+      const pocketZ = 0; // vertically centered on back face
+
+      // Cap pocket depth to leave at least 4mm of cover on the front face.
+      const safeDepth = Math.min(POCKET_DEPTH_MM, opts.tileT - 4);
+      if (safeDepth <= 1) continue; // panel too thin for inserts
+
+      const pocketGeo = new THREE.CylinderGeometry(
+        POCKET_DIA_MM / 2,
+        POCKET_DIA_MM / 2,
+        safeDepth + 0.5, // +0.5 to ensure clean punch through Y=0
+        SEGMENTS,
+      );
+      // Cylinder is Y-axis by default. Center Y so it spans -0.25 to safeDepth+0.25
+      pocketGeo.translate(pocketX, safeDepth / 2 - 0.25, pocketZ);
+      const pocketBrush = new Brush(pocketGeo, dummyMat);
+      out = evaluator.evaluate(out, pocketBrush, SUBTRACTION);
+    }
+  }
+
+  return out;
 }
 
 // ── Hex Tile Solid Geometry ──────────────────────────────────────
