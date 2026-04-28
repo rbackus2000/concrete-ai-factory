@@ -51,8 +51,12 @@ export async function middleware(request: NextRequest) {
 
   // ── Trade portal: cookie-based auth, NOT Basic Auth ──
   if (isTradePortalRoute(pathname)) {
+    // Tag the request so the root layout can skip the staff sidebar/shell.
+    const tradeHeaders = new Headers(request.headers);
+    tradeHeaders.set("x-route-shell", "trade-portal");
+
     if (isTradePortalPublic(pathname)) {
-      return NextResponse.next();
+      return NextResponse.next({ request: { headers: tradeHeaders } });
     }
     const sessionCookie = request.cookies.get(TRADE_SESSION_COOKIE)?.value;
     const payload = await verifyTradeSessionCookie(sessionCookie);
@@ -64,7 +68,7 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.redirect(loginUrl);
     }
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: tradeHeaders } });
   }
 
   // ── Internal staff: Basic Auth ──
