@@ -2,8 +2,21 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { authenticateRequest, getAuthHeaderNames, isAdminRoute } from "@/lib/auth/shared";
+import {
+  TRADE_SESSION_COOKIE,
+  verifyTradeSessionCookie,
+} from "@/lib/auth/trade-session";
 
 const PUBLIC_FILE = /\.(.*)$/;
+
+// Trade portal paths the public can hit without a session cookie.
+// Everything else under /trade/portal requires a valid session.
+const TRADE_PORTAL_PUBLIC_PATHS = new Set<string>([
+  "/trade/portal/login",
+  "/trade/portal/check-email",
+  "/trade/portal/verify",
+  "/trade/portal/sign-out",
+]);
 
 function unauthorizedResponse() {
   return new NextResponse("Authentication required.", {
@@ -14,7 +27,15 @@ function unauthorizedResponse() {
   });
 }
 
-export function middleware(request: NextRequest) {
+function isTradePortalRoute(pathname: string): boolean {
+  return pathname === "/trade/portal" || pathname.startsWith("/trade/portal/");
+}
+
+function isTradePortalPublic(pathname: string): boolean {
+  return TRADE_PORTAL_PUBLIC_PATHS.has(pathname);
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
@@ -28,6 +49,25 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── Trade portal: cookie-based auth, NOT Basic Auth ──
+  if (isTradePortalRoute(pathname)) {
+    if (isTradePortalPublic(pathname)) {
+      return NextResponse.next();
+    }
+    const sessionCookie = request.cookies.get(TRADE_SESSION_COOKIE)?.value;
+    const payload = await verifyTradeSessionCookie(sessionCookie);
+    if (!payload) {
+      const loginUrl = new URL("/trade/portal/login", request.url);
+      // Preserve where they wanted to go so the login page can redirect back.
+      if (pathname !== "/trade/portal") {
+        loginUrl.searchParams.set("from", pathname);
+      }
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
+  // ── Internal staff: Basic Auth ──
   const session = authenticateRequest(request.headers.get("authorization"));
 
   if (!session) {

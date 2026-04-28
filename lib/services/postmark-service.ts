@@ -485,3 +485,140 @@ export async function sendPaymentOwnerNotification(input: {
     from: "invoices",
   });
 }
+
+// ── Trade Portal Emails ──────────────────────────────────────
+
+/**
+ * Welcome email sent when a trade application is approved. Includes a
+ * one-click magic-link sign-in to the portal (TTL 30 min).
+ */
+export async function sendTradeWelcomeEmail(input: {
+  to: string;
+  contactName: string;
+  firmName: string;
+  loginUrl: string; // pre-built /trade/portal/verify?token=... URL
+  accountManagerEmail?: string;
+}) {
+  const accountManager = input.accountManagerEmail ?? `trade@${DOMAIN}`;
+  const html = emailWrapper(`
+    <h2>Welcome to the trade program, ${input.contactName}.</h2>
+    <p>Your application for <strong>${input.firmName}</strong> has been approved. You now have a 15% standing trade discount on every catalog piece and 15% off custom commissions.</p>
+    <hr class="divider">
+    <p>Use the link below to sign in to your trade portal — your one place for the catalog, design packets, trade pricing, sample requests, and quote requests.</p>
+    <p style="text-align: center; margin: 32px 0;">
+      <a href="${input.loginUrl}" class="btn">Sign in to the trade portal &rarr;</a>
+    </p>
+    <p style="color: #666; font-size: 13px;">This sign-in link expires in 30 minutes. You can request a new one anytime from <a href="${getAppUrl()}/trade/portal/login">the sign-in page</a> using this email address.</p>
+    <hr class="divider">
+    <p>Your dedicated account manager is <a href="mailto:${accountManager}">${accountManager}</a> — reply directly anytime for quotes, lead times, samples, or questions.</p>
+    <p style="margin-top: 24px;">— The Backus Design Co. team</p>
+  `);
+  return sendEmail({
+    to: input.to,
+    subject: "Your Backus Design Co. trade portal access",
+    htmlBody: html,
+    from: "sales",
+  });
+}
+
+/**
+ * Magic-link email for an existing approved member who requested
+ * sign-in from the /trade/portal/login page.
+ */
+export async function sendTradeMagicLinkEmail(input: {
+  to: string;
+  contactName: string;
+  loginUrl: string;
+}) {
+  const html = emailWrapper(`
+    <h2>Sign in to your trade portal</h2>
+    <p>Hi ${input.contactName},</p>
+    <p>Click below to sign in. This link is valid for 30 minutes and can only be used once.</p>
+    <p style="text-align: center; margin: 32px 0;">
+      <a href="${input.loginUrl}" class="btn">Sign in &rarr;</a>
+    </p>
+    <p style="color: #666; font-size: 13px;">Didn't request this? You can safely ignore this email — your account is unchanged.</p>
+  `);
+  return sendEmail({
+    to: input.to,
+    subject: "Your Backus Design Co. sign-in link",
+    htmlBody: html,
+    from: "noreply",
+  });
+}
+
+/**
+ * Decline email when a trade application is rejected. Reason is optional
+ * and displayed verbatim if provided.
+ */
+export async function sendTradeDeclineEmail(input: {
+  to: string;
+  contactName: string;
+  firmName: string;
+  reason?: string | null;
+}) {
+  const reasonBlock = input.reason
+    ? `<hr class="divider"><p>${input.reason.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>`
+    : "";
+  const html = emailWrapper(`
+    <h2>About your trade program application</h2>
+    <p>Hi ${input.contactName},</p>
+    <p>Thank you for your interest in the Backus Design Co. trade program. After reviewing your application for <strong>${input.firmName}</strong>, we're unable to extend trade access at this time.</p>
+    ${reasonBlock}
+    <hr class="divider">
+    <p>You're still welcome to order from our public catalog at any time, and you can re-apply once your firm meets the eligibility criteria.</p>
+    <p style="margin-top: 24px;">— The Backus Design Co. team</p>
+  `);
+  return sendEmail({
+    to: input.to,
+    subject: "About your Backus Design Co. trade application",
+    htmlBody: html,
+    from: "sales",
+  });
+}
+
+/**
+ * Internal alert when a trade member submits a sample-box request.
+ * Goes to the ops owner so the shop floor can pull and pack the box.
+ */
+export async function sendSampleRequestAdminAlert(input: {
+  member: { email: string; firmName: string; contactName: string };
+  shipTo: { name: string; address1: string; address2?: string | null; city: string; state: string; zip: string; country?: string | null };
+  notes?: string | null;
+  orderNumber: string;
+  contactDetailUrl: string;
+}) {
+  const addrBlock = [
+    input.shipTo.name,
+    input.member.firmName,
+    input.shipTo.address1,
+    input.shipTo.address2,
+    `${input.shipTo.city}, ${input.shipTo.state} ${input.shipTo.zip}`,
+    input.shipTo.country ?? "US",
+  ]
+    .filter(Boolean)
+    .join("<br>");
+  const notesBlock = input.notes
+    ? `<hr class="divider"><p><strong>Notes:</strong><br>${input.notes
+        .replace(/</g, "&lt;")
+        .replace(/\n/g, "<br>")}</p>`
+    : "";
+  const html = emailWrapper(`
+    <h2>Sample box requested — ${input.member.firmName}</h2>
+    <p>A trade member has requested a finish sample box. The order has already been created in ops as <strong>${input.orderNumber}</strong> with $0 line total. Pull, pack, and ship.</p>
+    <hr class="divider">
+    <p><strong>Member:</strong> ${input.member.contactName} &lt;${input.member.email}&gt;<br>
+       <strong>Firm:</strong> ${input.member.firmName}</p>
+    <p><strong>Ship to:</strong><br>${addrBlock}</p>
+    ${notesBlock}
+    <p style="text-align: center; margin: 32px 0;">
+      <a href="${input.contactDetailUrl}" class="btn">Open in ops &rarr;</a>
+    </p>
+  `);
+  return sendEmail({
+    to: getOwnerEmail(),
+    subject: `[Sample request] ${input.member.firmName} — ${input.orderNumber}`,
+    htmlBody: html,
+    from: "ops",
+  });
+}
