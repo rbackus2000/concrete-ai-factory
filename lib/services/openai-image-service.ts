@@ -194,14 +194,20 @@ ${BLUEPRINT_STYLE_FOOTER}`;
 }
 
 // ── PANEL (slat wall / wall panel) blueprint ──
+// Mounting system is a real Z-clip / French cleat: Monarch MZA-1.5"
+// aluminum extrusion, surface-bonded to the back of the panel with
+// G/Flex epoxy + 4× #10 SS screws into pre-cast pilot holes. Wall
+// half attaches to studs at 16" o.c. Load rating: 100 lb / linear ft.
+// Number of clip pairs: 1 per 24" of panel length, min 2.
 function buildPanelBlueprintPrompt(sku: ReturnType<typeof mapSkuRecord>): string {
   const L = formatNumber(sku.outerLength);
   const W = formatNumber(sku.outerWidth);
   const H = formatNumber(sku.outerHeight);
   const code = sku.code;
   const name = sku.name.toUpperCase();
+  const clipPairs = Math.max(2, Math.ceil((sku.outerLength ?? 24) / 24));
   return `${BLUEPRINT_STYLE_HEADER}
-THE OBJECT: A GFRC architectural wall panel — ${sku.name}, ${L} x ${W} x ${H} in. Surface relief / texture visible on the face.
+THE OBJECT: A GFRC architectural wall panel — ${sku.name}, ${L} x ${W} x ${H} in. Surface relief / texture visible on the face. Wall-mounted via concealed Z-clip (French cleat) system bonded to the back.
 
 LAYOUT — 6 PANELS:
 
@@ -213,37 +219,45 @@ LENGTH:  ${L} in
 WIDTH:   ${W} in
 DEPTH:   ${H} in
 MATERIAL: GFRC
+MOUNT:   Z-CLIP (${clipPairs} PAIRS)
 
 PANEL 1 — FACE VIEW (largest panel, upper-right area):
 Rectangular outline ${L} x ${W} in showing the front face pattern (slats, ribs, waves, or relief geometry). Dimension arrows labeled "${L} in" across top and "${W} in" on right side.
 Label below: "FACE VIEW"
 
-PANEL 2 — TOP EDGE (middle row):
-Top edge profile, width ${L} in, depth ${H} in showing the relief depth. Dimension arrows labeled "${L} in" across top, "${H} in" on side.
-Label below: "TOP EDGE"
+PANEL 2 — REAR VIEW with clip layout (middle row):
+Rear face of the panel. Show ${clipPairs} horizontal Z-clip extrusions across the back, each labeled "Z-CLIP — Monarch MZA-1.5" 8 in long". Distribute evenly along the length, set in 4 in from each end. Show the 4 screw holes per clip (small circles). Add overall dimension "${L} in" across top, "${W} in" on side.
+Label below: "REAR VIEW — CLIP LAYOUT"
 
-PANEL 3 — SIDE EDGE (bottom-left):
-End profile, height ${W} in, depth ${H} in. Dimension labels "${W} in" and "${H} in".
+PANEL 3 — SECTION A-A — Z-CLIP DETAIL (bottom-left, MUST BE PROMINENT):
+Cross-section showing the panel mounted on a wall. Two interlocking aluminum Z-clip profiles drawn in detail:
+- Wall-side clip: Z-shaped extrusion screwed into the wall stud with two arrows labeled "WOOD SCREW INTO STUD"
+- Panel-side clip: matching Z-shaped extrusion bonded to the panel back, with arrow labeled "EPOXY + 4× #10 SS SCREWS"
+- Show the interlocking profile clearly with the upper hook of the wall clip caught by the lower hook of the panel clip
+- Label gap "1/16 in PANEL-TO-WALL CLEARANCE"
+- Label clip extrusion "1.5 in ALUMINUM Z-CLIP"
+Label below: "SECTION A-A — Z-CLIP DETAIL"
+
+PANEL 4 — SIDE EDGE PROFILE (bottom-right):
+End profile of the panel showing depth ${H} in. Show the Z-clip protruding from the back by 0.5 in. Dimension labels "${W} in" height and "${H} in" depth.
 Label below: "SIDE EDGE"
-
-PANEL 4 — SECTION A-A (bottom-right):
-Vertical cross-section showing relief depth, panel thickness, and any concealed mounting channels.
-Label below: "SECTION A-A"
 
 PANEL 5 — SURFACE DETAIL (small inset):
 Enlarged repeat of one slat, rib, or relief unit with depth and spacing dimensions.
 Label: "SURFACE DETAIL"
 
-PANEL 6 — MOUNTING DETAIL (small inset):
-Z-clip, French cleat, or thinset mounting profile. Show panel-to-substrate gap.
-Label: "MOUNTING DETAIL"
+PANEL 6 — MOUNTING HARDWARE (small inset):
+Exploded isometric of the Z-clip pair: top extrusion (panel-side) above, bottom extrusion (wall-side) below, with arrows showing how they engage. Label "MONARCH MZA-1.5 Z-CLIP" and "BUNDLED PER PANEL".
+Label: "MOUNTING HARDWARE"
 
 BOTTOM-RIGHT NOTES BLOCK (bulleted list, small white text):
 - ALL DIMENSIONS IN INCHES
 - TOLERANCE: +/- 0.04 in
 - PANEL DEPTH: ${H} in
 - GFRC CONSTRUCTION
-- INSTALL WITH CONCEALED MOUNTING
+- MOUNT: Z-CLIP, ${clipPairs} PAIRS BUNDLED
+- LOAD: 100 LB / LINEAR FT
+- WALL: 16 IN O.C. STUDS
 
 BOTTOM-RIGHT CORNER BRAND MARK:
 ${code}
