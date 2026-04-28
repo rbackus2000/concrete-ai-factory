@@ -677,15 +677,16 @@ function drawZClipSectionDetail(ctx: BpDrawCtx, opts: {
   bpArrow(ctx, panelBackX + 60, panelClipTopY + 22, panelBackX + 4, panelClipTopY + 4, BP_ACCENT);
   bpText(ctx, "EPOXY + 4x #10 SS SCREWS", panelBackX + 18, panelClipTopY + 30, { size: 6.5, color: BP_ACCENT });
 
-  // 1/16" gap label between wall and panel
+  // 1/16" gap label between wall and panel — leader line going up-and-over
   const gapMidX = (wallX + panelBackX) / 2;
-  bpText(ctx, "1/16 in", gapMidX - 12, drawY + 10, { size: 6.5, color: BP_DIM });
-  bpText(ctx, "PANEL-TO-WALL", gapMidX - 24, drawY + 4, { size: 6, color: BP_DIM });
+  const labelY = drawY + drawH - 10;
+  bpArrow(ctx, gapMidX, labelY - 6, gapMidX, cy + 22, BP_DIM);
+  bpText(ctx, "1/16 in PANEL-TO-WALL", gapMidX - 32, labelY, { size: 6.5, color: BP_DIM });
 
-  // Clip extrusion label
-  bpText(ctx, "1.5 in ALUMINUM Z-CLIP", drawX + 4, drawY + 4, { size: 6.5, color: BP_INK });
+  // Clip extrusion label — moved to the very top of the slot, away from the drawing
+  bpText(ctx, "1.5 in ALUMINUM Z-CLIP EXTRUSION", drawX + 4, drawY + drawH + 4, { size: 6.5, color: BP_INK });
 
-  // Section label
+  // Section label (kept at slot bottom — sits above the page footer)
   const sectLabel = "SECTION A-A — Z-CLIP DETAIL";
   const sw = ctx.fonts.bold.widthOfTextAtSize(sectLabel, 8);
   bpText(ctx, sectLabel, opts.slotX + opts.slotW / 2 - sw / 2, opts.slotY + 8, {
@@ -1040,12 +1041,8 @@ function renderProceduralBlueprintPage(
     });
   }
 
-  // For PANEL: tuck the exploded clip-pair into the title block area (below it)
-  if (sku.category === "PANEL") {
-    const explodedSlot = { slotX: TITLE_X, slotY: TITLE_Y - TITLE_H - 110, slotW: TITLE_W, slotH: 96 };
-    bpRect(ctx, explodedSlot.slotX, explodedSlot.slotY, explodedSlot.slotW, explodedSlot.slotH, { thickness: 0.6 });
-    drawZClipExploded(ctx, explodedSlot);
-  }
+  // (No exploded-clip inset on this page — the install guide on
+  // page 4 is the mounting reference. Page 3 stays purely technical.)
 
   // ── Footer ──
   bpLine(ctx, M, FOOTER_H + 18, PAGE_W - M, FOOTER_H + 18, { thickness: 0.4, color: BP_DIM });
@@ -1514,14 +1511,14 @@ export async function renderTradeSpecSheet(input: {
     ];
 
     for (const s of steps) {
-      drawText(p4, s.n, M, yy, { font: fonts.bold, size: 13, color: ACCENT });
-      drawText(p4, s.title, M + 26, yy, { font: fonts.bold, size: 11, color: INK });
-      yy -= 14;
-      for (const line of wrapText(s.body, fonts.regular, 9.5, PAGE_W - 2 * M - 26)) {
-        drawText(p4, line, M + 26, yy, { font: fonts.regular, size: 9.5, color: INK });
-        yy -= 12;
+      drawText(p4, s.n, M, yy, { font: fonts.bold, size: 12, color: ACCENT });
+      drawText(p4, s.title, M + 26, yy, { font: fonts.bold, size: 10, color: INK });
+      yy -= 12;
+      for (const line of wrapText(s.body, fonts.regular, 9, PAGE_W - 2 * M - 26)) {
+        drawText(p4, line, M + 26, yy, { font: fonts.regular, size: 9, color: INK });
+        yy -= 11;
       }
-      yy -= 6;
+      yy -= 4;
     }
 
     // ── Substrate notes ──
@@ -1535,110 +1532,9 @@ export async function renderTradeSpecSheet(input: {
       "For sloped or specialty walls, contact trade@backusdesignco.com before install.",
     ];
     for (const n of notes) {
-      for (const line of wrapText("·  " + n, fonts.regular, 9.5, PAGE_W - 2 * M)) {
-        drawText(p4, line, M, yy, { font: fonts.regular, size: 9.5, color: INK });
-        yy -= 12;
-      }
-      yy -= 2;
-    }
-
-    drawLine(p4, M, footerY + 14, PAGE_W - M, footerY + 14, { thickness: 0.5, color: LINE });
-    const f4 = `${productUrl}   ·   trade@backusdesignco.com   ·   Page 4 — Mounting & Install Guide`;
-    const f4W = fonts.regular.widthOfTextAtSize(f4, 8);
-    drawText(p4, f4, (PAGE_W - f4W) / 2, footerY, { font: fonts.regular, size: 8, color: SUBTLE });
-  }
-
-  // ── PAGE 4 — Mounting Install Guide (panel SKUs with Z-clip) ──
-  if (sku.category === "PANEL" && hasOuterDims) {
-    const p4 = pdf.addPage([PAGE_W, PAGE_H]);
-    drawHeader(p4, "MOUNTING & INSTALL GUIDE", `${sku.code} · ${sku.name}`);
-
-    let yy = PAGE_H - HEADER_H - 32;
-    const clipPairs = Math.max(2, Math.ceil(outerL! / 24));
-
-    // ── System summary box ──
-    drawText(p4, "MOUNTING SYSTEM", M, yy, { font: fonts.bold, size: 9, color: ACCENT });
-    drawLine(p4, M, yy - 4, PAGE_W - M, yy - 4, { thickness: 0.5, color: LINE });
-    yy -= 18;
-
-    p4.drawRectangle({
-      x: M, y: yy - 86, width: PAGE_W - 2 * M, height: 86, color: CREAM,
-    });
-    let by = yy - 14;
-    drawText(p4, "Z-Clip / French Cleat — Monarch MZA-1.5\" aluminum extrusion",
-      M + 14, by, { font: fonts.bold, size: 11, color: INK });
-    by -= 16;
-    const sysRows: [string, string][] = [
-      ["Bond to panel", "G/Flex epoxy + 4× #10 stainless screws into pre-cast pilot holes"],
-      ["Wall attachment", "Wood screws into studs at 16\" o.c. (provided)"],
-      ["Load capacity", "100 lb / linear ft"],
-      [`Hardware bundled`, `${clipPairs} clip pair${clipPairs === 1 ? "" : "s"} + wall anchors + epoxy packet — included with panel`],
-    ];
-    for (const [k, v] of sysRows) {
-      drawText(p4, k, M + 14, by, { font: fonts.regular, size: 9, color: SUBTLE });
-      drawText(p4, v, M + 110, by, { font: fonts.regular, size: 10, color: INK });
-      by -= 13;
-    }
-    yy -= 100;
-
-    // ── Install steps ──
-    drawText(p4, "INSTALL STEPS", M, yy, { font: fonts.bold, size: 9, color: ACCENT });
-    drawLine(p4, M, yy - 4, PAGE_W - M, yy - 4, { thickness: 0.5, color: LINE });
-    yy -= 16;
-
-    const steps: { n: string; title: string; body: string }[] = [
-      {
-        n: "01",
-        title: "Locate studs and mark clip line",
-        body: "Find wall studs and chalk a level horizontal line at the desired top edge of the panel. Z-clips mount BELOW this line — measure down by the clip extrusion height (1.5 in) plus your panel-side clip offset.",
-      },
-      {
-        n: "02",
-        title: "Attach wall-side clips",
-        body: `Screw the wall-side Z-clip extrusion into every available stud at 16 in o.c., level on the chalk line. ${clipPairs > 1 ? `Repeat for each of the ${clipPairs} clip pairs distributed along the panel length.` : ""} Recess fasteners flush to the clip face.`,
-      },
-      {
-        n: "03",
-        title: "Bond panel-side clips (if not pre-installed)",
-        body: "Some panels ship with the panel-side clip already epoxied. If not, mix G/Flex epoxy and apply to the back of the clip + the panel mount zone. Drive 4× #10 stainless screws into the pre-cast pilot holes for mechanical reinforcement. Cure 24 hours before hanging.",
-      },
-      {
-        n: "04",
-        title: "Hang the panel",
-        body: "Lift the panel onto the wall clips so each panel-side hook engages its corresponding wall-side hook. The panel will settle 1/16 in into final position. Verify level — fine-adjust by sliding the panel laterally before final seating.",
-      },
-      {
-        n: "05",
-        title: "Verify and finish",
-        body: "Confirm a 1/16 in panel-to-wall clearance along the bottom edge. For permanent installs, apply a bead of color-matched silicone along the bottom edge. For removable installs, leave un-sealed.",
-      },
-    ];
-
-    for (const s of steps) {
-      drawText(p4, s.n, M, yy, { font: fonts.bold, size: 13, color: ACCENT });
-      drawText(p4, s.title, M + 26, yy, { font: fonts.bold, size: 11, color: INK });
-      yy -= 14;
-      for (const line of wrapText(s.body, fonts.regular, 9.5, PAGE_W - 2 * M - 26)) {
-        drawText(p4, line, M + 26, yy, { font: fonts.regular, size: 9.5, color: INK });
-        yy -= 12;
-      }
-      yy -= 6;
-    }
-
-    // ── Substrate notes ──
-    yy -= 8;
-    drawText(p4, "SUBSTRATE & WEIGHT NOTES", M, yy, { font: fonts.bold, size: 9, color: ACCENT });
-    drawLine(p4, M, yy - 4, PAGE_W - M, yy - 4, { thickness: 0.5, color: LINE });
-    yy -= 16;
-    const notes = [
-      "Approved substrates: wood-stud framing, metal-stud framing, solid masonry (with appropriate anchors).",
-      "Drywall-only mounting is NOT supported — wall clips MUST land on studs.",
-      "For sloped or specialty walls, contact trade@backusdesignco.com before install.",
-    ];
-    for (const n of notes) {
-      for (const line of wrapText("·  " + n, fonts.regular, 9.5, PAGE_W - 2 * M)) {
-        drawText(p4, line, M, yy, { font: fonts.regular, size: 9.5, color: INK });
-        yy -= 12;
+      for (const line of wrapText("·  " + n, fonts.regular, 9, PAGE_W - 2 * M)) {
+        drawText(p4, line, M, yy, { font: fonts.regular, size: 9, color: INK });
+        yy -= 11;
       }
       yy -= 2;
     }
