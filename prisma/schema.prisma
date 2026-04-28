@@ -847,6 +847,7 @@ model Contact {
   activities     ContactActivity[]
   enrollments    SequenceEnrollment[]
   emailLogs      EmailLog[]
+  tradeMember    TradeMember?
 
   isUnsubscribed Boolean   @default(false)
   unsubscribedAt DateTime?
@@ -1820,4 +1821,63 @@ model CareKitBuildSheetItem {
   @@index([buildSheetId])
   @@index([componentId])
   @@map("care_kit_build_sheet_items")
+}
+
+// ── Trade Portal ──
+// External-facing trade member accounts for the portal at /trade/portal.
+// Distinct from internal staff (INTERNAL_AUTH_USERS_JSON) — trade members
+// authenticate via passwordless magic-link only. Each TradeMember is
+// linked to a Contact in the CRM (created when their trade application
+// was approved) so quotes/orders/activity stay unified.
+
+enum TradeMemberStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+model TradeMember {
+  id                String            @id @default(cuid())
+  email             String            @unique
+  firmName          String
+  contactName       String
+  phone             String?
+  profession        String?
+  tradeDiscountPct  Int               @default(15)
+  status            TradeMemberStatus @default(ACTIVE)
+
+  // Link back to the CRM Contact created on approval
+  linkedContactId   String?           @unique
+  linkedContact     Contact?          @relation(fields: [linkedContactId], references: [id], onDelete: SetNull)
+
+  approvedAt        DateTime          @default(now())
+  approvedBy        String?
+  lastLoginAt       DateTime?
+
+  loginTokens       TradeMemberLoginToken[]
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([status])
+  @@map("trade_members")
+}
+
+model TradeMemberLoginToken {
+  id              String      @id @default(cuid())
+  memberId        String
+  member          TradeMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  // Stored as SHA-256 hash; never store the raw token. The plaintext
+  // token is only ever returned from generateLoginToken() and emailed.
+  tokenHash       String      @unique
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  // Optional metadata for forensic review
+  requestedFromIp String?
+  userAgent       String?     @db.Text
+  createdAt       DateTime    @default(now())
+
+  @@index([memberId])
+  @@index([expiresAt])
+  @@map("trade_member_login_tokens")
 }

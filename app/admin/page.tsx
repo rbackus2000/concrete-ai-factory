@@ -96,6 +96,11 @@ const adminSections = [
     href: "/admin/catalog",
     description: "Publish a new version of the customer-facing catalog (PDF + JSON for the BDC flipbook). Editorial copy in the repo, products live from the SKU table.",
   },
+  {
+    title: "Trade Applications",
+    href: "/admin/trade-applications",
+    description: "Review pending trade-program applications. Approve to provision portal access and send a welcome email; decline with optional reason.",
+  },
 ] as const;
 
 export default function AdminPage() {
