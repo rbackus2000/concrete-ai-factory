@@ -677,15 +677,16 @@ function drawZClipSectionDetail(ctx: BpDrawCtx, opts: {
   bpArrow(ctx, panelBackX + 60, panelClipTopY + 22, panelBackX + 4, panelClipTopY + 4, BP_ACCENT);
   bpText(ctx, "EPOXY + 4x #10 SS SCREWS", panelBackX + 18, panelClipTopY + 30, { size: 6.5, color: BP_ACCENT });
 
-  // 1/16" gap label between wall and panel
+  // 1/16" gap label between wall and panel — leader line going up-and-over
   const gapMidX = (wallX + panelBackX) / 2;
-  bpText(ctx, "1/16 in", gapMidX - 12, drawY + 10, { size: 6.5, color: BP_DIM });
-  bpText(ctx, "PANEL-TO-WALL", gapMidX - 24, drawY + 4, { size: 6, color: BP_DIM });
+  const labelY = drawY + drawH - 10;
+  bpArrow(ctx, gapMidX, labelY - 6, gapMidX, cy + 22, BP_DIM);
+  bpText(ctx, "1/16 in PANEL-TO-WALL", gapMidX - 32, labelY, { size: 6.5, color: BP_DIM });
 
-  // Clip extrusion label
-  bpText(ctx, "1.5 in ALUMINUM Z-CLIP", drawX + 4, drawY + 4, { size: 6.5, color: BP_INK });
+  // Clip extrusion label — moved to the very top of the slot, away from the drawing
+  bpText(ctx, "1.5 in ALUMINUM Z-CLIP EXTRUSION", drawX + 4, drawY + drawH + 4, { size: 6.5, color: BP_INK });
 
-  // Section label
+  // Section label (kept at slot bottom — sits above the page footer)
   const sectLabel = "SECTION A-A — Z-CLIP DETAIL";
   const sw = ctx.fonts.bold.widthOfTextAtSize(sectLabel, 8);
   bpText(ctx, sectLabel, opts.slotX + opts.slotW / 2 - sw / 2, opts.slotY + 8, {
@@ -1040,12 +1041,8 @@ function renderProceduralBlueprintPage(
     });
   }
 
-  // For PANEL: tuck the exploded clip-pair into the title block area (below it)
-  if (sku.category === "PANEL") {
-    const explodedSlot = { slotX: TITLE_X, slotY: TITLE_Y - TITLE_H - 110, slotW: TITLE_W, slotH: 96 };
-    bpRect(ctx, explodedSlot.slotX, explodedSlot.slotY, explodedSlot.slotW, explodedSlot.slotH, { thickness: 0.6 });
-    drawZClipExploded(ctx, explodedSlot);
-  }
+  // (No exploded-clip inset on this page — the install guide on
+  // page 4 is the mounting reference. Page 3 stays purely technical.)
 
   // ── Footer ──
   bpLine(ctx, M, FOOTER_H + 18, PAGE_W - M, FOOTER_H + 18, { thickness: 0.4, color: BP_DIM });
@@ -1514,14 +1511,14 @@ export async function renderTradeSpecSheet(input: {
     ];
 
     for (const s of steps) {
-      drawText(p4, s.n, M, yy, { font: fonts.bold, size: 13, color: ACCENT });
-      drawText(p4, s.title, M + 26, yy, { font: fonts.bold, size: 11, color: INK });
-      yy -= 14;
-      for (const line of wrapText(s.body, fonts.regular, 9.5, PAGE_W - 2 * M - 26)) {
-        drawText(p4, line, M + 26, yy, { font: fonts.regular, size: 9.5, color: INK });
-        yy -= 12;
+      drawText(p4, s.n, M, yy, { font: fonts.bold, size: 12, color: ACCENT });
+      drawText(p4, s.title, M + 26, yy, { font: fonts.bold, size: 10, color: INK });
+      yy -= 12;
+      for (const line of wrapText(s.body, fonts.regular, 9, PAGE_W - 2 * M - 26)) {
+        drawText(p4, line, M + 26, yy, { font: fonts.regular, size: 9, color: INK });
+        yy -= 11;
       }
-      yy -= 6;
+      yy -= 4;
     }
 
     // ── Substrate notes ──
@@ -1535,9 +1532,9 @@ export async function renderTradeSpecSheet(input: {
       "For sloped or specialty walls, contact trade@backusdesignco.com before install.",
     ];
     for (const n of notes) {
-      for (const line of wrapText("·  " + n, fonts.regular, 9.5, PAGE_W - 2 * M)) {
-        drawText(p4, line, M, yy, { font: fonts.regular, size: 9.5, color: INK });
-        yy -= 12;
+      for (const line of wrapText("·  " + n, fonts.regular, 9, PAGE_W - 2 * M)) {
+        drawText(p4, line, M, yy, { font: fonts.regular, size: 9, color: INK });
+        yy -= 11;
       }
       yy -= 2;
     }
