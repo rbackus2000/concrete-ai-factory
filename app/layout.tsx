@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 
@@ -9,11 +10,18 @@ export const metadata: Metadata = {
   description: "Internal tooling for SKU definition, prompt generation, and build packet workflows.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Middleware tags trade-portal requests so we can render them WITHOUT
+  // the staff sidebar/shell. External trade members must never see
+  // internal navigation. The trade portal supplies its own header/nav
+  // via app/trade/portal/layout.tsx.
+  const h = await headers();
+  const isTradePortal = h.get("x-route-shell") === "trade-portal";
+
   return (
     <html lang="en">
       <head>
@@ -23,14 +31,18 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen font-sans text-foreground">
-        <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
-          <AppSidebar />
-          <main className="overflow-hidden">
-            <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
-              {children}
-            </div>
-          </main>
-        </div>
+        {isTradePortal ? (
+          children
+        ) : (
+          <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
+            <AppSidebar />
+            <main className="overflow-hidden">
+              <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
+                {children}
+              </div>
+            </main>
+          </div>
+        )}
       </body>
     </html>
   );
