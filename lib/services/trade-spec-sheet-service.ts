@@ -558,38 +558,58 @@ export async function renderTradeSpecSheet(input: {
   drawText(page, sku.finish || categoryLabel, M, y, { font: fonts.italic, size: 12, color: SUBTLE });
   y -= 16;
 
-  // Hero block
-  const heroAreaTop = y;
-  const heroAreaH = 240;
-  const heroAreaBottom = y - heroAreaH;
+  // Hero block — image fills the panel edge-to-edge. Panel width is the
+  // full content width; panel HEIGHT adapts to the image's aspect ratio
+  // so the image fills the panel exactly with no cream borders. Capped
+  // at a max height so the rest of the page still has room.
+  const HERO_PANEL_W = PAGE_W - 2 * M;
+  const HERO_MAX_H = 320;
+  const HERO_MIN_H = 200;
+  let heroPanelH: number;
+  let heroDrawW = HERO_PANEL_W;
+  let heroDrawH = HERO_MAX_H;
+
+  if (hero) {
+    // Width-fit at full panel width
+    const widthFitH = (hero.height / hero.width) * HERO_PANEL_W;
+    if (widthFitH <= HERO_MAX_H) {
+      heroDrawW = HERO_PANEL_W;
+      heroDrawH = widthFitH;
+    } else {
+      // Image is too tall for the page; height-fit to MAX_H instead.
+      // Width may be less than the panel — center horizontally.
+      heroDrawH = HERO_MAX_H;
+      heroDrawW = (hero.width / hero.height) * HERO_MAX_H;
+    }
+    heroPanelH = Math.max(HERO_MIN_H, heroDrawH);
+  } else {
+    heroPanelH = 240;
+  }
+
+  const heroAreaBottom = y - heroPanelH;
   page.drawRectangle({
-    x: M, y: heroAreaBottom, width: PAGE_W - 2 * M, height: heroAreaH,
+    x: M, y: heroAreaBottom, width: HERO_PANEL_W, height: heroPanelH,
     color: CREAM,
   });
+
   if (hero) {
-    const pad = 14;
-    const maxW = PAGE_W - 2 * M - pad * 2;
-    const maxH = heroAreaH - pad * 2;
-    const ratio = Math.min(maxW / hero.width, maxH / hero.height);
-    const drawW = hero.width * ratio;
-    const drawH = hero.height * ratio;
-    const cx = M + (PAGE_W - 2 * M) / 2;
-    const cy = heroAreaBottom + heroAreaH / 2;
-    page.drawImage(hero, { x: cx - drawW / 2, y: cy - drawH / 2, width: drawW, height: drawH });
+    const drawX = M + (HERO_PANEL_W - heroDrawW) / 2;
+    const drawY = heroAreaBottom + (heroPanelH - heroDrawH) / 2;
+    page.drawImage(hero, { x: drawX, y: drawY, width: heroDrawW, height: heroDrawH });
   } else if (hasOuterDims) {
-    const cx = M + (PAGE_W - 2 * M) / 2 - 30;
-    const cy = heroAreaBottom + heroAreaH / 2 - 60;
+    const cx = M + HERO_PANEL_W / 2 - 30;
+    const cy = heroAreaBottom + heroPanelH / 2 - 60;
     drawWireframeIso(page, cx, cy, outerL!, outerW!, outerH!,
       innerL && innerW && innerD ? { l: innerL, w: innerW, d: innerD } : null,
-      Math.min(PAGE_W - 2 * M - 32, heroAreaH - 32),
+      Math.min(HERO_PANEL_W - 32, heroPanelH - 32),
     );
     drawText(page, "Geometric reference — photography in production",
       M + 16, heroAreaBottom + 14, { font: fonts.italic, size: 8, color: SUBTLE });
   } else {
     drawText(page, "Photography in production",
-      M + 16, heroAreaBottom + heroAreaH / 2, { font: fonts.italic, size: 10, color: SUBTLE });
+      M + 16, heroAreaBottom + heroPanelH / 2, { font: fonts.italic, size: 10, color: SUBTLE });
   }
-  void heroAreaTop;
+
   y = heroAreaBottom - 24;
 
   // Two-column body
