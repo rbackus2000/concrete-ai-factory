@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const NAV = [
   { label: "Dashboard", href: "/trade/portal" },
   { label: "Catalog", href: "/trade/portal/catalog" },
-  { label: "Design Packets", href: "/trade/portal/packets" },
+  { label: "Specs & Packets", href: "/trade/portal/packets" },
   { label: "Trade Pricing", href: "/trade/portal/pricing" },
   { label: "Samples", href: "/trade/portal/samples" },
   { label: "Request Quote", href: "/trade/portal/quotes/new" },
