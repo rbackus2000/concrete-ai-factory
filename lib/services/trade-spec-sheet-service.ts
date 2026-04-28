@@ -121,6 +121,47 @@ function buildCdnImageUrl(category: string, slug: string): string | null {
 }
 
 /**
+ * Find the latest BLUEPRINT_RENDER image for a SKU. Reads the base64
+ * directly from GeneratedImageAsset.metadataJson — same data the
+ * /api/images/[id] public route serves, but without a self-call.
+ */
+async function findBlueprintRenderBytes(
+  skuId: string,
+): Promise<{ bytes: Uint8Array; format: "png" | "jpg" } | null> {
+  const asset = await prisma.generatedImageAsset.findFirst({
+    where: {
+      status: OutputStatus.GENERATED,
+      generatedOutput: {
+        skuId,
+        outputType: OutputType.BLUEPRINT_RENDER,
+        status: { in: [OutputStatus.GENERATED, OutputStatus.APPROVED] },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { metadataJson: true, imageUrl: true, filePath: true },
+  });
+  if (!asset) return null;
+
+  // Try inline base64 first (gpt-image-1 path stores it here)
+  const meta = asset.metadataJson as Record<string, unknown> | null;
+  const b64 = meta?.["imageBase64"];
+  if (typeof b64 === "string" && b64.length > 0) {
+    const buf = Buffer.from(b64, "base64");
+    const bytes = new Uint8Array(buf);
+    if (bytes[0] === 0xff && bytes[1] === 0xd8) return { bytes, format: "jpg" };
+    return { bytes, format: "png" };
+  }
+
+  // Fall back to URL fetch if the asset has one
+  const url = asset.imageUrl ?? asset.filePath;
+  if (url && url.startsWith("http")) {
+    return fetchImageBytes(url);
+  }
+
+  return null;
+}
+
+/**
  * Resolve a hero image URL for a SKU. Tries in order:
  * 1. The published catalog image on the MinIO CDN — these are the
  *    real product photos used in the storefront and catalog PDF.
@@ -489,6 +530,11 @@ export async function renderTradeSpecSheet(input: {
   const heroUrl = await findHeroImageUrl(sku.id, sku.category, sku.slug);
   const heroBytes = heroUrl ? await fetchImageBytes(heroUrl) : null;
 
+  // Blueprint render (gpt-image-1 6-panel technical drawing). Embedded
+  // on page 3 if it exists. Generated via /generator → BLUEPRINT_RENDER
+  // and cached in GeneratedImageAsset.metadataJson.imageBase64.
+  const blueprintBytes = await findBlueprintRenderBytes(sku.id);
+
   const pdf = await PDFDocument.create();
   const fonts: Fonts = {
     regular: await pdf.embedFont(StandardFonts.Helvetica),
@@ -514,6 +560,17 @@ export async function renderTradeSpecSheet(input: {
         : await pdf.embedJpg(heroBytes.bytes);
     } catch {
       hero = null;
+    }
+  }
+
+  let blueprint: PDFImage | null = null;
+  if (blueprintBytes) {
+    try {
+      blueprint = blueprintBytes.format === "png"
+        ? await pdf.embedPng(blueprintBytes.bytes)
+        : await pdf.embedJpg(blueprintBytes.bytes);
+    } catch {
+      blueprint = null;
     }
   }
 
@@ -558,56 +615,67 @@ export async function renderTradeSpecSheet(input: {
   drawText(page, sku.finish || categoryLabel, M, y, { font: fonts.italic, size: 12, color: SUBTLE });
   y -= 16;
 
-  // Hero block — image fills the panel edge-to-edge. Panel width is the
-  // full content width; panel HEIGHT adapts to the image's aspect ratio
-  // so the image fills the panel exactly with no cream borders. Capped
-  // at a max height so the rest of the page still has room.
-  const HERO_PANEL_W = PAGE_W - 2 * M;
+  // Hero block — image fills its panel with no negative space.
+  // Panel dims = image draw dims, centered horizontally on the page.
+  // Width capped at full content width; height capped at HERO_MAX_H so
+  // the rest of page 1 has room.
+  const HERO_PANEL_MAX_W = PAGE_W - 2 * M;
   const HERO_MAX_H = 320;
   const HERO_MIN_H = 200;
+
+  let heroPanelW: number;
   let heroPanelH: number;
-  let heroDrawW = HERO_PANEL_W;
+  let heroDrawW = HERO_PANEL_MAX_W;
   let heroDrawH = HERO_MAX_H;
 
   if (hero) {
-    // Width-fit at full panel width
-    const widthFitH = (hero.height / hero.width) * HERO_PANEL_W;
+    const widthFitH = (hero.height / hero.width) * HERO_PANEL_MAX_W;
     if (widthFitH <= HERO_MAX_H) {
-      heroDrawW = HERO_PANEL_W;
+      // Wide image: fill width.
+      heroDrawW = HERO_PANEL_MAX_W;
       heroDrawH = widthFitH;
     } else {
-      // Image is too tall for the page; height-fit to MAX_H instead.
-      // Width may be less than the panel — center horizontally.
+      // Tall/square image: height-fit, panel narrows to image width.
       heroDrawH = HERO_MAX_H;
       heroDrawW = (hero.width / hero.height) * HERO_MAX_H;
     }
+    heroPanelW = heroDrawW;
     heroPanelH = Math.max(HERO_MIN_H, heroDrawH);
   } else {
+    heroPanelW = HERO_PANEL_MAX_W;
     heroPanelH = 240;
   }
 
+  const heroPanelX = M + (HERO_PANEL_MAX_W - heroPanelW) / 2;
   const heroAreaBottom = y - heroPanelH;
-  page.drawRectangle({
-    x: M, y: heroAreaBottom, width: HERO_PANEL_W, height: heroPanelH,
-    color: CREAM,
-  });
+
+  // Background — cream only when there's no real photo (so wireframe
+  // placeholder still has its frame). With a real photo the panel
+  // dims = image dims, so the image covers it 1:1.
+  if (!hero) {
+    page.drawRectangle({
+      x: heroPanelX, y: heroAreaBottom,
+      width: heroPanelW, height: heroPanelH, color: CREAM,
+    });
+  }
 
   if (hero) {
-    const drawX = M + (HERO_PANEL_W - heroDrawW) / 2;
-    const drawY = heroAreaBottom + (heroPanelH - heroDrawH) / 2;
-    page.drawImage(hero, { x: drawX, y: drawY, width: heroDrawW, height: heroDrawH });
+    page.drawImage(hero, {
+      x: heroPanelX, y: heroAreaBottom,
+      width: heroDrawW, height: heroDrawH,
+    });
   } else if (hasOuterDims) {
-    const cx = M + HERO_PANEL_W / 2 - 30;
+    const cx = heroPanelX + heroPanelW / 2 - 30;
     const cy = heroAreaBottom + heroPanelH / 2 - 60;
     drawWireframeIso(page, cx, cy, outerL!, outerW!, outerH!,
       innerL && innerW && innerD ? { l: innerL, w: innerW, d: innerD } : null,
-      Math.min(HERO_PANEL_W - 32, heroPanelH - 32),
+      Math.min(heroPanelW - 32, heroPanelH - 32),
     );
     drawText(page, "Geometric reference — photography in production",
-      M + 16, heroAreaBottom + 14, { font: fonts.italic, size: 8, color: SUBTLE });
+      heroPanelX + 16, heroAreaBottom + 14, { font: fonts.italic, size: 8, color: SUBTLE });
   } else {
     drawText(page, "Photography in production",
-      M + 16, heroAreaBottom + heroPanelH / 2, { font: fonts.italic, size: 10, color: SUBTLE });
+      heroPanelX + 16, heroAreaBottom + heroPanelH / 2, { font: fonts.italic, size: 10, color: SUBTLE });
   }
 
   y = heroAreaBottom - 24;
@@ -782,6 +850,36 @@ export async function renderTradeSpecSheet(input: {
     const f2 = `${productUrl}   ·   trade@backusdesignco.com   ·   Page 2 — Technical Drawings`;
     const f2W = fonts.regular.widthOfTextAtSize(f2, 8);
     drawText(p2, f2, (PAGE_W - f2W) / 2, footerY, { font: fonts.regular, size: 8, color: SUBTLE });
+  }
+
+  // ── PAGE 3 — Manufacturing Blueprint (only if a BLUEPRINT_RENDER exists) ──
+  if (blueprint) {
+    const p3 = pdf.addPage([PAGE_W, PAGE_H]);
+    drawHeader(p3, "MANUFACTURING BLUEPRINT", `${sku.code} · ${sku.name}`);
+
+    let yy = PAGE_H - HEADER_H - 28;
+    drawText(p3, "AI-rendered 6-panel technical blueprint generated from this SKU's geometry.",
+      M, yy, { font: fonts.italic, size: 9, color: SUBTLE });
+    yy -= 18;
+
+    // Fit the blueprint into the remaining page area, preserving aspect.
+    const availW = PAGE_W - 2 * M;
+    const availH = yy - (footerY + 24);
+    const widthFitH = (blueprint.height / blueprint.width) * availW;
+    let bpDrawW = availW;
+    let bpDrawH = widthFitH;
+    if (widthFitH > availH) {
+      bpDrawH = availH;
+      bpDrawW = (blueprint.width / blueprint.height) * availH;
+    }
+    const bpX = M + (availW - bpDrawW) / 2;
+    const bpY = (footerY + 24) + (availH - bpDrawH) / 2;
+    p3.drawImage(blueprint, { x: bpX, y: bpY, width: bpDrawW, height: bpDrawH });
+
+    drawLine(p3, M, footerY + 14, PAGE_W - M, footerY + 14, { thickness: 0.5, color: LINE });
+    const f3 = `${productUrl}   ·   trade@backusdesignco.com   ·   Page 3 — Manufacturing Blueprint`;
+    const f3W = fonts.regular.widthOfTextAtSize(f3, 8);
+    drawText(p3, f3, (PAGE_W - f3W) / 2, footerY, { font: fonts.regular, size: 8, color: SUBTLE });
   }
 
   const pdfBytes = await pdf.save();
