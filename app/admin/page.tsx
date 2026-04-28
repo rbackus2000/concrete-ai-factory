@@ -91,6 +91,11 @@ const adminSections = [
     href: "/admin/care-labels",
     description: "Print-ready PDF labels for care kit packaging — single proofs and full Avery sheets.",
   },
+  {
+    title: "Catalog",
+    href: "/admin/catalog",
+    description: "Publish a new version of the customer-facing catalog (PDF + JSON for the BDC flipbook). Editorial copy in the repo, products live from the SKU table.",
+  },
 ] as const;
 
 export default function AdminPage() {

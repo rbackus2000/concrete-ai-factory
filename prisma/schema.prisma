@@ -1732,6 +1732,33 @@ model ReportExport {
   @@map("report_exports")
 }
 
+// ── Storefront catalog ──
+// One Catalog row per published version. The latest ACTIVE catalog is what
+// the BDC /catalog flipbook reads. Drafts are working copies.
+//
+// metadataJson stores the editable structural config (cover, intro, section
+// order, designer letter overrides, etc.). Product data is hydrated from
+// the Sku table at compose/publish time so the catalog stays current with
+// pricing and SKU changes without manual edits.
+
+model Catalog {
+  id            String       @id @default(cuid())
+  version       Int          @unique
+  title         String
+  subtitle      String?
+  status        RecordStatus @default(DRAFT)
+  publishedAt   DateTime?
+  pdfUrl        String?
+  jsonUrl       String?
+  metadataJson  Json?
+  notes         String?      @db.Text
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, publishedAt])
+  @@map("catalogs")
+}
+
 // ── Care kit fulfillment ──
 // Care kit SKUs (RBS-CARE-*) live in the Sku table with category=CARE_KIT.
 // Storefront (BDC) sells them; this section tracks how to BUILD each kit.
