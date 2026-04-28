@@ -1471,7 +1471,7 @@ export async function renderTradeSpecSheet(input: {
       M + 14, by, { font: fonts.bold, size: 11, color: INK });
     by -= 16;
     const sysRows: [string, string][] = [
-      ["Bond to panel", "G/Flex epoxy + 4× #10 stainless screws into pre-cast pilot holes"],
+      ["Bond to panel", "G/Flex epoxy + 4× #10 stainless screws into cast-in #10-24 brass inserts (pockets molded into panel back)"],
       ["Wall attachment", "Wood screws into studs at 16\" o.c. (provided)"],
       ["Load capacity", "100 lb / linear ft"],
       [`Hardware bundled`, `${clipPairs} clip pair${clipPairs === 1 ? "" : "s"} + wall anchors + epoxy packet — included with panel`],
@@ -1502,7 +1502,7 @@ export async function renderTradeSpecSheet(input: {
       {
         n: "03",
         title: "Bond panel-side clips (if not pre-installed)",
-        body: "Some panels ship with the panel-side clip already epoxied. If not, mix G/Flex epoxy and apply to the back of the clip + the panel mount zone. Drive 4× #10 stainless screws into the pre-cast pilot holes for mechanical reinforcement. Cure 24 hours before hanging.",
+        body: "Some panels ship with the panel-side clip already epoxied. If not, locate the 4 cast-in pockets in the panel back (1\", 3\", 5\", 7\" along the clip), seat the brass inserts with epoxy, then mix G/Flex and apply to the back of the clip + the panel mount zone. Drive 4× #10 stainless screws into the inserts for mechanical reinforcement. Cure 24 hours before hanging.",
       },
       {
         n: "04",
