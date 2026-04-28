@@ -48,8 +48,10 @@ const NEW_SKUS: NewSku[] = [
     outerHeight: 1.0,
     retailPrice: 780,
     wholesalePrice: 430,
-    targetWeightMinLbs: 14,
-    targetWeightMaxLbs: 18,
+    // GFRC density 130 pcf, deep stave grooves remove ~15% material.
+    // Solid: 0.333 ft³ × 130 = 43.3 lbs → with grooves: ~36.8 lbs ±6%.
+    targetWeightMinLbs: 34,
+    targetWeightMaxLbs: 39,
   },
   {
     code: "P7-RHYTHM",
@@ -64,8 +66,10 @@ const NEW_SKUS: NewSku[] = [
     outerHeight: 1.0,
     retailPrice: 620,
     wholesalePrice: 340,
-    targetWeightMinLbs: 11,
-    targetWeightMaxLbs: 14,
+    // GFRC density 130 pcf, varied-width flutes remove ~10% material.
+    // Solid: 0.250 ft³ × 130 = 32.5 lbs → with flutes: ~29.3 lbs ±6%.
+    targetWeightMinLbs: 27,
+    targetWeightMaxLbs: 31,
   },
   {
     code: "P8-KINETIC",
@@ -80,8 +84,11 @@ const NEW_SKUS: NewSku[] = [
     outerHeight: 1.25,
     retailPrice: 2400,
     wholesalePrice: 1320,
-    targetWeightMinLbs: 22,
-    targetWeightMaxLbs: 28,
+    // GFRC density 130 pcf, projecting kinetic fins ADD ~20% material above
+    // the base. Base: 0.521 ft³ × 130 = 67.7 lbs → with fins: ~81.3 lbs ±6%.
+    // Heavy enough to require a 2-person install.
+    targetWeightMinLbs: 76,
+    targetWeightMaxLbs: 86,
   },
   {
     code: "P9-DUNE",
@@ -96,8 +103,10 @@ const NEW_SKUS: NewSku[] = [
     outerHeight: 1.0,
     retailPrice: 840,
     wholesalePrice: 460,
-    targetWeightMinLbs: 14,
-    targetWeightMaxLbs: 18,
+    // GFRC density 130 pcf, undulating dune surface — peaks balance valleys
+    // so net mass change ≈ 0%. Solid: 0.333 ft³ × 130 = 43.3 lbs ±6%.
+    targetWeightMinLbs: 41,
+    targetWeightMaxLbs: 46,
   },
 ];
 
