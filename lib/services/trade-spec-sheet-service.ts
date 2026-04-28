@@ -638,7 +638,9 @@ function drawZClipSectionDetail(ctx: BpDrawCtx, opts: {
     bpLine(ctx, drawX + i * 4, cy - drawH / 2 + 8, drawX + i * 4 + 8, cy + drawH / 2 - 8, { thickness: 0.4, color: BP_DIM });
   }
   bpLine(ctx, wallX, cy - drawH / 2, wallX, cy + drawH / 2, { thickness: 0.8 });
-  bpText(ctx, "WALL STUD", drawX, cy + drawH / 2 + 4, { size: 7, color: BP_DIM });
+  // (No "WALL STUD" label — the hatching pattern conveys wall, and the
+  // WOOD SCREW INTO STUD arrow already labels the wall context. A
+  // separate label here was colliding with the EXTRUSION caption above.)
 
   // ── Wall-side Z-clip (Z-shape attached to wall) ──
   // Z-shape: top tab going right, vertical web, bottom tab back to wall
@@ -894,9 +896,12 @@ function renderProceduralBlueprintPage(
     ny -= 10;
   }
 
-  // Brand mark below notes
-  bpText(ctx, sku.code, NOTES_X + NOTES_W - 60, FOOTER_H + 14, { font: fonts.bold, size: 8, color: BP_ACCENT });
-  bpText(ctx, "BACKUS DESIGN CO.", NOTES_X + NOTES_W - 100, FOOTER_H + 4, { font: fonts.regular, size: 6.5, color: BP_DIM });
+  // SKU brand mark — sits inside the notes block to avoid the page footer.
+  // (No separate "BACKUS DESIGN CO." text — the header logo + page footer
+  // already carry the brand twice.)
+  bpText(ctx, sku.code, NOTES_X + NOTES_W - 60, NOTES_Y - NOTES_H + 6, {
+    font: fonts.bold, size: 8, color: BP_ACCENT,
+  });
 
   // ── Drawing area (right of title block, above notes) ──
   const VIEWS_X = TITLE_X + TITLE_W + 16;
