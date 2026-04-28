@@ -100,7 +100,7 @@ export function ActivityTimeline({ activities }: { activities: Activity[] }) {
               <Icon className="size-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm">{activity.content}</p>
+              <p className="whitespace-pre-wrap break-words text-sm">{activity.content}</p>
               {meta?.quoteId && meta?.quoteNumber && (
                 <a
                   href={`/quotes/${meta.quoteId}`}
