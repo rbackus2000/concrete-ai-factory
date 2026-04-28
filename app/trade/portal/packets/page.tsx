@@ -92,7 +92,7 @@ export default async function TradePacketsPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <a
-                            href={`/api/trade/portal/spec-sheets/${item.code}/pdf`}
+                            href={`/api/trade/portal/spec-sheets/${item.code}/pdf?v=${Date.now()}`}
                             className="text-primary underline-offset-4 hover:underline"
                           >
                             Download PDF →

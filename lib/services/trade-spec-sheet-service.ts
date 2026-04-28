@@ -869,8 +869,12 @@ function renderProceduralBlueprintPage(
   }
 
   // ── Notes block (bottom-right) ──
+  // NOTES_Y is the TOP of the box. Anchor the bottom 4pt above the footer
+  // hairline (FOOTER_H + 18) so the box sits cleanly above the page footer.
   const NOTES_W = 200, NOTES_H = 120;
-  const NOTES_X = PAGE_W - M - NOTES_W, NOTES_Y = FOOTER_H + 8 + NOTES_H;
+  const NOTES_X = PAGE_W - M - NOTES_W;
+  const NOTES_BOTTOM = FOOTER_H + 22; // hairline is at FOOTER_H + 18
+  const NOTES_Y = NOTES_BOTTOM + NOTES_H;
   bpRect(ctx, NOTES_X, NOTES_Y - NOTES_H, NOTES_W, NOTES_H, { thickness: 0.8 });
 
   let ny = NOTES_Y - 16;
@@ -896,12 +900,9 @@ function renderProceduralBlueprintPage(
     ny -= 10;
   }
 
-  // SKU brand mark — sits inside the notes block to avoid the page footer.
-  // (No separate "BACKUS DESIGN CO." text — the header logo + page footer
-  // already carry the brand twice.)
-  bpText(ctx, sku.code, NOTES_X + NOTES_W - 60, NOTES_Y - NOTES_H + 6, {
-    font: fonts.bold, size: 8, color: BP_ACCENT,
-  });
+  // (No separate SKU code or brand text on this page — the header subtitle
+  // already shows "{sku.code} · {sku.name}" and the footer URL contains the
+  // SKU slug. Drawing it again here just adds visual noise near the footer.)
 
   // ── Drawing area (right of title block, above notes) ──
   const VIEWS_X = TITLE_X + TITLE_W + 16;

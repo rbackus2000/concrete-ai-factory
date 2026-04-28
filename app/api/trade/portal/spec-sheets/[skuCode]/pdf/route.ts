@@ -40,7 +40,11 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${exported.filename}"`,
-      "Cache-Control": "private, max-age=0, must-revalidate",
+      // Defeat browser PDF cache — every request gets a fresh render so
+      // layout fixes show up immediately without users having to clear cache.
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      "Pragma": "no-cache",
+      "Expires": "0",
     },
   });
 }
