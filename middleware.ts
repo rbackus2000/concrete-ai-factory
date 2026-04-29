@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { getAuthHeaderNames, isAdminRoute } from "@/lib/auth/shared";
+import { canAccess } from "@/lib/auth/role-access";
 import { STAFF_SESSION_COOKIE, verifyStaffSessionCookie } from "@/lib/auth/staff-session";
 import {
   TRADE_SESSION_COOKIE,
@@ -33,6 +34,18 @@ function isTradePortalPublic(pathname: string): boolean {
 }
 function isPublicStaffPath(pathname: string): boolean {
   return STAFF_PUBLIC_PATHS.has(pathname);
+}
+
+/**
+ * 403 page redirects to /403 with the role in a query param so the page
+ * can show "you signed in as MARKETING but this is restricted to FINANCE".
+ * Doing it as a redirect (not a 403 body) keeps the URL bar showing /403
+ * so the user knows where they are and can navigate back via the sidebar.
+ */
+function forbidden(request: { url: string }, role: string) {
+  const url = new URL("/403", request.url);
+  url.searchParams.set("role", role);
+  return NextResponse.redirect(url);
 }
 
 export async function middleware(request: NextRequest) {
@@ -87,8 +100,16 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAdminRoute(pathname) && session.role !== "ADMIN") {
-    return new NextResponse("Admin access is required.", { status: 403 });
+    return forbidden(request, session.role);
   }
+
+  // Per-role gating for everything else. ADMIN passes everything; other
+  // roles are checked against the route-access table. Unknown routes
+  // default-allow (see lib/auth/role-access.ts).
+  if (!canAccess(session.role, pathname)) {
+    return forbidden(request, session.role);
+  }
+
 
   // Forward identity to Server Components / Server Actions via headers.
   // The session payload carries everything getOptionalSession() needs,

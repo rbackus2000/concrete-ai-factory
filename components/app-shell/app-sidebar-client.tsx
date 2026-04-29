@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 
 import { navigationItems } from "@/lib/data/navigation";
+import { canAccess } from "@/lib/auth/role-access";
+import type { StaffRole } from "@/lib/schemas/domain";
 import { cn } from "@/lib/utils";
 
 const iconMap: Record<string, typeof LayoutDashboard> = {
@@ -103,7 +105,14 @@ export function AppSidebarClient({
   marketingAttentionCount = 0,
 }: AppSidebarClientProps) {
   const pathname = usePathname();
-  const items = navigationItems.filter((item) => item.href !== "/admin" || canAccessAdmin);
+  // Filter to items the role can actually access. ADMIN sees everything.
+  // canAccess() handles all the role → route gating; the canAccessAdmin
+  // prop is still consulted for the /admin entry specifically because
+  // /admin/* gating lives in middleware (not in the role-access table).
+  const items = navigationItems.filter((item) => {
+    if (item.href === "/admin") return canAccessAdmin;
+    return canAccess(role as StaffRole, item.href);
+  });
 
   // Group items by section
   const sections: Array<{ key: string; label: string | null; items: typeof items }> = [];

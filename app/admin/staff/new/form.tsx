@@ -95,6 +95,13 @@ export function InviteForm() {
             </option>
           ))}
         </select>
+        <p className="text-xs text-muted-foreground">
+          <strong>Admin</strong> sees everything · <strong>Ops Manager</strong> sees CRM, ops,
+          reports · <strong>Shop Foreman</strong> sees production, mold gen, packets ·{" "}
+          <strong>Shop User</strong> sees jobs + packets only · <strong>Marketing</strong> sees
+          catalog + image gen + marketing · <strong>Finance</strong> sees CRM, orders, invoices,
+          reports.
+        </p>
       </div>
       {error && (
         <p className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
