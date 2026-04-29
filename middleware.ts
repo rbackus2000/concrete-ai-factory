@@ -110,6 +110,7 @@ export async function middleware(request: NextRequest) {
     return forbidden(request, session.role);
   }
 
+
   // Forward identity to Server Components / Server Actions via headers.
   // The session payload carries everything getOptionalSession() needs,
   // so no DB call is required per request.
