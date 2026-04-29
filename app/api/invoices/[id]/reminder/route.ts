@@ -6,8 +6,8 @@ import { sendReminderSchema } from "@/lib/schemas/invoice";
 import { getInvoice, recordReminder } from "@/lib/services/invoice-service";
 import { sendInvoiceReminderEmail } from "@/lib/services/postmark-service";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function POST(

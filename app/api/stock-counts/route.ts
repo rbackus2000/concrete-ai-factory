@@ -5,8 +5,8 @@ import { getSystemActor } from "@/lib/auth/session";
 import { startCountSchema } from "@/lib/schemas/inventory";
 import { listStockCounts, startStockCount } from "@/lib/services/stock-count-service";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const body = await request.json();
   const parsed = startCountSchema.safeParse(body);
 

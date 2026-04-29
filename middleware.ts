@@ -1,7 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { authenticateRequest, getAuthHeaderNames, isAdminRoute } from "@/lib/auth/shared";
+import { getAuthHeaderNames, isAdminRoute } from "@/lib/auth/shared";
+import { STAFF_SESSION_COOKIE, verifyStaffSessionCookie } from "@/lib/auth/staff-session";
 import {
   TRADE_SESSION_COOKIE,
   verifyTradeSessionCookie,
@@ -10,7 +11,6 @@ import {
 const PUBLIC_FILE = /\.(.*)$/;
 
 // Trade portal paths the public can hit without a session cookie.
-// Everything else under /trade/portal requires a valid session.
 const TRADE_PORTAL_PUBLIC_PATHS = new Set<string>([
   "/trade/portal/login",
   "/trade/portal/check-email",
@@ -18,21 +18,21 @@ const TRADE_PORTAL_PUBLIC_PATHS = new Set<string>([
   "/trade/portal/sign-out",
 ]);
 
-function unauthorizedResponse() {
-  return new NextResponse("Authentication required.", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="Concrete AI Factory"',
-    },
-  });
-}
+// Staff paths anyone can hit (login screen + sign-out + the password
+// change page that signed-in-but-must-change-password users need).
+const STAFF_PUBLIC_PATHS = new Set<string>([
+  "/login",
+  "/account/password-change",
+]);
 
 function isTradePortalRoute(pathname: string): boolean {
   return pathname === "/trade/portal" || pathname.startsWith("/trade/portal/");
 }
-
 function isTradePortalPublic(pathname: string): boolean {
   return TRADE_PORTAL_PUBLIC_PATHS.has(pathname);
+}
+function isPublicStaffPath(pathname: string): boolean {
+  return STAFF_PUBLIC_PATHS.has(pathname);
 }
 
 export async function middleware(request: NextRequest) {
@@ -49,9 +49,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Trade portal: cookie-based auth, NOT Basic Auth ──
+  // ── Trade portal: cookie-based auth, separate cookie ──
   if (isTradePortalRoute(pathname)) {
-    // Tag the request so the root layout can skip the staff sidebar/shell.
     const tradeHeaders = new Headers(request.headers);
     tradeHeaders.set("x-route-shell", "trade-portal");
 
@@ -62,7 +61,6 @@ export async function middleware(request: NextRequest) {
     const payload = await verifyTradeSessionCookie(sessionCookie);
     if (!payload) {
       const loginUrl = new URL("/trade/portal/login", request.url);
-      // Preserve where they wanted to go so the login page can redirect back.
       if (pathname !== "/trade/portal") {
         loginUrl.searchParams.set("from", pathname);
       }
@@ -71,30 +69,40 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request: { headers: tradeHeaders } });
   }
 
-  // ── Internal staff: Basic Auth ──
-  const session = authenticateRequest(request.headers.get("authorization"));
+  // ── Internal staff: cookie-based auth ──
+  if (isPublicStaffPath(pathname)) {
+    // Pass pathname to root layout so it can render the chrome-less shell.
+    const headers = new Headers(request.headers);
+    headers.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers } });
+  }
+
+  const staffCookie = request.cookies.get(STAFF_SESSION_COOKIE)?.value;
+  const session = await verifyStaffSessionCookie(staffCookie);
 
   if (!session) {
-    return unauthorizedResponse();
+    const loginUrl = new URL("/login", request.url);
+    if (pathname !== "/") loginUrl.searchParams.set("from", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (isAdminRoute(pathname) && session.role !== "ADMIN") {
-    return new NextResponse("Admin access is required.", {
-      status: 403,
-    });
+    return new NextResponse("Admin access is required.", { status: 403 });
   }
 
+  // Forward identity to Server Components / Server Actions via headers.
+  // The session payload carries everything getOptionalSession() needs,
+  // so no DB call is required per request.
   const requestHeaders = new Headers(request.headers);
   const headerNames = getAuthHeaderNames();
-
   requestHeaders.set(headerNames.role, session.role);
-  requestHeaders.set(headerNames.username, session.username);
+  requestHeaders.set(headerNames.staffId, session.staffId);
+  requestHeaders.set(headerNames.username, session.email);
   requestHeaders.set(headerNames.displayName, session.displayName);
+  requestHeaders.set("x-pathname", pathname);
 
   return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
+    request: { headers: requestHeaders },
   });
 }
 

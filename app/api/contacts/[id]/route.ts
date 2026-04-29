@@ -5,8 +5,8 @@ import { getSystemActor } from "@/lib/auth/session";
 import { contactFormSchema } from "@/lib/schemas/contact";
 import { getContact, updateContact, deleteContact } from "@/lib/services/contact-service";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function GET(
@@ -27,7 +27,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const { id } = await params;
   const body = await request.json();
   const parsed = contactFormSchema.safeParse(body);
@@ -52,7 +52,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const { id } = await params;
 
   try {

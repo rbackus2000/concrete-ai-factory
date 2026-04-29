@@ -15,7 +15,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = authenticateRequest(request.headers.get("authorization"));
+  const session = await authenticateRequest(request);
   if (!session || session.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

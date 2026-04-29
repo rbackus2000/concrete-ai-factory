@@ -6,8 +6,8 @@ import { contactFormSchema } from "@/lib/schemas/contact";
 import { listContacts, createContact } from "@/lib/services/contact-service";
 import { autoEnroll } from "@/lib/services/marketing-service";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function GET(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const body = await request.json();
   const parsed = contactFormSchema.safeParse(body);
 

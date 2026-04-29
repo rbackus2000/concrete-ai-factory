@@ -7,8 +7,8 @@ import type { OrderStatusType } from "@/lib/schemas/order";
 
 export const dynamic = "force-dynamic";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const body = await request.json();
   const parsed = orderCreateSchema.safeParse(body);
 
