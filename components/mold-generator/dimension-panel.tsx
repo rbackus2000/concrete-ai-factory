@@ -58,6 +58,23 @@ export function DimensionPanel({ sku }: Props) {
           </div>
         )}
 
+        {(sku.draftAngle > 0 || sku.cornerRadius > 0) && (
+          <div className="border-t border-border pt-3">
+            {sku.draftAngle > 0 && (
+              <DimRow
+                label="Draft Angle"
+                value={`${sku.draftAngle}° — cavity walls taper for clean demold`}
+              />
+            )}
+            {sku.cornerRadius > 0 && (
+              <DimRow
+                label="Corner Radius"
+                value={`${sku.cornerRadius}" fillet at internal corners`}
+              />
+            )}
+          </div>
+        )}
+
         <div className="border-t border-border pt-3">
           <DimRow label="Target Weight" value={`${sku.targetWeight.min}–${sku.targetWeight.max} lbs`} />
           <DimRow label="Finish" value={sku.finish} />

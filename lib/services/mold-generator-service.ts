@@ -27,6 +27,7 @@ export type MoldGeneratorSku = {
   drainType: string;
   slopeDirection: string;
   cornerRadius: number;
+  draftAngle: number;
   hasOverflow: boolean;
   overflowHoleDiameter: number;
   basinSlopeDeg: number;
@@ -74,6 +75,7 @@ export async function getMoldGeneratorSkus(): Promise<{
       drainType: m.drainType,
       slopeDirection: m.slopeDirection,
       cornerRadius: m.cornerRadius,
+      draftAngle: m.draftAngle,
       hasOverflow: m.hasOverflow,
       overflowHoleDiameter: m.overflowHoleDiameter,
       basinSlopeDeg: m.basinSlopeDeg,
