@@ -9,6 +9,119 @@ import type { SectionPlan } from "@/lib/engines/mold-print-engine";
 const IN_TO_MM = 25.4;
 const MOLD_BASE_THICKNESS = 10; // mm base plate under the product
 
+// ── Mold-quality helpers ──
+// Defaults applied when the SKU doesn't override. Tuned for typical
+// architectural GFRC casting in rigid molds.
+
+/** Min / max draft angle clamped per face. 0 = no draft (open silicone mold). */
+const DRAFT_ANGLE_MIN_DEG = 0;
+const DRAFT_ANGLE_MAX_DEG = 5;
+
+/**
+ * Builds a tapered rectangular box ("frustum") from a wider top to a
+ * narrower bottom (or vice versa) by the given draft angle. Used for
+ * sink cavities and panel edges where the cast piece must demold cleanly.
+ *
+ * draftDeg is the half-angle from vertical for each side wall:
+ *   - draftDeg > 0: TOP face is larger than BOTTOM face by 2 * height * tan(draft)
+ *   - draftDeg = 0: straight-walled box (same as BoxGeometry)
+ *
+ * Box is axis-aligned, centered on origin in X and Z, with bottom at y=0.
+ */
+function buildTaperedBox(
+  bottomLengthMM: number,
+  bottomWidthMM: number,
+  heightMM: number,
+  draftDeg: number,
+): THREE.BufferGeometry {
+  const draft = clampDraft(draftDeg);
+  const offset = heightMM * Math.tan((draft * Math.PI) / 180);
+  const topLength = bottomLengthMM + 2 * offset;
+  const topWidth = bottomWidthMM + 2 * offset;
+
+  // 8 vertices: bottom 4 (CCW from -X-Z) then top 4 (same order, raised)
+  const bL = bottomLengthMM / 2, bW = bottomWidthMM / 2;
+  const tL = topLength / 2, tW = topWidth / 2;
+  // prettier-ignore
+  const positions = new Float32Array([
+    // bottom (y=0)
+    -bL, 0, -bW,   bL, 0, -bW,   bL, 0,  bW,  -bL, 0,  bW,
+    // top (y=h)
+    -tL, heightMM, -tW,   tL, heightMM, -tW,   tL, heightMM,  tW,  -tL, heightMM,  tW,
+  ]);
+
+  // 12 triangles (2 per face × 6 faces). Indexed for cheaper memory.
+  // prettier-ignore
+  const indices = new Uint16Array([
+    // bottom (facing down)
+    0, 2, 1,   0, 3, 2,
+    // top (facing up)
+    4, 5, 6,   4, 6, 7,
+    // -Z side
+    0, 1, 5,   0, 5, 4,
+    // +X side
+    1, 2, 6,   1, 6, 5,
+    // +Z side
+    2, 3, 7,   2, 7, 6,
+    // -X side
+    3, 0, 4,   3, 4, 7,
+  ]);
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(new THREE.BufferAttribute(indices, 1));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function clampDraft(deg: number): number {
+  if (!Number.isFinite(deg)) return 0;
+  return Math.max(DRAFT_ANGLE_MIN_DEG, Math.min(DRAFT_ANGLE_MAX_DEG, deg));
+}
+
+/**
+ * Builds an axis-aligned box with rounded corners in plan view (X-Z plane).
+ * Used to soften the corners of basin cavities so the cast piece doesn't
+ * have a sharp 90° internal corner that concentrates stress.
+ *
+ * If radiusMM <= 0, returns a plain BoxGeometry — no extra triangles.
+ */
+function buildRoundedCornerBox(
+  lengthMM: number,
+  widthMM: number,
+  heightMM: number,
+  cornerRadiusMM: number,
+): THREE.BufferGeometry {
+  if (cornerRadiusMM <= 0) {
+    return new THREE.BoxGeometry(lengthMM, heightMM, widthMM);
+  }
+  // Cap radius at half the smaller dimension so the corners don't overlap.
+  const r = Math.min(cornerRadiusMM, lengthMM / 2 - 0.1, widthMM / 2 - 0.1);
+
+  const shape = new THREE.Shape();
+  const halfL = lengthMM / 2, halfW = widthMM / 2;
+  // CCW perimeter starting at bottom-left, with quarter-arc fillets at each corner.
+  shape.moveTo(-halfL + r, -halfW);
+  shape.lineTo(halfL - r, -halfW);
+  shape.absarc(halfL - r, -halfW + r, r, -Math.PI / 2, 0, false);
+  shape.lineTo(halfL, halfW - r);
+  shape.absarc(halfL - r, halfW - r, r, 0, Math.PI / 2, false);
+  shape.lineTo(-halfL + r, halfW);
+  shape.absarc(-halfL + r, halfW - r, r, Math.PI / 2, Math.PI, false);
+  shape.lineTo(-halfL, -halfW + r);
+  shape.absarc(-halfL + r, -halfW + r, r, Math.PI, (3 * Math.PI) / 2, false);
+
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: heightMM,
+    bevelEnabled: false,
+    curveSegments: 8,
+  });
+  // ExtrudeGeometry extrudes along +Z. Rotate so it extrudes along +Y to
+  // match BoxGeometry conventions (Y is up).
+  geo.rotateX(-Math.PI / 2);
+  return geo;
+}
+
 /**
  * Builds a watertight solid mold mesh using CSG boolean operations.
  * Outer shell minus inner cavity minus drain minus overflow = printable mold.
@@ -77,15 +190,42 @@ function buildRectangularMoldCSG(sku: MoldGeneratorSku): THREE.BufferGeometry {
   const iL = sku.innerLength * IN_TO_MM;
   const iW = sku.innerWidth * IN_TO_MM;
   const iD = sku.innerDepth * IN_TO_MM;
+  const draftDeg = clampDraft(sku.draftAngle);
+  const cornerR = Math.max(0, sku.cornerRadius * IN_TO_MM);
 
   // Outer solid box
   const outerGeo = new THREE.BoxGeometry(oL, oH, oW);
   outerGeo.translate(0, oH / 2, 0);
   let result = new Brush(outerGeo, dummyMat);
 
-  // Subtract inner cavity
+  // Subtract inner cavity. Two upgrades over the previous straight box:
+  //   1. Walls TAPER outward going up by `draftDeg` so the cast basin
+  //      demolds cleanly when lifted straight up.
+  //   2. Corners are filleted to `cornerR` in plan view so the cast
+  //      basin doesn't have sharp 90° internal corners.
   if (iL > 0 && iW > 0 && iD > 0) {
-    const cavityGeo = new THREE.BoxGeometry(iL, iD + 1, iW); // +1mm to punch through top
+    const cavityHeight = iD + 1; // +1mm to punch through top of mold
+    let cavityGeo: THREE.BufferGeometry;
+
+    if (draftDeg > 0 && cornerR <= 0) {
+      // Pure draft, no fillets — use the lightweight tapered box helper.
+      cavityGeo = buildTaperedBox(iL, iW, cavityHeight, draftDeg);
+    } else if (draftDeg <= 0 && cornerR > 0) {
+      // Pure rounded corners, no draft — use the extruded rounded shape.
+      cavityGeo = buildRoundedCornerBox(iL, iW, cavityHeight, cornerR);
+    } else if (draftDeg > 0 && cornerR > 0) {
+      // Both: build a rounded shape at the BOTTOM size, extrude full height,
+      // then we'd need a second outward-tapered scaling — for now use the
+      // rounded shape (corners) and accept slight loss of draft. Combined
+      // draft+fillet via Shape extrusion needs ExtrudeGeometry's `extrudePath`
+      // and a custom UVGenerator; deferred until we have a customer mold
+      // that actually needs both. Most rigid molds use one or the other.
+      cavityGeo = buildRoundedCornerBox(iL, iW, cavityHeight, cornerR);
+    } else {
+      // Neither — fall back to the original BoxGeometry path.
+      cavityGeo = new THREE.BoxGeometry(iL, cavityHeight, iW);
+    }
+
     cavityGeo.translate(0, oH - iD / 2 + 0.5, 0);
     const cavityBrush = new Brush(cavityGeo, dummyMat);
     result = evaluator.evaluate(result, cavityBrush, SUBTRACTION);
