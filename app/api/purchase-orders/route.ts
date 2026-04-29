@@ -9,8 +9,8 @@ import {
   createPurchaseOrder,
 } from "@/lib/services/purchase-order-service";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function GET(request: NextRequest) {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const body = await request.json();
   const parsed = purchaseOrderFormSchema.safeParse(body);
 

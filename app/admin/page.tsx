@@ -72,6 +72,11 @@ const adminSections = [
     description: "Review write activity and export access events by actor, entity, and action.",
   },
   {
+    title: "Staff",
+    href: "/admin/staff",
+    description: "Internal staff accounts — invite, edit roles, reset passwords, disable.",
+  },
+  {
     title: "Equipment Tracker",
     href: "/admin/equipment",
     description: "Procurement tracker for studio build-out — equipment, tools, and infrastructure by phase.",

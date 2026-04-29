@@ -381,7 +381,8 @@ export async function saveProductBundle(
     data: {
       actorId: actor.id,
       actorName: actor.displayName,
-      actorRole: actor.role,
+      // AuditLog uses the legacy UserRole enum (ADMIN | USER). Coerce.
+      actorRole: actor.role === "ADMIN" ? "ADMIN" : "USER",
       entityType: "SKU",
       entityId: skuRecord.id,
       action: "CREATE",

@@ -7,8 +7,8 @@ import { deleteQuote, getQuote, updateQuote } from "@/lib/services/quote-service
 
 export const dynamic = "force-dynamic";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function GET(
@@ -29,7 +29,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const { id } = await params;
   const body = await request.json();
   const parsed = quoteFormSchema.safeParse(body);
@@ -50,7 +50,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const { id } = await params;
 
   try {

@@ -201,7 +201,7 @@ function streamClaude(messages: ChatMessage[]): ReadableStream<Uint8Array> {
 }
 
 export async function POST(request: NextRequest) {
-  const session = authenticateRequest(request.headers.get("authorization"));
+  const session = await authenticateRequest(request);
   if (!session) {
     return new NextResponse("Authentication required.", {
       status: 401, headers: { "WWW-Authenticate": 'Basic realm="Concrete AI Factory"' },

@@ -1881,3 +1881,50 @@ model TradeMemberLoginToken {
   @@index([expiresAt])
   @@map("trade_member_login_tokens")
 }
+
+// ── Internal Staff ──
+// Replaces the legacy INTERNAL_AUTH_USERS_JSON env var. Staff sign in with
+// email + password (PBKDF2-SHA256 hashed). Six functional roles map to
+// real shop responsibilities; ADMIN is the only role that can manage
+// other staff. New staff are issued a temporary password by an admin and
+// must change it on first login.
+
+enum StaffRole {
+  ADMIN          // full access incl. staff management
+  OPS_MANAGER    // operations oversight (orders, quotes, packets, inventory)
+  SHOP_FOREMAN   // production lead (work orders, build packets, mold gen, QC)
+  SHOP_USER      // shop floor (job status updates, view-only on specs)
+  MARKETING      // catalog/SKU CRUD, image gen, marketing materials
+  FINANCE        // quotes, orders, invoicing, pricing
+}
+
+enum StaffStatus {
+  ACTIVE
+  DISABLED
+}
+
+model StaffUser {
+  id                  String      @id @default(cuid())
+  email               String      @unique
+  displayName         String
+  role                StaffRole   @default(SHOP_USER)
+  status              StaffStatus @default(ACTIVE)
+
+  // PBKDF2-SHA256, 100k iterations, 16-byte salt. Stored as
+  // "pbkdf2$100000$<saltB64>$<hashB64>". Verified via lib/auth/password.ts.
+  passwordHash        String
+
+  // True when the account was just created with a temp password OR
+  // the admin reset it. The user is forced to /account/password before
+  // they can use the app.
+  mustChangePassword  Boolean     @default(true)
+
+  lastLoginAt         DateTime?
+  createdAt           DateTime    @default(now())
+  createdById         String?     // staff id of the admin who invited them
+  updatedAt           DateTime    @updatedAt
+
+  @@index([status])
+  @@index([role])
+  @@map("staff_users")
+}

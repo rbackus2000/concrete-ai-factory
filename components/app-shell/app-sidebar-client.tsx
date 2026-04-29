@@ -80,7 +80,7 @@ const sectionLabels: Record<string, string> = {
 type AppSidebarClientProps = {
   canAccessAdmin: boolean;
   displayName: string;
-  role: "ADMIN" | "USER";
+  role: string;
   quoteAttentionCount?: number;
   contactAttentionCount?: number;
   invoiceAttentionCount?: number;
@@ -195,6 +195,14 @@ export function AppSidebarClient({
               <p className="text-[11px] text-zinc-500">{role}</p>
             </div>
           </div>
+          <form action="/api/auth/staff/sign-out" method="post" className="mt-3">
+            <button
+              type="submit"
+              className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+            >
+              Sign out
+            </button>
+          </form>
         </div>
       </div>
     </aside>

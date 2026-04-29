@@ -36,7 +36,7 @@ export async function AppSidebar() {
     <AppSidebarClient
       canAccessAdmin={session?.role === "ADMIN"}
       displayName={session?.displayName ?? "Internal user"}
-      role={session?.role ?? "USER"}
+      role={session?.role ?? "SHOP_USER"}
       quoteAttentionCount={quoteAttentionCount}
       contactAttentionCount={contactAttentionCount}
       invoiceAttentionCount={invoiceAttentionCount}

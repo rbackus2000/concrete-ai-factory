@@ -4,12 +4,12 @@ import { authenticateRequest } from "@/lib/auth/shared";
 import { getSystemActor } from "@/lib/auth/session";
 import { syncInventoryFromMasters } from "@/lib/services/inventory-service";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function POST(request: NextRequest) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
 
   const result = await syncInventoryFromMasters(actor);
 

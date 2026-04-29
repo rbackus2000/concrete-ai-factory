@@ -19,8 +19,16 @@ export default async function RootLayout({
   // the staff sidebar/shell. External trade members must never see
   // internal navigation. The trade portal supplies its own header/nav
   // via app/trade/portal/layout.tsx.
+  //
+  // The /login and /account/password-change routes are also chrome-less:
+  // there's no signed-in staff session to populate the sidebar with, and
+  // a forced password-change page should not let you click around.
   const h = await headers();
   const isTradePortal = h.get("x-route-shell") === "trade-portal";
+  const pathname = h.get("x-pathname") ?? "";
+  const isAuthChrome =
+    pathname === "/login" || pathname.startsWith("/account/password-change");
+  const skipShell = isTradePortal || isAuthChrome;
 
   return (
     <html lang="en">
@@ -31,7 +39,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-screen font-sans text-foreground">
-        {isTradePortal ? (
+        {skipShell ? (
           children
         ) : (
           <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">

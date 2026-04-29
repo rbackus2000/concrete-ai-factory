@@ -82,6 +82,28 @@ export const qcCategorySchema = z.enum(qcCategoryValues);
 export const jobStatusSchema = z.enum(jobStatusValues);
 export const proposalStatusSchema = z.enum(proposalStatusValues);
 
+// ── Internal staff ──
+export const staffRoleValues = [
+  "ADMIN",
+  "OPS_MANAGER",
+  "SHOP_FOREMAN",
+  "SHOP_USER",
+  "MARKETING",
+  "FINANCE",
+] as const;
+export const staffStatusValues = ["ACTIVE", "DISABLED"] as const;
+export const staffRoleSchema = z.enum(staffRoleValues);
+export const staffStatusSchema = z.enum(staffStatusValues);
+
+export const STAFF_ROLE_LABELS: Record<typeof staffRoleValues[number], string> = {
+  ADMIN: "Admin",
+  OPS_MANAGER: "Ops Manager",
+  SHOP_FOREMAN: "Shop Foreman",
+  SHOP_USER: "Shop User",
+  MARKETING: "Marketing",
+  FINANCE: "Finance",
+};
+
 export type SkuCategory = z.infer<typeof skuCategorySchema>;
 export type CategoryScope = z.infer<typeof categoryScopeSchema>;
 export type RecordStatus = z.infer<typeof recordStatusSchema>;
@@ -93,3 +115,5 @@ export type RuleCategory = z.infer<typeof ruleCategorySchema>;
 export type QcCategory = z.infer<typeof qcCategorySchema>;
 export type JobStatus = z.infer<typeof jobStatusSchema>;
 export type ProposalStatus = z.infer<typeof proposalStatusSchema>;
+export type StaffRole = z.infer<typeof staffRoleSchema>;
+export type StaffStatus = z.infer<typeof staffStatusSchema>;

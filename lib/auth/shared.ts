@@ -1,15 +1,17 @@
-export type AppRole = "ADMIN" | "USER";
+import type { StaffRole } from "@/lib/schemas/domain";
+
+// ── Internal staff session (post-migration) ──
+// AppSession was originally HTTP-Basic + INTERNAL_AUTH_USERS_JSON. After
+// the staff-users migration this now backs a real DB-backed account with
+// six roles (see prisma/schema.prisma StaffRole). Legacy callers that
+// only checked role === "ADMIN" continue to work unchanged because ADMIN
+// remains one of the StaffRole values.
+
+export type AppRole = StaffRole;
 
 export type AppSession = {
-  id: string;
-  username: string;
-  displayName: string;
-  role: AppRole;
-};
-
-type ConfiguredUser = {
-  username: string;
-  password: string;
+  id: string;            // staffUser.id (cuid)
+  username: string;      // email
   displayName: string;
   role: AppRole;
 };
@@ -17,105 +19,50 @@ type ConfiguredUser = {
 const ROLE_HEADER = "x-caf-user-role";
 const USERNAME_HEADER = "x-caf-username";
 const DISPLAY_NAME_HEADER = "x-caf-display-name";
-
-function readConfiguredUsers(): ConfiguredUser[] {
-  const raw = process.env.INTERNAL_AUTH_USERS_JSON;
-
-  if (!raw) {
-    throw new Error(
-      "INTERNAL_AUTH_USERS_JSON is not configured. Add it to your environment before starting the app.",
-    );
-  }
-
-  const parsed = JSON.parse(raw) as unknown;
-
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new Error("INTERNAL_AUTH_USERS_JSON must be a non-empty JSON array.");
-  }
-
-  return parsed.map((entry, index) => {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      throw new Error(`INTERNAL_AUTH_USERS_JSON entry ${index} must be an object.`);
-    }
-
-    const record = entry as Record<string, unknown>;
-    const username = typeof record["username"] === "string" ? record["username"] : "";
-    const password = typeof record["password"] === "string" ? record["password"] : "";
-    const displayName =
-      typeof record["displayName"] === "string" ? record["displayName"] : username;
-    const role = record["role"] === "ADMIN" ? "ADMIN" : "USER";
-
-    if (!username || !password) {
-      throw new Error(
-        `INTERNAL_AUTH_USERS_JSON entry ${index} must include username and password strings.`,
-      );
-    }
-
-    return {
-      username,
-      password,
-      displayName,
-      role,
-    };
-  });
-}
+const STAFF_ID_HEADER = "x-caf-staff-id";
 
 export function getAuthHeaderNames() {
   return {
     role: ROLE_HEADER,
     username: USERNAME_HEADER,
     displayName: DISPLAY_NAME_HEADER,
+    staffId: STAFF_ID_HEADER,
   };
-}
-
-export function parseBasicAuthorization(authorizationHeader: string | null | undefined) {
-  if (!authorizationHeader?.startsWith("Basic ")) {
-    return null;
-  }
-
-  const encoded = authorizationHeader.slice("Basic ".length).trim();
-
-  try {
-    const decoded = Buffer.from(encoded, "base64").toString("utf8");
-    const separatorIndex = decoded.indexOf(":");
-
-    if (separatorIndex === -1) {
-      return null;
-    }
-
-    return {
-      username: decoded.slice(0, separatorIndex),
-      password: decoded.slice(separatorIndex + 1),
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function authenticateRequest(authorizationHeader: string | null | undefined) {
-  const credentials = parseBasicAuthorization(authorizationHeader);
-
-  if (!credentials) {
-    return null;
-  }
-
-  const user = readConfiguredUsers().find(
-    (candidate) =>
-      candidate.username === credentials.username && candidate.password === credentials.password,
-  );
-
-  if (!user) {
-    return null;
-  }
-
-  return {
-    id: user.username,
-    username: user.username,
-    displayName: user.displayName,
-    role: user.role,
-  } satisfies AppSession;
 }
 
 export function isAdminRoute(pathname: string) {
   return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+/**
+ * /api/* routes are NOT covered by the staff middleware (the matcher
+ * excludes them). API route handlers should call this to gate themselves
+ * against the same staff session cookie middleware checks for everything else.
+ *
+ * Returns an AppSession on success, or null. Callers typically chain
+ * `?? getSystemActor()` for audit-actor purposes.
+ *
+ * Reads the staff session cookie from the request and verifies the HMAC.
+ * No DB call.
+ */
+import { STAFF_SESSION_COOKIE, verifyStaffSessionCookie } from "./staff-session";
+
+export async function authenticateRequest(
+  request: Request,
+): Promise<AppSession | null> {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(
+    new RegExp(`(?:^|;\\s*)${STAFF_SESSION_COOKIE}=([^;]+)`),
+  );
+  if (!match) return null;
+  const value = decodeURIComponent(match[1]);
+  const payload = await verifyStaffSessionCookie(value);
+  if (!payload) return null;
+  return {
+    id: payload.staffId,
+    username: payload.email,
+    displayName: payload.displayName,
+    role: payload.role,
+  };
 }

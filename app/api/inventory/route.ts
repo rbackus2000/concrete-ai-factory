@@ -6,8 +6,8 @@ import { getSystemActor } from "@/lib/auth/session";
 import { inventoryItemFormSchema } from "@/lib/schemas/inventory";
 import { listInventoryItems, createInventoryItem } from "@/lib/services/inventory-service";
 
-function getActor(request: NextRequest) {
-  return authenticateRequest(request.headers.get("authorization")) ?? getSystemActor();
+async function getActor(request: NextRequest) {
+  return (await authenticateRequest(request)) ?? getSystemActor();
 }
 
 export async function GET(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const actor = getActor(request);
+  const actor = await getActor(request);
   const body = await request.json();
   const parsed = inventoryItemFormSchema.safeParse(body);
 
