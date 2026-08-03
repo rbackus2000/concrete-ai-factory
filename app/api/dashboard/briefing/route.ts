@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getClaudeClient } from "@/lib/claude";
+import { getClaudeClient, CLAUDE_MODEL } from "@/lib/claude";
 import { collectBriefingData } from "@/lib/services/reporting-service";
 
 const BRIEFING_SYSTEM_PROMPT = `You are the daily operations assistant for RB Studio (RB Architecture Concrete Studio) — a premium GFRC concrete artistry studio in Anna, Texas, owned by Robert Backus.
@@ -63,8 +63,11 @@ export async function POST() {
     const client = getClaudeClient();
 
     const stream = await client.messages.stream({
-      model: "claude-sonnet-4-5-20250929",
+      model: CLAUDE_MODEL,
       max_tokens: 1500,
+      // Sonnet 5 enables adaptive thinking by default, and thinking shares the
+      // max_tokens budget — leave it off so the full briefing fits in 1500.
+      thinking: { type: "disabled" },
       system: BRIEFING_SYSTEM_PROMPT,
       messages: [
         {

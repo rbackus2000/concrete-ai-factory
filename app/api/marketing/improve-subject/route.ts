@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getClaudeClient, RB_STUDIO_SYSTEM_PROMPT } from "@/lib/claude";
+import { getClaudeClient, CLAUDE_MODEL, RB_STUDIO_SYSTEM_PROMPT } from "@/lib/claude";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -16,8 +16,11 @@ export async function POST(request: NextRequest) {
     const client = getClaudeClient();
 
     const stream = await client.messages.stream({
-      model: "claude-sonnet-4-5-20250929",
+      model: CLAUDE_MODEL,
       max_tokens: 256,
+      // Thinking shares the max_tokens budget on Sonnet 5 and would consume
+      // all 256 tokens before any subject line is emitted.
+      thinking: { type: "disabled" },
       system: RB_STUDIO_SYSTEM_PROMPT,
       messages: [
         {

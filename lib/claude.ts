@@ -1,5 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+/**
+ * Single source of truth for the model used by SDK-based callers.
+ * The raw-fetch callers (lib/services/claude-service.ts, app/api/chat/route.ts)
+ * read ANTHROPIC_MODEL instead — keep the two in sync when upgrading.
+ */
+export const CLAUDE_MODEL = "claude-sonnet-5";
+
 let _client: Anthropic | null = null;
 
 export function getClaudeClient(): Anthropic {

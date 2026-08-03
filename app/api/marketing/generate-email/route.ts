@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { generateEmailSchema } from "@/lib/schemas/marketing";
-import { getClaudeClient, RB_STUDIO_SYSTEM_PROMPT } from "@/lib/claude";
+import { getClaudeClient, CLAUDE_MODEL, RB_STUDIO_SYSTEM_PROMPT } from "@/lib/claude";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -46,8 +46,11 @@ Return only the improved subject line, nothing else.`;
     const client = getClaudeClient();
 
     const stream = await client.messages.stream({
-      model: "claude-sonnet-4-5-20250929",
+      model: CLAUDE_MODEL,
       max_tokens: 1024,
+      // Thinking shares the max_tokens budget on Sonnet 5; keep it off so the
+      // full email body fits in 1024.
+      thinking: { type: "disabled" },
       system: RB_STUDIO_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
     });

@@ -30,7 +30,7 @@ type AnthropicStreamEvent = {
 };
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-5";
 const MAX_TOOL_ROUNDS = 5;
 
 function getApiKey() {
@@ -50,6 +50,10 @@ async function callClaudeStreaming(messages: ChatMessage[]): Promise<Response> {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 4096,
+      // Adaptive thinking is on by default on Sonnet 5. The tool loop below
+      // rebuilds assistant turns from text + tool_use blocks only, so thinking
+      // blocks would be dropped and rejected on the next round.
+      thinking: { type: "disabled" },
       stream: true,
       system: JACOB_SYSTEM_PROMPT,
       tools: AGENT_TOOLS,

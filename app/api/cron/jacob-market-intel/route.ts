@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
         webSearches: result.webSearches,
+        truncated: result.truncated,
         costUsd: Number(result.estimatedCostUsd.toFixed(4)),
         monthSpentUsd: Number((spent + result.estimatedCostUsd).toFixed(4)),
         monthBudgetUsd: MONTHLY_BUDGET_USD,

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listIntelReports } from "@/lib/services/intel-report-service";
 import { requireSession } from "@/lib/auth/session";
@@ -39,7 +40,10 @@ export default async function IntelReportsPage() {
             <Link key={r.id} href={`/intel-reports/${r.id}`}>
               <Card className="transition hover:border-primary/50 hover:shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-base">Week of {fmtDate(r.weekOf)}</CardTitle>
+                  <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+                    Week of {fmtDate(r.weekOf)}
+                    {r.errorMessage ? <Badge variant="warning">Truncated</Badge> : null}
+                  </CardTitle>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Generated {fmtDate(r.generatedAt)}
                     {r.estimatedCostUsd ? ` · $${Number(r.estimatedCostUsd).toFixed(2)} cost` : ""}

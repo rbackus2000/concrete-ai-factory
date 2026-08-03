@@ -1,5 +1,5 @@
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514";
+const ANTHROPIC_MODEL = (process.env.ANTHROPIC_MODEL || "claude-sonnet-5").trim();
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
 
 type ClaudeMessage = {
@@ -20,12 +20,10 @@ export async function callClaude({
   systemPrompt,
   messages,
   maxTokens = 8192,
-  temperature = 0.3,
 }: {
   systemPrompt: string;
   messages: ClaudeMessage[];
   maxTokens?: number;
-  temperature?: number;
 }): Promise<{ text: string; usage: { input: number; output: number } }> {
   if (!ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY is not configured. Set it in .env.local");
@@ -41,7 +39,9 @@ export async function callClaude({
     body: JSON.stringify({
       model: ANTHROPIC_MODEL,
       max_tokens: maxTokens,
-      temperature,
+      // Sonnet 5 turns adaptive thinking on by default; thinking shares the
+      // max_tokens budget, which would truncate large JSON payloads here.
+      thinking: { type: "disabled" },
       system: systemPrompt,
       messages,
     }),
@@ -80,7 +80,6 @@ export async function callClaudeForJson<T>({
     systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
     maxTokens,
-    temperature: 0.2,
   });
 
   // Extract JSON from response — handle markdown code fences

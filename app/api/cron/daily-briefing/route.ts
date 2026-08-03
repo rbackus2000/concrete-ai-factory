@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getClaudeClient } from "@/lib/claude";
+import { getClaudeClient, CLAUDE_MODEL } from "@/lib/claude";
 import { collectBriefingData, getDashboardKPIs } from "@/lib/services/reporting-service";
 import { sendEmail } from "@/lib/services/postmark-service";
 
@@ -133,8 +133,11 @@ export async function POST(request: NextRequest) {
 
     const client = getClaudeClient();
     const response = await client.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: CLAUDE_MODEL,
       max_tokens: 1500,
+      // Sonnet 5 enables adaptive thinking by default, and thinking shares the
+      // max_tokens budget — leave it off so the full briefing fits in 1500.
+      thinking: { type: "disabled" },
       system: BRIEFING_SYSTEM_PROMPT,
       messages: [
         {
@@ -144,7 +147,12 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    const content = response.content[0].type === "text" ? response.content[0].text : "";
+    // Concatenate every text block rather than indexing content[0] — a thinking
+    // block can occupy index 0 and would silently yield an empty briefing.
+    const content = response.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("");
 
     // 2. Save to DB
     const today = new Date();

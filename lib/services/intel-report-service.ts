@@ -1,10 +1,19 @@
 import { prisma } from "@/lib/db";
-import { getClaudeClient } from "@/lib/claude";
+import { getClaudeClient, CLAUDE_MODEL } from "@/lib/claude";
 
 // Sonnet 4.6 input pricing: $3/M input, $15/M output. Web search: $10/1k searches.
 const PRICE_INPUT_PER_M = 3;
 const PRICE_OUTPUT_PER_M = 15;
 const PRICE_PER_WEB_SEARCH = 0.01;
+/** Safety cap on server-tool "pause_turn" resumes, so a stuck loop can't bill forever. */
+const MAX_PAUSE_RESUMES = 5;
+/**
+ * Output ceiling per attempt. Sonnet 5 allows up to 128K; 32K is generous
+ * headroom for a three-segment markdown report without inviting a runaway.
+ * Only tokens actually generated are billed, so the ceiling itself costs
+ * nothing. Requires the streaming call below — see MAX_OUTPUT_TOKENS usage.
+ */
+const MAX_OUTPUT_TOKENS = 32000;
 
 // The full system prompt Robert specified — Jacob the product/market
 // intelligence agent. Output structure is fixed and parsed downstream.
@@ -129,10 +138,12 @@ export type GenerateIntelReportResult = {
   outputTokens: number;
   webSearches: number;
   estimatedCostUsd: number;
+  /** True when the model hit MAX_OUTPUT_TOKENS; trailing sections may be cut off. */
+  truncated: boolean;
 };
 
 /**
- * Generates this week's market intelligence report via Claude Sonnet 4.6
+ * Generates this week's market intelligence report via Claude Sonnet 5
  * with the web_search tool. Persists the report to the database (upsert
  * by weekOf, so re-running on the same Monday updates rather than
  * duplicates). Returns the saved report id and cost metrics.
@@ -140,7 +151,7 @@ export type GenerateIntelReportResult = {
 export async function generateIntelReport(now: Date = new Date()): Promise<GenerateIntelReportResult> {
   const weekOf = startOfWeekMonday(now);
   const weekLabel = weekOf.toISOString().slice(0, 10);
-  const model = "claude-sonnet-4-6";
+  const model = CLAUDE_MODEL;
 
   const client = getClaudeClient();
   const userPrompt = `Today is ${now.toISOString().slice(0, 10)}. Generate the weekly architectural concrete market intelligence report for the week of ${weekLabel}.
@@ -153,34 +164,87 @@ Cover all three segments — residential, commercial, outdoor — with equal dep
   // for newly-released tools (web_search). The runtime accepts it.
   const tools: any[] = [
     {
-      type: "web_search_20250305",
+      // _20260209 adds dynamic filtering — results are filtered server-side
+      // before entering context, which improves accuracy on wide scans like
+      // this one. Requires Sonnet 5 / Opus 4.6+.
+      type: "web_search_20260209",
       name: "web_search",
       max_uses: 30,
     },
   ];
 
-  const response: any = await client.messages.create({
-    model,
-    max_tokens: 16000,
-    system: INTEL_SYSTEM_PROMPT,
-    tools,
-    messages: [{ role: "user", content: userPrompt }],
-  });
+  // The server-side web_search loop stops with stop_reason "pause_turn" after
+  // ~10 iterations. With max_uses: 30 this scan can plausibly hit it, so resume
+  // by echoing the assistant turn back verbatim.
+  //
+  // This works only because a paused turn ends with a server_tool_use block —
+  // that is what the API keys resumption off. Sonnet 5 otherwise rejects a
+  // trailing assistant message outright ("does not support assistant message
+  // prefill"), so only replay a turn that actually stopped on "pause_turn", and
+  // never append a "continue" user message.
+  const messages: any[] = [{ role: "user", content: userPrompt }];
+  const textBlocks: string[] = [];
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let webSearches = 0;
+  let resumes = 0;
+  let truncated = false;
 
-  // Concatenate all text blocks. Tool-use blocks are interleaved; we only
-  // want the assistant's text output.
-  const textBlocks = (response.content ?? [])
-      .filter((b: any) => b.type === "text")
-      .map((b: any) => b.text as string);
+  while (true) {
+    // Streamed rather than awaited whole: at MAX_OUTPUT_TOKENS a non-streaming
+    // request risks an SDK HTTP timeout. finalMessage() returns the same
+    // assembled message, so the rest of this loop is unchanged.
+    const response: any = await client.messages
+      .stream({
+        model,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        // Thinking shares the max_tokens budget on Sonnet 5; this report needs
+        // the whole budget for markdown output, so keep it off.
+        thinking: { type: "disabled" },
+        system: INTEL_SYSTEM_PROMPT,
+        tools,
+        messages,
+      } as any)
+      .finalMessage();
+
+    // Collect all text blocks. Tool-use blocks are interleaved; we only want
+    // the assistant's text output. Each resumed turn appends more of it.
+    for (const block of response.content ?? []) {
+      if (block.type === "text") textBlocks.push(block.text as string);
+    }
+
+    // Every attempt is billed separately, so accumulate — otherwise a paused
+    // report under-reports its cost and the monthly budget guard drifts low.
+    inputTokens += response.usage?.input_tokens ?? 0;
+    outputTokens += response.usage?.output_tokens ?? 0;
+    webSearches += (response.usage?.server_tool_use?.web_search_requests as number | undefined) ?? 0;
+
+    // Terminal: the model ran out of output budget mid-markdown. This cannot be
+    // resumed — the turn ends with a text block, which Sonnet 5 rejects as a
+    // prefill — so record it and save what we have rather than failing outright.
+    if (response.stop_reason === "max_tokens") {
+      truncated = true;
+      break;
+    }
+
+    if (response.stop_reason !== "pause_turn") break;
+
+    resumes += 1;
+    if (resumes > MAX_PAUSE_RESUMES) {
+      throw new Error(
+        `Intel report still paused after ${MAX_PAUSE_RESUMES} resumes (${webSearches} web searches). Report was incomplete; not saving.`,
+      );
+    }
+
+    messages.push({ role: "assistant", content: response.content });
+  }
+
   const fullMarkdown = textBlocks.join("\n\n").trim();
 
   if (!fullMarkdown) {
     throw new Error("Claude returned no text content");
   }
 
-  const inputTokens = response.usage?.input_tokens ?? 0;
-  const outputTokens = response.usage?.output_tokens ?? 0;
-  const webSearches = (response.usage?.server_tool_use?.web_search_requests as number | undefined) ?? 0;
   const estimatedCostUsd =
     (inputTokens / 1_000_000) * PRICE_INPUT_PER_M +
     (outputTokens / 1_000_000) * PRICE_OUTPUT_PER_M +
@@ -188,6 +252,14 @@ Cover all three segments — residential, commercial, outdoor — with equal dep
 
   const executiveSummary = extractExecutiveSummary(fullMarkdown);
   const topProducts = extractTopProducts(fullMarkdown);
+
+  // A truncated report still stays PUBLISHED: both getLatestIntelReport and
+  // listIntelReports filter on that status, so demoting it would hide the
+  // report entirely instead of showing it as degraded. errorMessage carries
+  // the caveat, and the cron response reports `truncated` for alerting.
+  const errorMessage = truncated
+    ? `Report truncated: hit the ${MAX_OUTPUT_TOKENS}-token output limit. Trailing sections may be incomplete.`
+    : null;
 
   const saved = await prisma.intelligenceReport.upsert({
     where: { weekOf },
@@ -201,6 +273,7 @@ Cover all three segments — residential, commercial, outdoor — with equal dep
       inputTokens,
       outputTokens,
       estimatedCostUsd,
+      errorMessage,
     },
     update: {
       executiveSummary,
@@ -212,7 +285,7 @@ Cover all three segments — residential, commercial, outdoor — with equal dep
       outputTokens,
       estimatedCostUsd,
       generatedAt: new Date(),
-      errorMessage: null,
+      errorMessage,
     },
   });
 
@@ -223,6 +296,7 @@ Cover all three segments — residential, commercial, outdoor — with equal dep
     outputTokens,
     webSearches,
     estimatedCostUsd,
+    truncated,
   };
 }
 
@@ -245,6 +319,8 @@ export async function listIntelReports(limit = 52) {
       executiveSummary: true,
       model: true,
       estimatedCostUsd: true,
+      // Drives the "Truncated" badge on the reports list.
+      errorMessage: true,
     },
   });
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TrendingUp, ArrowRight } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getLatestIntelReport } from "@/lib/services/intel-report-service";
 
@@ -45,9 +46,10 @@ export async function MarketIntelCard() {
     <Card className="border-l-4 border-l-primary">
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-base">
             <TrendingUp className="size-4" />
             Market Intelligence — Week of {formatWeekOf(report.weekOf)}
+            {report.errorMessage ? <Badge variant="warning">Truncated</Badge> : null}
           </CardTitle>
           <p className="mt-1 text-xs text-muted-foreground">
             Generated {new Date(report.generatedAt).toLocaleString("en-US", {
