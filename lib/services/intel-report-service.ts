@@ -169,7 +169,11 @@ Cover all three segments — residential, commercial, outdoor — with equal dep
       // this one. Requires Sonnet 5 / Opus 4.6+.
       type: "web_search_20260209",
       name: "web_search",
-      max_uses: 30,
+      // 30 searches pulled 300-590K input tokens per run, which is what pushed
+      // generation past the 300s function limit (and cost ~$1.70/report).
+      // The prompt names 13 specific sources, so 18 still covers them with
+      // room to follow leads.
+      max_uses: 18,
     },
   ];
 

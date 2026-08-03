@@ -36,7 +36,8 @@ export function GenerateReportButton() {
           takes minutes. Say so, or a quiet button reads as a hang. */}
       {isPending && (
         <p className="text-xs text-muted-foreground">
-          Scanning retailers and trade press — this usually takes 2–5 minutes. You can leave this page.
+          Scanning retailers and trade press — this takes several minutes. You can leave this page;
+          the report saves on its own and will appear in the list.
         </p>
       )}
 

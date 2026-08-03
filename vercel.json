@@ -11,11 +11,11 @@
       "maxDuration": 120
     },
     "app/api/cron/jacob-market-intel/route.ts": {
-      "maxDuration": 300,
+      "maxDuration": 800,
       "memory": 1024
     },
     "app/intel-reports/page.tsx": {
-      "maxDuration": 300,
+      "maxDuration": 800,
       "memory": 1024
     },
     "app/generator/page.tsx": {
