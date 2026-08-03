@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/app-shell/page-header";
+import { RefreshButton } from "@/components/outputs/refresh-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StateCard } from "@/components/ui/state-card";
@@ -91,8 +92,9 @@ export default async function OutputsPage({ searchParams }: OutputsPageProps) {
 
       {history.outputs.length > 0 ? (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>Saved Outputs</CardTitle>
+            <RefreshButton />
           </CardHeader>
           <CardContent>
             <Table>
@@ -150,10 +152,17 @@ export default async function OutputsPage({ searchParams }: OutputsPageProps) {
           </CardContent>
         </Card>
       ) : (
-        <StateCard
-          title="No generated outputs yet"
-          description="Run the generator or calculator first to save prompt, packet, or calculation outputs for inspection."
-        />
+        <div className="space-y-3">
+          {/* Renders finish asynchronously, so keep refresh reachable even
+              before the first output lands. */}
+          <div className="flex justify-end">
+            <RefreshButton />
+          </div>
+          <StateCard
+            title="No generated outputs yet"
+            description="Run the generator or calculator first to save prompt, packet, or calculation outputs for inspection."
+          />
+        </div>
       )}
     </div>
   );

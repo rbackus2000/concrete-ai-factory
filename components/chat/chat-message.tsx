@@ -115,12 +115,21 @@ function MessageContent({ content }: { content: string }) {
 }
 
 function isImageUrl(url: string) {
-  return /\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(url) || url.startsWith("/generated-images/");
+  return (
+    /\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(url) ||
+    url.startsWith("/generated-images/") ||
+    // Persisted renders are served by route handler, not a static file, so they
+    // carry no extension: /api/images/{outputId}. See image-generation-service.
+    url.startsWith("/api/images/")
+  );
 }
 
 function formatInline(text: string): React.ReactNode {
-  // Split on bold, code, markdown links, markdown images, and bare /generated-images/ URLs
-  const parts = text.split(/(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|`[^`]+`|\/generated-images\/[^\s),]+)/g);
+  // Split on bold, code, markdown links, markdown images, and bare image URLs
+  // (both the legacy /generated-images/ path and the /api/images/ route).
+  const parts = text.split(
+    /(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|`[^`]+`|\/(?:generated-images|api\/images)\/[^\s),]+)/g,
+  );
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
     if (part.startsWith("`") && part.endsWith("`")) return <code key={i} className="rounded bg-zinc-100 px-1 py-0.5 text-xs text-primary">{part.slice(1, -1)}</code>;
@@ -150,8 +159,8 @@ function formatInline(text: string): React.ReactNode {
       return <a key={i} href={url} className="text-primary underline underline-offset-2 hover:text-primary/80" target={url.startsWith("/") ? undefined : "_blank"}>{linkText}</a>;
     }
 
-    // Bare /generated-images/ URL — render inline as image
-    if (part.startsWith("/generated-images/") && isImageUrl(part)) {
+    // Bare image URL — render inline rather than printing the raw path
+    if ((part.startsWith("/generated-images/") || part.startsWith("/api/images/")) && isImageUrl(part)) {
       return (
         <span key={i} className="block my-3">
           <img src={part} alt="Generated product image" className="max-w-full rounded-lg border border-border" />

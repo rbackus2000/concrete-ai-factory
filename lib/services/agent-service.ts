@@ -308,7 +308,12 @@ async function generateConceptImageHandler(input: ToolInput) {
   return {
     imageUrl: result.imageUrl,
     outputId: result.outputId,
-    message: `Concept image generated and saved. View at ${result.imageUrl}`,
+    // Hand back ready-to-use markdown so the model embeds the render inline
+    // instead of paraphrasing the URL into a link or a description.
+    markdown: result.imageUrl ? `![${productName}](${result.imageUrl})` : null,
+    message: result.imageUrl
+      ? `Concept image generated and saved. Show it to the user by including this markdown verbatim: ![${productName}](${result.imageUrl})`
+      : "Concept image generation did not return a URL.",
   };
 }
 
